@@ -1,0 +1,257 @@
+#!/bin/bash
+
+# chkconfig: 345 55 5
+
+if [ -n "$DEVEL" ]
+then
+	export MINIUPNPD_CONFIGDIR=$PWD/etc/miniupnpd
+	export PIDDIR=$PWD/var/miniupnpd/run
+else
+	export MINIUPNPD_CONFIGDIR=/etc/miniupnpd
+	export PIDDIR=/var/miniupnpd/run
+	export PREFIX=MEDIA_
+fi
+
+export IPTABLES=/sbin/iptables
+
+init_iptables() {
+  ETH_IF=$1
+  IPMASK=$2
+  START=$3
+  END=$4
+
+  #adding the MINIUPNPD chain for filter
+  $IPTABLES -A ${PREFIX}PREROUTING -t nat -i $ETH_IF -p udp --dport $START:$END -j MINIUPNPD
+  $IPTABLES -t filter -A ${PREFIX}FORWARD -p udp --dport $START:$END -i $ETH_IF -j MINIUPNPD
+  $IPTABLES -t nat -A ${PREFIX}POSTROUTING -s $IPMASK -o $ETH_IF -j MASQUERADE
+}
+
+
+
+status_miniupnpd() {
+  #display all chains relative to miniupnpd
+  $IPTABLES -v -n -t nat -L MINIUPNPD
+  $IPTABLES -v -n -t nat -L ${PREFIX}PREROUTING
+  $IPTABLES -v -n -t nat -L ${PREFIX}POSTROUTING
+  $IPTABLES -v -n -t filter -L MINIUPNPD
+  $IPTABLES -v -n -t filter -L ${PREFIX}FORWARD
+
+  INSTANCE=1
+  for PIDFILE in $PIDDIR/miniupnpd*.pid
+  do
+    if [ "$PIDFILE" = "$PIDDIR/miniupnpd*.pid" ]
+    then
+      echo "Error: No miniupnpd process running"
+      return
+    fi
+    PID=$(cat $PIDFILE)
+    ps uwww -p $PID
+    if [ $? != 0 ]
+    then
+      echo "Error: No miniupnpd$INSTANCE process $PID"
+    fi
+    INSTANCE=$((INSTANCE+1))
+  done
+}
+
+remove_iptables()
+{
+  IPTABLES=/sbin/iptables
+  
+  #change this parameters :
+  EXTIF=$1
+  START=$2
+  END=$3
+  EXTIP="`LC_ALL=C /sbin/ifconfig $EXTIF | grep 'inet ' | awk '{print $2}' | sed -e 's/.*://'`"
+  PARAM="-i $EXTIF -j MINIUPNPD -p udp --dport $START:$END"
+  
+  #removing the MINIUPNPD chain for nat
+  $IPTABLES -t nat -F MINIUPNPD
+  #rmeoving the rule to MINIUPNPD
+  while [ $? == 0 ]
+  do
+    $IPTABLES -t nat -D ${PREFIX}PREROUTING $PARAM 2>/dev/null
+  done
+  
+  #removing the MINIUPNPD chain for filter
+  $IPTABLES -t filter -F MINIUPNPD
+  $IPTABLES -t filter -F ${PREFIX}FORWARD
+  #adding the rule to MINIUPNPD
+  while [ $? == 0 ]
+  do
+    $IPTABLES -t filter -D FORWARD $PARAM 2>/dev/null
+  done
+}
+
+init_miniupnpd() {
+  INSTANCE=1
+  for config in $MINIUPNPD_CONFIGDIR/*.init
+  do
+    if [ "$config" = "$MINIUPNPD_CONFIGDIR/*.init" ]
+    then
+      echo "Error: No miniupnpd configured"
+      return
+    fi
+    source $config
+    remove_iptables $EXTERNAL_INTERFACE $RTPPORT_START $RTPPORT_END
+    remove_iptables $INTERNAL_INTERFACE $RTPPORT_START $RTPPORT_END
+  done
+  $IPTABLES -t nat -F MINIUPNPD
+  $IPTABLES -t nat -F ${PREFIX}POSTROUTING 
+  $IPTABLES -t nat -F ${PREFIX}PREROUTING 
+  $IPTABLES -t filter -F ${PREFIX}FORWARD
+  $IPTABLES -t filter -F MINIUPNPD
+
+  #adding the MINIUPNPD chain for nat
+  $IPTABLES -t nat -N MINIUPNPD
+  $IPTABLES -t filter -N MINIUPNPD
+
+  rm -f $MINIUPNPD_CONFIGDIR/*.conf
+  for config in $MINIUPNPD_CONFIGDIR/*.init
+  do
+    if [ "$config" = "$MINIUPNPD_CONFIGDIR/*.init" ]
+    then
+      echo "Error: No miniupnpd configured"
+      return
+    fi
+
+    unset EXTERNAL_INTERFACE EXTERNAL_MEDIA_IPMASK INTERNAL_INTERFACE \
+		INTERNAL_MEDIA_IPMASK MEDIA_INTERFACE MEDIA_IP MEDIA_IPMASK \
+		TRANSCODER_IP MINIUPNPD_PORT MINIUPNPD_SECRET RTPPORT_END RTPPORT_START \
+		RTPPROXY_LISTEN PROFILE_ID PROFILE_NAME
+
+    CONFIG_FILE=$(basename $config|sed 's/\.init$/.conf/')
+    source $config
+    UUID=$(uuidgen)
+    if [ -n "$TRANSCODER_IP" ]
+    then
+    TRANSCODING_CONFIG_FILE=$(basename $config|sed 's/\.init$/-transcoding.conf/')
+    MINIUPNPD_TRANSCODING_PORT=$((MINIUPNPD_PORT+1))
+    cat > $MINIUPNPD_CONFIGDIR/$TRANSCODING_CONFIG_FILE<<EOF
+ext_ifname=$EXTERNAL_INTERFACE
+listening_ip=$MEDIA_IP
+port=$MINIUPNPD_TRANSCODING_PORT
+enable_natpmp=yes
+natpmp_secret=ThisIsABigSecret
+transcoding_dsp_address=$TRANSCODER_IP
+enable_upnp=no
+bitrate_up=1000000
+bitrate_down=10000000
+secure_mode=yes
+system_uptime=yes
+notify_interval=60
+clean_ruleset_interval=600
+uuid=$UUID
+serial=12345678
+model_number=1
+allow $RTPPORT_START-$RTPPORT_END $EXTERNAL_MEDIA_IPMASK $RTPPORT_START-$RTPPORT_END
+allow $RTPPORT_START-$RTPPORT_END $INTERNAL_MEDIA_IPMASK $RTPPORT_START-$RTPPORT_END
+EOF
+    echo $MINIUPNPD_CONFIGDIR/$TRANSCODING_CONFIG_FILE
+    fi
+
+    cat > $MINIUPNPD_CONFIGDIR/$CONFIG_FILE<<EOF
+ext_ifname=$EXTERNAL_INTERFACE
+listening_ip=$MEDIA_IP
+port=$MINIUPNPD_PORT
+enable_natpmp=yes
+natpmp_secret=ThisIsABigSecret
+enable_upnp=no
+bitrate_up=1000000
+bitrate_down=10000000
+secure_mode=yes
+system_uptime=yes
+notify_interval=60
+clean_ruleset_interval=600
+uuid=$UUID
+serial=12345678
+model_number=1
+allow $RTPPORT_START-$RTPPORT_END $EXTERNAL_MEDIA_IPMASK $RTPPORT_START-$RTPPORT_END
+allow $RTPPORT_START-$RTPPORT_END $INTERNAL_MEDIA_IPMASK $RTPPORT_START-$RTPPORT_END
+EOF
+
+    echo $MINIUPNPD_CONFIGDIR/$CONFIG_FILE
+
+    init_iptables $EXTERNAL_INTERFACE $MEDIA_IPMASK $RTPPORT_START $RTPPORT_END
+    init_iptables $INTERNAL_INTERFACE $MEDIA_IPMASK $RTPPORT_START $RTPPORT_END
+
+    if [ -n "$TRANSCODER_IP" ] #ACCEPT ALL OUTPUT PACKET FROM DSP Media ports(source)
+    then
+      $IPTABLES -t filter -I ${PREFIX}FORWARD -i $MEDIA_INTERFACE -p udp --sport $START:$END -j ACCEPT
+    fi
+
+    INSTANCE=$((INSTANCE+1))
+  done
+}
+
+start_miniupnpd() {
+  INSTANCE=1
+  for config in $MINIUPNPD_CONFIGDIR/*.conf
+  do
+    echo $config;
+    if [ "$config" = "$MINIUPNPD_CONFIGDIR/*.conf" ]
+    then
+      echo "Error: No miniupnpd configured, forgot to run '$0 init'"
+      return
+    fi
+    mkdir -p $PIDDIR
+    miniupnpd -f $config -P $PIDDIR/miniupnpd$INSTANCE.pid
+    if [ $? != 0 ]
+    then
+      echo "Error: Starting process miniupnpd$INSTANCE $PID"
+      exit $?
+    fi
+    INSTANCE=$((INSTANCE+1))
+  done
+}
+
+
+stop_miniupnpd() {
+  INSTANCE=1
+  for PIDFILE in $PIDDIR/miniupnpd*.pid
+  do
+    if [ "$PIDFILE" = "$PIDDIR/miniupnpd*.pid" ]
+    then
+      echo "Error: No miniupnpd process running"
+      return
+    fi
+    PID=$(cat $PIDFILE)
+    kill $PID
+    if [ $? != 0 ]
+    then
+      echo "Error: Killing process miniupnpd$INSTANCE $PID"
+      exit $?
+    fi
+    INSTANCE=$((INSTANCE+1))
+  done
+}
+
+restart_miniupnpd() {
+  stop_miniupnpd
+  start_miniupnpd
+}
+
+usage() {
+  echo "usage: $0 [start|stop|restart|status|init]" >&2;
+}
+
+case "$1" in
+start)
+      start_miniupnpd;
+      ;;
+stop)
+      stop_miniupnpd;
+      ;;
+restart)
+      restart_miniupnpd;
+      ;;
+init)
+      init_miniupnpd;
+      ;;
+status)
+      status_miniupnpd;
+      ;;
+*)
+     usage;
+     ;;
+esac

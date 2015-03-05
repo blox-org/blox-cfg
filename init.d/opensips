@@ -1,0 +1,67 @@
+#!/bin/bash
+
+# chkconfig: 345 65 35
+
+export PATH=$PATH:/usr/local/sbin/
+
+export STARTOPTIONS="-m512 -M512"
+
+start_opensips() {
+    opensipsctl start
+}
+
+stop_opensips() {
+    opensipsctl stop
+}
+
+restart_opensips() {
+    opensipsctl restart
+}
+
+status_opensips() {
+    opensipsctl status
+}
+
+setup_opensips() {
+    /sbin/chkconfig mysqld --add
+    /sbin/chkconfig --level 345 mysqld on
+    /etc/init.d/mysqld start
+
+	mysql -u opensips opensips_1_11 --password=opensipsrw -e "select * from blox_config"
+	if [ $? -eq 0 ] ; then
+        BLOX_MIGRATE=$(cat /etc/.blox_migrate)
+        /usr/bin/blox_db_install.sh $BLOX_MIGRATE
+	else
+        /usr/bin/blox_db_install.sh
+	fi
+	
+    rm /etc/.blox_setup
+	rm /etc/.blox_migrate
+}
+
+
+usage() {
+  echo "usage: $0 [start|stop|restart|status]" >&2;
+}
+
+case "$1" in
+start)
+    if [ -f /etc/.blox_setup ]
+    then
+        setup_opensips;
+    fi
+    start_opensips;
+    ;;
+stop)
+    stop_opensips;
+    ;;
+restart)
+    restart_opensips;
+    ;;
+status)
+    status_opensips;
+    ;;
+*)
+    usage;
+    ;;
+esac

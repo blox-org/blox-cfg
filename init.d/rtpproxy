@@ -1,0 +1,106 @@
+#!/bin/bash
+
+# chkconfig: 345 55 35
+
+if [ -n "$DEVEL" ]
+then
+	export VARDIR=$PWD/var/rtpproxy
+	export RTPROXY_CONFIGDIR=$PWD/etc/rtpproxy
+else
+	export VARDIR=/var/rtpproxy
+	export RTPROXY_CONFIGDIR=/etc/rtpproxy
+fi
+
+start_rtpproxy() {
+  INSTANCE=1
+  for config in $RTPROXY_CONFIGDIR/*.init
+  do
+    echo $config;
+    if [ "$config" = "$RTPROXY_CONFIGDIR/*.init" ]
+    then
+      echo "Error: No rtpproxy configured"
+      return
+    fi
+    source $config
+    export MINIUPNPD_SECRET
+    export MINIUPNPD_PORT
+    mkdir -p $VARDIR/call-record $VARDIR/spool $VARDIR/run
+    MEDIA_IP="`LC_ALL=C /sbin/ifconfig $MEDIA_INTERFACE | grep 'inet ' | awk '{print $2}' | sed -e 's/.*://'`"
+    /usr/local/bin/rtpproxy -l $MEDIA_IP -s udp:$RTPPROXY_LISTEN -r $VARDIR/call-record -S $VARDIR/spool/ -p $VARDIR/run/rtpproxy$INSTANCE.pid -m $RTPPORT_START -M $RTPPORT_END -F -d DBUG:local1
+    #echo /usr/local/bin/rtpproxy -l $MEDIA_IP -s udp:$RTPPROXY_LISTEN -r $VARDIR/call-record -S $VARDIR/spool/ -p $VARDIR/run/rtpproxy$INSTANCE.pid -m $RTPPORT_START -M $RTPPORT_END -F -d DBUG:local1
+    if [ $? != 0 ]
+    then
+      echo "Error: Starting process rtpproxy$INSTANCE $PID"
+      exit $?
+    fi
+    INSTANCE=$((INSTANCE+1))
+  done
+}
+
+stop_rtpproxy() {
+  INSTANCE=1
+  for PIDFILE in $VARDIR/run/rtpproxy*.pid
+  do
+    echo "$PIDFILE" = "$VARDIR/run/rtpproxy*.pid"
+    if [ "$PIDFILE" = "$VARDIR/run/rtpproxy*.pid" ]
+    then
+      echo "Error: No rtpproxy process running"
+      return
+    fi
+    PID=$(cat $PIDFILE)
+    kill $PID
+    if [ $? != 0 ]
+    then
+      echo "Error: Killing process rtpproxy$INSTANCE $PID"
+      exit $?
+    fi
+    INSTANCE=$((INSTANCE+1))
+  done
+}
+
+restart_rtpproxy() {
+  stop_rtpproxy
+  start_rtpproxy
+}
+
+status_rtpproxy() {
+  INSTANCE=1
+  for PIDFILE in $VARDIR/run/rtpproxy*.pid
+  do
+    if [ "$PIDFILE" = "$VARDIR/run/rtpproxy*.pid" ]
+    then
+      echo "Error: No rtpproxy process running"
+      return
+    fi
+    PID=$(cat $PIDFILE)
+    ps uwww -p $PID
+    if [ $? != 0 ]
+    then
+      echo "Error: No rtpproxy$INSTANCE process $PID"
+    fi
+    INSTANCE=$((INSTANCE+1))
+  done
+}
+
+
+usage() {
+  echo "usage: $0 [start|stop|restart]" >&2;
+}
+
+case "$1" in
+start)
+      start_rtpproxy;
+      ;;
+stop)
+      stop_rtpproxy;
+      ;;
+restart)
+      restart_rtpproxy;
+      ;;
+status)
+      status_rtpproxy;
+      ;;
+*)
+     usage;
+     ;;
+esac

@@ -1,6 +1,6 @@
-# What is Session Border Controller(SBC) ? #
+# What is Blox  ? #
 
-A **Session Border Controller(SBC)** is used to control VoIP signaling and media streams. SBC is responsible for setting up, conducting, and tearing down calls. SBC allows owners to control the types of call that can be placed through the networks and also overcome some of the problems caused by firewalls and NAT for VoIP calls. A common location for a stand-alone SBC is a connection point, called a border, between a private local area network (LAN) and the Internet. SBC polices real-time voice traffic between IP network borders ensuring your private network is robustly secure and fully manageable.
+**Blox** is a **Session Border Controller(SBC)** is used to control VoIP signaling and media streams. SBC is responsible for setting up, conducting, and tearing down calls. SBC allows owners to control the types of call that can be placed through the networks and also overcome some of the problems caused by firewalls and NAT for VoIP calls. A common location for a stand-alone SBC is a connection point, called a border, between a private local area network (LAN) and the Internet. SBC polices real-time voice traffic between IP network borders ensuring your private network is robustly secure and fully manageable.
 
 SBC is enabled with DPI Packet Inspection on VOIP traffic, supporting the Signatures for Key Malwares/Vulnerabilities observed in SIP Deployments like Extensions Enumeration DoS and Password Cracking. Supporting Open Source PBXs like Asterisk, FreeSwitch, TrixBox.
 Handles the SIP-NAT issues observed in the common VOIP deployments.
