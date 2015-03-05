@@ -14,8 +14,6 @@ Topology-hiding function is to prevent customers or other service providers from
 - Roaming Extension for Internal SIP PBX.
 - Support for SIP Outbound/Inbound Trunk and policies to route the calls.
 - DTMF Support for RFC2833/INBAND/SIP INFO
-- Can handle simultaneous calls from 10 to 60 channels (Including Media Transcoding and Encryption)
-- Easy GUI Configuration and call statistics.
 
 ## Advanced Features ##
 
