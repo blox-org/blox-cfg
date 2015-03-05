@@ -4,7 +4,7 @@
 
 export PATH=$PATH:/usr/local/sbin/
 
-export STARTOPTIONS="-m512 -M512"
+export STARTOPTIONS="-m512 -M32"
 
 start_opensips() {
     opensipsctl start
