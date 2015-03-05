@@ -45,4 +45,3 @@ Following features are available
 * Echo cancellation
 * Call Recording
 * Lawful Interception
-* Conference Support
