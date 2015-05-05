@@ -21,9 +21,9 @@
 #Used for LAN Profiles
 route[LAN2WAN] {
     remove_hf("User-Agent");
-    insert_hf("User-Agent: USERAGENT-MAJORVERSION.MINORVERSION.REVNUMBER-RELEASE\r\n","CSeq") ;
+    insert_hf("User-Agent: USERAGENT\r\n","CSeq") ;
     if(remove_hf("Server")) { #Removed Server success, then add ours
-        insert_hf("Server: USERAGENT-MAJORVERSION.MINORVERSION.REVNUMBER-RELEASE\r\n","CSeq") ;
+        insert_hf("Server: USERAGENT\r\n","CSeq") ;
     }
 
     if($dlg_val(MediaProfileID)) {
@@ -167,7 +167,7 @@ route[LAN2WAN] {
             }
         
             if($avp(SrcSRTP) == SRTP_COMPULSORY) {
-                if($var(mtype) == "RTP/AVP" ){
+                if(($var(mtype) == "RTP/AVP" ) && (!$avp(rSrcSRTPParam))){
                     xlog("L_WARN"," LAN2WAN NOT ACCEPTABL HERE $avp(rSrcSRTPParam) <===> $avp(SrcMavp) <===> $avp(DstSRTP)\n");
                     sl_send_reply("488","Not Acceptable Here\n");
                     exit;
@@ -280,26 +280,35 @@ route[LAN2WAN] {
             xdbg("------------------$var(rtpmaps):$var(codecids)-----------------------\n");
 
             if($avp(SrcT38)) {
-		if($(avp(T38Param){s.int}) > 0) {
-                	$avp(T38Param:1) = "MEDIA:" + $avp(MediaProfileID) ;
-                	if(cache_fetch("local","$avp(T38Param:1)",$avp(T38Param:1))) {
-                	    xdbg("Loaded from cache $avp(T38Param:1): $avp(T38Param:1)\n");
-                	} else if (avp_db_load("$avp(T38Param:1)","$avp(T38Param:1)/blox_config")) {
-                	    cache_store("local","$avp(T38Param:1)","$avp(T38Param:1)");
-                	    xdbg("Stored in cache $avp(T38Param:1): $avp(T38Param:1)\n");
-                	}
+                if(!$avp(T38Param)) {
+                    $var(cfgparam) = "cfgparam" ;
+                    if(avp_db_load("$hdr(call-id)","$avp($var(cfgparam))")) {
+                        $var(param) = $(avp($var(cfgparam))) ;
+                        $avp(T38Param) = $(var(param){uri.param,T38Param}) ;
+                    } else {
+                        xdbg("Error: LAN2WAN Loading cfgparam\n");
+                    }
+                }
+                if($(avp(T38Param){s.int}) > 0) {
+                    $avp(T38Param:1) = "MEDIA:" + $avp(MediaProfileID) ;
+                    if(cache_fetch("local","$avp(T38Param:1)",$avp(T38Param:1))) {
+                        xdbg("Loaded from cache $avp(T38Param:1): $avp(T38Param:1)\n");
+                    } else if (avp_db_load("$avp(T38Param:1)","$avp(T38Param:1)/blox_config")) {
+                        cache_store("local","$avp(T38Param:1)","$avp(T38Param:1)");
+                        xdbg("Stored in cache $avp(T38Param:1): $avp(T38Param:1)\n");
+                    }
 
-                	$avp(SrcT38Param) = $avp(T38Param:1) ;
+                    $avp(SrcT38Param) = $avp(T38Param:1) ;
 
-                	$var(sdp) = $var(sdp) + "m=image " + $avp(SrcMediaPort) + " udptl t38\r\n" ;
-                	$var(i) = 0;
-                	$var(t38attr) = $(avp(SrcT38Param){s.select,$var(i),;}) ;
-                	while($var(t38attr)) {
-                	    $var(sdp) = $var(sdp) + "a=" + $var(t38attr) + "\r\n" ;
-                	    $var(i) = $var(i) + 1;
-                	    $var(t38attr) = $(avp(SrcT38Param){s.select,$var(i),;}) ;
-                	}
-		}
+                    $var(sdp) = $var(sdp) + "m=image " + $avp(SrcMediaPort) + " udptl t38\r\n" ;
+                    $var(i) = 0;
+                    $var(t38attr) = $(avp(SrcT38Param){s.select,$var(i),;}) ;
+                    while($var(t38attr)) {
+                        $var(sdp) = $var(sdp) + "a=" + $var(t38attr) + "\r\n" ;
+                        $var(i) = $var(i) + 1;
+                        $var(t38attr) = $(avp(SrcT38Param){s.select,$var(i),;}) ;
+                    }
+                }
                 #Adding support for g711 termination for fax passthrough, if T38 not supported
                 $var(sdp) = $var(sdp) + "m=audio " + $avp(DstMediaPort) + " RTP/AVP " + "0 8\r\n" ;
             } else {
@@ -492,7 +501,7 @@ onreply_route[LAN2WAN] {
                     if(($var(transcoding) == 0) && $avp(rSrcSRTPParam) && $avp(rDstSRTPParam)) {
                         xdbg("+++++++++++++++SRTP testing : $var(transcoding)+++++$avp(rDstSRTPParam)+++++\n");
                     } else {
-			if($avp(SrcT38) || $avp(DstT38))
+            if($avp(SrcT38) || $avp(DstT38))
                             $var(transcoding) = 1; #/* Reset it to transcoding, if codec match set to 0 above */
                         if($avp(SrcSRTP) != SRTP_DISABLE && $avp(rSrcSRTPParam)) {
                             $var(transcoding) = 1; #/* Reset it to transcoding, if codec match set to 0 above */
@@ -648,11 +657,13 @@ onreply_route[LAN2WAN] {
                 }';
                 $json(jCodec)   := $var(jCodec);
 
-                $var(rSrcCodecid) = $avp($(avp(rSrcCodec)[0])) ;
-                if($avp($var(rSrcCodecid))) {
-                    $var(rScodec)  = $avp($var(rSrcCodecid)) ;
-                    $json(rjCodec) := $json(jCodec/$var(rScodec)) ;
-                    $var(rSrcRtpmap) = $json(rjCodec/rtpmap) ;
+                if($avp(rSrcCodec)) {
+                    $var(rSrcCodecid) = $avp($(avp(rSrcCodec)[0])) ;
+                    if($avp($var(rSrcCodecid))) {
+                        $var(rScodec)  = $avp($var(rSrcCodecid)) ;
+                        $json(rjCodec) := $json(jCodec/$var(rScodec)) ;
+                        $var(rSrcRtpmap) = $json(rjCodec/rtpmap) ;
+                    }
                 }
 
                 $var(SDPID1) = $(var(oline){s.select,1, });
@@ -675,7 +686,7 @@ onreply_route[LAN2WAN] {
                     }
                 } else {
                     if($avp(SrcT38)) {
-			$var(mtype) = null ;
+            $var(mtype) = null ;
                         $avp(T38Param:1) = "MEDIA:" + $avp(MediaProfileID) ;
                         if(cache_fetch("local","$avp(T38Param:1)",$avp(T38Param:1))) {
                             xdbg("Loaded from cache $avp(T38Param:1): $avp(T38Param:1)\n");
@@ -754,7 +765,7 @@ onreply_route[LAN2WAN] {
                     route(CONNECT_ALLOMTS_RESOURCE);
                 }
             } else {
-                rtpproxy_answer("o","$avp(SrcMediaIP)","$avp(MediaProfileID)");
+                rtpproxy_answer("of","$avp(SrcMediaIP)","$avp(MediaProfileID)");
                 xlog("L_WARN", "+++++++++++++++transcoding: feature disabled for this profile++++++++++\n");
             }
         };

@@ -67,12 +67,12 @@ route[ROUTE_INVITE] {
 
                 xdbg("Group: $var(g)\n"); #Dont print directly without substr
                 if (do_routing("$avp(g)",,,,"$var(gw_attributes)")) { #/* Goes to configured route */
-                    $avp(trunk_uuid) = $var(gw_attributes) ; 
+                    $avp(cac_uuid) = $var(gw_attributes) ; 
                     route(OUTBOUND_CALL_ACCESS_CONTROL);
                     while (!isflagset(OUTBOUND_CALL_ACCESS_CONTROL)) {
                         if(use_next_gw(,"$var(gw_attributes)")) {
                             xlog("L_NOTICE", "LCR: Next GW found, PBX $si:$sp $var(gw_attributes)\n");
-                            $avp(trunk_uuid) = $var(gw_attributes) ; 
+                            $avp(cac_uuid) = $var(gw_attributes) ; 
                             route(OUTBOUND_CALL_ACCESS_CONTROL);
                         } else {
                             xlog("L_WARN", "No Next GW found for LCR, PBX $si:$sp $var(gw_attributes)\n");
@@ -128,6 +128,9 @@ route[ROUTE_INVITE] {
 
             if($avp(TRUNK)) {
                 xdbg("Routing Forwarded PBX MESSAGE $avp(TRUNK)\n");
+                $var(cfgparam) = "cfgparam" ;
+                $avp($var(cfgparam)) = $avp(TRUNK);
+                avp_db_store("$hdr(call-id)","$avp($var(cfgparam))");
                 $var(TRUNKUSER) = $(avp(TRUNK){uri.user});
                 $var(TRUNKIP) = $(avp(TRUNK){uri.host});
                 $var(TRUNKPORT) = $(avp(TRUNK){uri.port});
@@ -151,11 +154,10 @@ route[ROUTE_INVITE] {
                         drop(); # /* Default 5060 open to accept packets from WAN side, but we don't process it */
                         exit;
                     }
-                    #avp_db_query("SELECT uuid FROM blox_config WHERE value = '$avp(WAN)' AND attribute = 'WAN' LIMIT 1", "$avp(WANProfile)");
 
                     if(!has_totag()) {
                         xdbg("$avp(TRUNK)/$var(TRUNKUSER)/ $var(TRUNKIP)/$var(TRUNKPORT)/$avp(SIPProfile)\n");
-                        $avp(trunk_uuid) = $avp(TRUNK) ; 
+                        $avp(cac_uuid) = $avp(TRUNK) ; 
                         setflag(487); /* Send response 487 if GW not available */
                         route(OUTBOUND_CALL_ACCESS_CONTROL);
                         if(!isflagset(OUTBOUND_CALL_ACCESS_CONTROL)) {
@@ -203,9 +205,9 @@ route[ROUTE_INVITE] {
                                 $var(to) = "sip:" + $rU + "@" + $var(TRUNKIP) + ":" + $var(TRUNKPORT) ;
                                 uac_replace_to("$var(to)");
                                 if($avp(WANADVIP)) {
-                                    $var(from) = "sip:" + $var(TRUNKUSER) + "@" + $avp(WANADVIP) + ":" + $var(WANADVPORT) ;
+                                    $var(from) = "sip:" + $var(TRUNKUSER) + "@" + $avp(WANADVIP) + ":" + $avp(WANADVPORT) ;
                                 } else {
-                                    $var(from) = "sip:" + $var(TRUNKUSER) + "@" + $avp(WANIP) + ":" + $var(WANPORT) ;
+                                    $var(from) = "sip:" + $var(TRUNKUSER) + "@" + $avp(WANIP) + ":" + $avp(WANPORT) ;
                                 }
                                 uac_replace_from("$var(from)");
                             } else {
@@ -214,10 +216,10 @@ route[ROUTE_INVITE] {
                             set_dlg_flag("DLG_FLAG_LAN2WAN") ;
                         }
                         remove_hf("Diversion");
-			            $du = $ru ;
-			            if($var(TRUNKDOMAIN)) {
-			            	$ru = "sip:" + $tU + "@" + $var(TRUNKDOMAIN) ;
-			            }
+                        $du = $ru ;
+                        if($var(TRUNKDOMAIN)) {
+                            $ru = "sip:" + $tU + "@" + $var(TRUNKDOMAIN) ;
+                        }
                         t_on_failure("LAN2WAN");
                         xdbg("Routing $ru to $du from $si : $sp via $fs\n" );
                         route(LAN2WAN);
@@ -245,6 +247,9 @@ route[ROUTE_INVITE] {
 
                 if($avp(PBX)) {
                     xdbg("Got route $Ri RE\n");
+                    $var(cfgparam) = "cfgparam" ;
+                    $avp($var(cfgparam)) = $avp(PBX);
+                    avp_db_store("$hdr(call-id)","$avp($var(cfgparam))");
                     #/* Check Roaming Extension routing */
                     $var(PBXIP) = $(avp(PBX){uri.host}) ;
                     $var(PBXPORT) = $(avp(PBX){uri.port}) ;
@@ -253,6 +258,11 @@ route[ROUTE_INVITE] {
                     $avp(MEDIA)  = $(avp(PBX){uri.param,MEDIA});
                     $avp(SrcSRTP) = $(avp(PBX){uri.param,LANSRTP});
                     $avp(DstSRTP) = $(avp(PBX){uri.param,WANSRTP});
+
+                    $avp(cac_uuid) = $avp(PBX) ; 
+                    setflag(487); 
+                    route(OUTBOUND_CALL_ACCESS_CONTROL);
+
                     if(cache_fetch("local","$avp(WAN)",$avp(WANProfile))) {
                         xdbg("Loaded from cache $avp(WAN): $avp(WANProfile)\n");
                     } else if (avp_db_load("$avp(WAN)","$avp(WANProfile)/blox_profile_config")) {
@@ -338,10 +348,14 @@ route[ROUTE_INVITE] {
 
             if($avp(TRUNK)) {
                 xdbg("Got from $Ri TRUNK $avp(TRUNK)\n");
+                $var(cfgparam) = "cfgparam" ;
+                $avp($var(cfgparam)) = $avp(TRUNK);
+                avp_db_store("$hdr(call-id)","$avp($var(cfgparam))");
                 #/* INBOUND Trunk Call */
                 $var(TRUNKUSER) = $(avp(TRUNK){uri.user});
                 $var(TRUNKIP) = $(avp(TRUNK){uri.host});
                 $var(TRUNKPORT) = $(avp(TRUNK){uri.port});
+                $var(TRUNKDOMAIN) = $(avp(TRUNK){uri.domain});
                 $avp(T38Param)  = $(avp(TRUNK){uri.param,T38Param});
                 $avp(MEDIA)  = $(avp(TRUNK){uri.param,MEDIA});
                 $avp(SrcSRTP) = $(avp(TRUNK){uri.param,WANSRTP});
@@ -385,8 +399,8 @@ route[ROUTE_INVITE] {
                 }
                 xdbg("Found to route $du TRUNK\n");
 
+                $avp(cac_uuid) = $avp(TRUNK) ; 
                 setflag(487); /* Send 487 reply with route INBOUND_CALL_ACCESS_CONTROL, if failed */
-                $avp(trunk_uuid) = $avp(TRUNK) ; 
                 route(INBOUND_CALL_ACCESS_CONTROL); /* Check for call limitation */
 
                 if(!has_totag()) {
@@ -403,8 +417,12 @@ route[ROUTE_INVITE] {
                     append_hf("P-hint: tophide applied\r\n"); 
                     set_dlg_flag("DLG_FLAG_WAN2LAN") ;
                 };
-                $rd = $var(TRUNKIP);
-                uac_replace_from("$avp(TRUNK)");
+
+                if($var(TRUNKDOMAIN)) {
+                    $rd = $var(TRUNKDOMAIN);
+                } else {
+                    $rd = $var(TRUNKIP);
+                }
 
                 t_on_failure("WAN2LAN");
                 route(WAN2LAN);
@@ -422,6 +440,9 @@ route[ROUTE_INVITE] {
             }
             if($avp(PBX)) {
                 xdbg("Got from $Ri RE $avp(PBX)\n");
+                $var(cfgparam) = "cfgparam" ;
+                $avp($var(cfgparam)) = $avp(PBX);
+                avp_db_store("$hdr(call-id)","$avp($var(cfgparam))");
                 #/* Check Roaming Extension routing */
                 $var(PBXIP) = $(avp(PBX){uri.host}) ;
                 $var(PBXPORT) = $(avp(PBX){uri.port}) ;
@@ -430,6 +451,11 @@ route[ROUTE_INVITE] {
                 $avp(MEDIA)  = $(avp(PBX){uri.param,MEDIA});
                 $avp(SrcSRTP) = $(avp(PBX){uri.param,WANSRTP});
                 $avp(DstSRTP) = $(avp(PBX){uri.param,LANSRTP});
+                $var(PBXIPAUTH) = $(avp(PBX){uri.param,IPAuth}) ;
+
+                $avp(cac_uuid) = $avp(PBX) ; 
+                setflag(487);
+                route(INBOUND_CALL_ACCESS_CONTROL); /* Check for call limitation */
 
                 if($avp(LAN)) {
                     if(cache_fetch("local","$avp(WAN)",$avp(WANProfile))) {
@@ -452,28 +478,13 @@ route[ROUTE_INVITE] {
                     #    $avp(RESOCKET) = $si ;
                     #}
 
-                    if(cache_fetch("local","locationpbx:$fU:$avp(WANSOCKET):contact", $avp(contact)) \
-                        && cache_fetch("local","locationpbx:$fU:$avp(WANSOCKET):received", $avp(received))) {
-                        xdbg("locationpbx:$fU:$avp(WANSOCKET):contact => locationpbx:$fU:$avp(WANSOCKET):received => $avp(contact);$avp(received)") ;
-                    } else if(avp_db_query("SELECT contact, received, TIMESTAMP(expires) FROM locationpbx WHERE username = '$fU' AND socket = '$avp(WANSOCKET)' ORDER BY last_modified DESC LIMIT 1", "$avp(contact);$avp(received);$avp(expires)")) {
-                        xdbg("SELECT contact, received, TIMESTAMP(expires)-NOW() FROM locationpbx WHERE username = '$fU' AND socket = '$avp(WANSOCKET)' ORDER BY last_modified LIMIT 1, $avp(contact);$avp(received);$avp(expires)") ;
-                        $var(expires) = ($avp(expires) - $Ts) * 1000;
-                        #if($avp(RECHKONLYIP)) { # /* Match only IP address in registrar not IP:PORT or PROTO */
-                        #    $avp(received) = $(avp(received){s.select,1,:}) ;
-                        #}
-                        cache_store("local","locationpbx:$fU:$avp(WANSOCKET):contact","$avp(contact)", $var(expires));
-                        cache_store("local","locationpbx:$fU:$avp(WANSOCKET):received","$avp(received)", $var(expires));
-                    } else {
-                            xlog("L_INFO", "No Registration found try Re-Registering\n");
-                            t_newtran();
-                            t_on_failure("LAN2WAN");
-                            t_reply("404", "Not Found");
-                            exit;
-                    }
-
-                    if(!($avp(RESOCKET) == $avp(received))) { #We might be checking old cache, fix it now
-                        xdbg("Not maching re-check DB $avp(RESOCKET) != $avp(received)\n");
-                        if(avp_db_query("SELECT contact, received, TIMESTAMP(expires) FROM locationpbx WHERE username = '$fU' AND socket = '$avp(WANSOCKET)' ORDER BY last_modified LIMIT 1", "$avp(contact);$avp(received);$avp(expires)")) {
+                    if($var(PBXIPAUTH) && pcre_match_group("$si","$var(PBXIPAUTH)")) {
+                            xlog("L_INFO","$si:$sp ($ua) Autheticated Via IPAuth $avp(PBX): Group:$var(PBXIPAUTH)\n");
+                    } else  {
+                        if(cache_fetch("local","locationpbx:$fU:$avp(WANSOCKET):contact", $avp(contact)) \
+                            && cache_fetch("local","locationpbx:$fU:$avp(WANSOCKET):received", $avp(received))) {
+                            xdbg("locationpbx:$fU:$avp(WANSOCKET):contact => locationpbx:$fU:$avp(WANSOCKET):received => $avp(contact);$avp(received)") ;
+                        } else if(avp_db_query("SELECT contact, received, TIMESTAMP(expires) FROM locationpbx WHERE username = '$fU' AND socket = '$avp(WANSOCKET)' ORDER BY last_modified DESC LIMIT 1", "$avp(contact);$avp(received);$avp(expires)")) {
                             xdbg("SELECT contact, received, TIMESTAMP(expires)-NOW() FROM locationpbx WHERE username = '$fU' AND socket = '$avp(WANSOCKET)' ORDER BY last_modified LIMIT 1, $avp(contact);$avp(received);$avp(expires)") ;
                             $var(expires) = ($avp(expires) - $Ts) * 1000;
                             #if($avp(RECHKONLYIP)) { # /* Match only IP address in registrar not IP:PORT or PROTO */
@@ -482,26 +493,45 @@ route[ROUTE_INVITE] {
                             cache_store("local","locationpbx:$fU:$avp(WANSOCKET):contact","$avp(contact)", $var(expires));
                             cache_store("local","locationpbx:$fU:$avp(WANSOCKET):received","$avp(received)", $var(expires));
                         } else {
-                            xlog("L_INFO", "No Registration found try Re-Registering\n");
+                                xlog("L_INFO", "No Registration found try Re-Registering\n");
+                                t_newtran();
+                                t_on_failure("LAN2WAN");
+                                t_reply("404", "Not Found");
+                                exit;
+                        }
+
+                        if(!($avp(RESOCKET) == $avp(received))) { #We might be checking old cache, fix it now
+                            xdbg("Not maching re-check DB $avp(RESOCKET) != $avp(received)\n");
+                            if(avp_db_query("SELECT contact, received, TIMESTAMP(expires) FROM locationpbx WHERE username = '$fU' AND socket = '$avp(WANSOCKET)' ORDER BY last_modified LIMIT 1", "$avp(contact);$avp(received);$avp(expires)")) {
+                                xdbg("SELECT contact, received, TIMESTAMP(expires)-NOW() FROM locationpbx WHERE username = '$fU' AND socket = '$avp(WANSOCKET)' ORDER BY last_modified LIMIT 1, $avp(contact);$avp(received);$avp(expires)") ;
+                                $var(expires) = ($avp(expires) - $Ts) * 1000;
+                                #if($avp(RECHKONLYIP)) { # /* Match only IP address in registrar not IP:PORT or PROTO */
+                                #    $avp(received) = $(avp(received){s.select,1,:}) ;
+                                #}
+                                cache_store("local","locationpbx:$fU:$avp(WANSOCKET):contact","$avp(contact)", $var(expires));
+                                cache_store("local","locationpbx:$fU:$avp(WANSOCKET):received","$avp(received)", $var(expires));
+                            } else {
+                                xlog("L_INFO", "No Registration found try Re-Registering\n");
+                                t_newtran();
+                                t_on_failure("LAN2WAN");
+                                t_reply("404", "Not Found");
+                                exit;
+                            }
+                        }
+
+                        if($(avp(received){uri.param,transport})) {
+                            if(!$(avp(RESOCKET){uri.param,transport})) { #/* If RESOCKET transport is empty */
+                                $avp(RESOCKET) = $avp(RESOCKET) + ";transport=" + $(avp(received){uri.param,transport}) ;
+                            }
+                        }
+                
+                        if(!($avp(RESOCKET) == $avp(received))) {
+                            xdbg("Not maching $avp(RESOCKET) != $avp(received)\n");
                             t_newtran();
                             t_on_failure("LAN2WAN");
                             t_reply("404", "Not Found");
                             exit;
                         }
-                    }
-
-                    if($(avp(received){uri.param,transport})) {
-                        if(!$(avp(RESOCKET){uri.param,transport})) { #/* If RESOCKET transport is empty */
-                            $avp(RESOCKET) = $avp(RESOCKET) + ";transport=" + $(avp(received){uri.param,transport}) ;
-                        }
-                    }
-                
-                    if(!($avp(RESOCKET) == $avp(received))) {
-                        xdbg("Not maching $avp(RESOCKET) != $avp(received)\n");
-                        t_newtran();
-                        t_on_failure("LAN2WAN");
-                        t_reply("404", "Not Found");
-                        exit;
                     }
 
                     if(cache_fetch("local","$avp(LAN)",$avp(LANProfile))) {

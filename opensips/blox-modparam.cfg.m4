@@ -109,6 +109,6 @@ modparam("rest_client", "ssl_verifyhost", 0)
 modparam("rr", "append_fromtag", 1)
 
 #list of user agent patterns
-modparam("regex", "file", "/usr/local/etc/opensips/sipua.cfg")
+modparam("regex", "file", "/usr/local/etc/opensips/regex-groups.cfg")
 modparam("regex", "pcre_caseless", 1)
 modparam("regex", "pcre_multiline", 1)

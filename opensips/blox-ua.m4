@@ -1,0 +1,3 @@
+divert(-1)
+define(`USERAGENT',`Blox-MAJORVERSION.MINORVERSION.REVNUMBER-RELEASE')
+divert(0)dnl

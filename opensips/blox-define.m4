@@ -18,7 +18,6 @@
 #  */
 
 divert(-1)
-define(`USERAGENT',`Blox')
 define(`gMTSSRV',`http://127.0.0.1:8000')
 define(`gMediaPortOffset',`4')
 define(`gMAX_OUTBOUND',`100')

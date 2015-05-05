@@ -18,14 +18,21 @@
 #  */
 
 
-route[DELETE_ALLOMTS_RESOURCE] {
-    xdbg("NO DELETE_ALLOMTS_RESOURCE\n");
-}
-
-route[CONNECT_ALLOMTS_RESOURCE] {
-    xdbg("NO CONNECT_ALLOMTS_RESOURCE\n");
-}
-
-route[DISCONNECT_ALLOMTS_RESOURCE] {
-    xdbg("NO DISCONNECT_ALLOMTS_RESOURCE\n");
+route[ROUTE_BYE] {
+    if (method == "BYE") {
+        xdbg("SIP Method $rm received from $fu $si $sp to $ru\n");
+        $avp(cfgparam) = "cfgparam" ;
+        avp_db_delete("$hdr(call-id)","$avp($avp(cfgparam))") ;
+        if($dlg_val(MediaProfileID)) {
+            $avp(MediaProfileID) = $dlg_val(MediaProfileID) ;
+        }
+        if($avp(MediaProfileID)) {
+            rtpproxy_unforce("$avp(MediaProfileID)");
+            xlog("L_INFO", "Mediaprofile stopping the $avp(MediaProfileID)\n");
+        }
+        $avp(resource) = "resource" + "-" + $ft ;
+        route(DELETE_ALLOMTS_RESOURCE);
+        $avp(resource) = "resource" + "-" + $tt ;
+        route(DELETE_ALLOMTS_RESOURCE);
+    }
 }

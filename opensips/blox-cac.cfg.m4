@@ -21,7 +21,7 @@
 #calculate concurrent call
 route[OUTBOUND_CALL_ACCESS_CONTROL] {
     $var(setprofile) = 0;
-    $var(channels) = $(avp(trunk_uuid){uri.param,MAXOutbound}) ; 
+    $var(channels) = $(avp(cac_uuid){uri.param,MAXOutbound}) ; 
     $var(channels) = $(var(channels){s.int});
     if($var(channels) == null) {
         $var(channels) = gMAX_OUTBOUND;
@@ -29,10 +29,10 @@ route[OUTBOUND_CALL_ACCESS_CONTROL] {
     
     if(!isflagset(OUTBOUND_CALL_ACCESS_CONTROL)) {
         if($var(channels) > 0) {
-            get_profile_size("outbound", "$avp(trunk_uuid)", "$var(calls)");
-            xdbg("Call control: user '$avp(trunk_uuid)' currently has '$var(calls)' of '$var(channels)' active calls before this one\n");
+            get_profile_size("outbound", "$avp(cac_uuid)", "$var(calls)");
+            xdbg("Call control: user '$avp(cac_uuid)' currently has '$var(calls)' of '$var(channels)' active calls before this one\n");
             if($var(calls) == null || ($var(calls) < $var(channels))) {
-                xlog("L_INFO", "Call control: user '$avp(trunk_uuid)' currently has '$var(calls)' of '$var(channels)' active calls before this one\n");
+                xlog("L_INFO", "Call control: user '$avp(cac_uuid)' currently has '$var(calls)' of '$var(channels)' active calls before this one\n");
                 $var(setprofile) = 1;
             } else {
                 xlog("L_WARN", "Call control: user channel limit exceeded [$var(calls)/$var(channels)]\n");
@@ -46,7 +46,7 @@ route[OUTBOUND_CALL_ACCESS_CONTROL] {
 
         if($var(setprofile) > 0) { 
             create_dialog("PpB");
-            set_dlg_profile("outbound","$avp(trunk_uuid)");
+            set_dlg_profile("outbound","$avp(cac_uuid)");
             setflag(OUTBOUND_CALL_ACCESS_CONTROL);
         }
     }
@@ -54,7 +54,7 @@ route[OUTBOUND_CALL_ACCESS_CONTROL] {
 
 route[INBOUND_CALL_ACCESS_CONTROL] {
     $var(setprofile) = 0;
-    $var(channels) = $(avp(trunk_uuid){uri.param,MAXInbound}) ; 
+    $var(channels) = $(avp(cac_uuid){uri.param,MAXInbound}) ; 
     $var(channels) = $(var(channels){s.int});
     if($var(channels) == null) {
         $var(channels) = gMAX_INBOUND;
@@ -62,9 +62,9 @@ route[INBOUND_CALL_ACCESS_CONTROL] {
     
     if(!isflagset(INBOUND_CALL_ACCESS_CONTROL)) {
         if(($var(channels) && ($var(channels) > 0))) {
-            get_profile_size("inbound", "$avp(trunk_uuid)", "$var(calls)");
+            get_profile_size("inbound", "$avp(cac_uuid)", "$var(calls)");
             if($var(calls) < $var(channels)) {
-                xlog("L_INFO", "Call control: user '$avp(trunk_uuid)' currently has '$var(calls)' of '$var(channels)' active calls before this one\n");
+                xlog("L_INFO", "Call control: user '$avp(cac_uuid)' currently has '$var(calls)' of '$var(channels)' active calls before this one\n");
                 $var(setprofile) = 1;
             } else {
                 xlog("L_WARN", "Call control: user channel limit exceeded [$var(calls)/$var(channels)]\n");
@@ -78,7 +78,7 @@ route[INBOUND_CALL_ACCESS_CONTROL] {
 
         if($var(setprofile) > 0) { 
             create_dialog("PpB");
-            set_dlg_profile("inbound","$avp(trunk_uuid)");
+            set_dlg_profile("inbound","$avp(cac_uuid)");
             setflag(INBOUND_CALL_ACCESS_CONTROL);
         }
     }

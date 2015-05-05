@@ -32,7 +32,7 @@ route[WAN2LAN] {
             xdbg("Stored in cache $avp(MediaProfileID): $avp(MediaProfile)\n");
         } else {
             xlog("L_INFO", "No profile configured for $avp(MediaProfileID): $avp(MediaProfile)\n");
-            sl_send_reply("500","Server error\n");
+            sl_send_reply("500","Internal Server error");
             exit;
         }
 
@@ -68,7 +68,6 @@ route[WAN2LAN] {
 
         rtpproxy_offer("o","$avp(DstMediaIP)","$avp(MediaProfileID)","$var(proxy)","$var(newaddr)");
         xdbg("Route: rtpproxy_offer............. $avp(DstMediaIP):$avp(MediaProfileID):$var(proxy):$var(newaddr):\n");
-
     };
 
     t_on_reply("WAN2LAN");
@@ -84,9 +83,9 @@ route[WAN2LAN] {
 #Used for WAN PROFILE
 onreply_route[WAN2LAN] {
     remove_hf("User-Agent");
-    insert_hf("User-Agent: USERAGENT-MAJORVERSION.MINORVERSION.REVNUMBER-RELEASE\r\n","CSeq") ;
+    insert_hf("User-Agent: USERAGENT\r\n","CSeq") ;
     if(remove_hf("Server")) { #Removed Server success, then add ours
-    	insert_hf("Server: USERAGENT-MAJORVERSION.MINORVERSION.REVNUMBER-RELEASE\r\n","CSeq") ;
+    	insert_hf("Server: USERAGENT\r\n","CSeq") ;
     }
 
     xdbg("Got Response $rs/ $fu/$ru/$si/$ci/$avp(rcv)\n");
@@ -108,7 +107,7 @@ onreply_route[WAN2LAN] {
         if (has_body("application/sdp")) {
             $var(transcoding) = 0 ;
             xdbg("+++++++++++++++transcoding: $var(transcoding)++++++++++\n");
-            rtpproxy_answer("o","$avp(SrcMediaIP)","$avp(MediaProfileID)");
+            rtpproxy_answer("of","$avp(SrcMediaIP)","$avp(MediaProfileID)");
         };
         # Is this a transaction behind a NAT and we did not
         # know at time of request processing?

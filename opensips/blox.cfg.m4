@@ -94,6 +94,11 @@ route {
         route(ROUTE_REGISTER);
     };
 
+    if (is_method("BYE") || is_method("CANCEL")) {
+        $avp(cfgparam) = "cfgparam" ;
+        avp_db_delete("$hdr(call-id)","$avp($avp(cfgparam))") ;
+    }
+
     # subsequent messages withing a dialog should take the
     # path determined by record-routing
     if (loose_route()) {

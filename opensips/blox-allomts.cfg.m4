@@ -24,20 +24,20 @@ route[DELETE_ALLOMTS_RESOURCE] {
 
         $json(res) := $avp($avp(resource));
         $var(idx) = $json(res/VT-Index) ;
-	    if($var(idx) != null) {
-	    	xdbg("VT Index: $var(idx)\n");
-           	$var(resource) = "{ \"VT-Index\": " + $var(idx) + " }" ;
+        if($var(idx) != null) {
+            xdbg("VT Index: $var(idx)\n");
+            $var(resource) = "{ \"VT-Index\": " + $var(idx) + " }" ;
             $var(url) = "gMTSSRV" + "/delete?resource=" + $var(resource);
-	    }
+        }
 
         $var(idx) = null; #below fail to replace value to null, init here must
         $var(idx) = $json(res/CPP-Index) ;
-	    if($var(idx) != null) {	
-	    	xdbg("CPP Index: $var(idx)\n");
+        if($var(idx) != null) {        
+            xdbg("CPP Index: $var(idx)\n");
             $var(idx) = $json(res/CPP-Index) ;
             $var(resource) = "{ \"CPP-Index\": " + $var(idx) + " }" ;
             $var(url) = "gMTSSRV" + "/stoppassthrough?resource=" + $var(resource);
-	    }
+        }
 
         xdbg("Route DELETE_ALLOMTS_RESOURCE $avp(resource) -> $avp($avp(resource)) : Connecting $var(url)\n");
         if(!rest_post("$var(url)", "$fU", "text/plain", "$var(body)", "$var(ct)", "$var(rcode)")) {
