@@ -11,14 +11,21 @@ fi
 
 mkdir -p $OUTDIR
 
+IGNORE_m4=("$CONFDIR/blox-ua.m4" "$CONFDIR/blox-define.m4" "$CONFDIR/blox-define-nat.m4")
+
 for m4config in $(ls $CONFDIR/*.m4)
 do
-        if [ "$m4config" == "$CONFDIR/blox-define.m4" -o "$m4config" == "$CONFDIR/blox-define-nat.m4" ]
+        b4IGNORE_m4=(${IGNORE_m4[@]})
+        IGNORE_m4=(${IGNORE_m4[@]/$m4config})
+        #echo ${#b4IGNORE_m4[*]} -ne ${#IGNORE_m4[*]}
+        if [ ${#b4IGNORE_m4[*]} -ne ${#IGNORE_m4[*]} ]
         then
+                echo "Ignoring $m4config";
                 continue;
         fi
-        m4 $CONFDIR/blox-define.m4 $CONFDIR/blox-define-nat.m4 $CONFDIR/blox-version.m4 $m4config > $OUTDIR/$(basename $m4config|sed 's/\.m4$//')
+        m4 $CONFDIR/blox-ua.m4 $CONFDIR/blox-define.m4 $CONFDIR/blox-define-nat.m4 $CONFDIR/blox-version.m4 $m4config > $OUTDIR/$(basename $m4config|sed 's/\.m4$//')
 done
+
 
 rm -f $OUTDIR/blox-tls-*.cfg
 cp $CONFDIR/*.cfg $OUTDIR

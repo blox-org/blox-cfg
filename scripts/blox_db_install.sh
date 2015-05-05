@@ -36,3 +36,4 @@ fi
 /usr/bin/mysql -u opensips opensips_$NEW_VERSION --password="opensipsrw" < /etc/blox/sql/create_blox_config.sql
 /usr/bin/mysql -u opensips opensips_$NEW_VERSION --password="opensipsrw" < /etc/blox/sql/alter_acc.sql
 /usr/bin/mysql -u opensips opensips_$NEW_VERSION --password="opensipsrw" < /etc/blox/sql/alter_usr_preferences.sql
+/usr/bin/mysql -u opensips opensips_$NEW_VERSION --password="opensipsrw" < /etc/blox/sql/alter_blox_config.sql

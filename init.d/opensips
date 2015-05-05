@@ -19,7 +19,8 @@ restart_opensips() {
 }
 
 status_opensips() {
-    opensipsctl status
+    opensipsctl fifo get_statistics rcv_requests
+    opensipsctl fifo get_statistics shmem:
 }
 
 setup_opensips() {
@@ -27,16 +28,16 @@ setup_opensips() {
     /sbin/chkconfig --level 345 mysqld on
     /etc/init.d/mysqld start
 
-	mysql -u opensips opensips_1_11 --password=opensipsrw -e "select * from blox_config"
-	if [ $? -eq 0 ] ; then
+    mysql -u opensips opensips_1_11 --password=opensipsrw -e "select * from blox_config"
+    if [ $? -eq 0 ] ; then
         BLOX_MIGRATE=$(cat /etc/.blox_migrate)
         /usr/bin/blox_db_install.sh $BLOX_MIGRATE
-	else
+    else
         /usr/bin/blox_db_install.sh
-	fi
-	
+    fi
+    
     rm /etc/.blox_setup
-	rm /etc/.blox_migrate
+    rm /etc/.blox_migrate
 }
 
 
