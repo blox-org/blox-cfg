@@ -1,0 +1,42 @@
+#!/bin/bash
+
+# chkconfig: 2 55 2
+
+start_detect-allo-transcoding-card() {
+	/usr/local/ngx-allomts-server/sbin/detect_transcoding_card
+}
+
+stop_detect-allo-transcoding-card() {
+	echo -n;
+}
+
+restart_detect-allo-transcoding-card() {
+	stop_detect-allo-transcoding-card
+	start_detect-allo-transcoding-card
+}
+
+status_detect-allo-transcoding-card() {
+	cat /etc/.tg_if_list 2>/dev/null
+}
+
+
+usage() {
+  echo "usage: $0 [start|stop|restart|status]" >&2;
+}
+
+case "$1" in
+start)
+      start_detect-allo-transcoding-card;;
+stop)
+      stop_detect-allo-transcoding-card;
+      ;;
+restart)
+      restart_detect-allo-transcoding-card;
+      ;;
+status)
+      status_detect-allo-transcoding-card;
+      ;;
+*)
+     usage;
+     ;;
+esac
