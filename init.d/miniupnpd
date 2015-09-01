@@ -12,7 +12,18 @@ else
 	export PREFIX=MEDIA_
 fi
 
-export IPTABLES=/sbin/iptables
+if [ -f /sbin/iptables ]
+then
+	export IPTABLES=/sbin/iptables
+elif [ -f /usr/sbin/iptables ]
+then
+	export IPTABLES=/usr/sbin/iptables
+else
+	echo "Error: No IPTables installed" >&2
+	exit -1
+fi
+
+SUPPORT_PS_P=$(ps -p $$ 2>/dev/null)
 
 init_iptables() {
   ETH_IF=$1
@@ -25,8 +36,6 @@ init_iptables() {
   $IPTABLES -t filter -A ${PREFIX}FORWARD -p udp --dport $START:$END -i $ETH_IF -j MINIUPNPD
   $IPTABLES -t nat -A ${PREFIX}POSTROUTING -s $IPMASK -o $ETH_IF -j MASQUERADE
 }
-
-
 
 status_miniupnpd() {
   #display all chains relative to miniupnpd
@@ -45,7 +54,11 @@ status_miniupnpd() {
       return
     fi
     PID=$(cat $PIDFILE)
-    ps uwww -p $PID
+    if [ -n "$SUPPORT_PS_P" ]; then
+      ps uwww -p $PID
+    else
+      ps uawww | awk "{if(\$1 == $PID) print \$0;}" | read #read to set $? exit status
+    fi
     if [ $? != 0 ]
     then
       echo "Error: No miniupnpd$INSTANCE process $PID"
@@ -56,8 +69,6 @@ status_miniupnpd() {
 
 remove_iptables()
 {
-  IPTABLES=/sbin/iptables
-  
   #change this parameters :
   EXTIF=$1
   START=$2
@@ -213,14 +224,12 @@ stop_miniupnpd() {
     if [ "$PIDFILE" = "$PIDDIR/miniupnpd*.pid" ]
     then
       echo "Error: No miniupnpd process running"
-      return
     fi
     PID=$(cat $PIDFILE)
     kill $PID
     if [ $? != 0 ]
     then
       echo "Error: Killing process miniupnpd$INSTANCE $PID"
-      exit $?
     fi
     INSTANCE=$((INSTANCE+1))
   done
@@ -228,6 +237,7 @@ stop_miniupnpd() {
 
 restart_miniupnpd() {
   stop_miniupnpd
+  init_miniupnpd
   start_miniupnpd
 }
 
@@ -237,6 +247,7 @@ usage() {
 
 case "$1" in
 start)
+      init_miniupnpd;
       start_miniupnpd;
       ;;
 stop)

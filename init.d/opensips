@@ -12,6 +12,14 @@ start_opensips() {
 
 stop_opensips() {
     opensipsctl stop
+    source /usr/local/etc/opensips/opensipsctlrc
+
+    #Remove the TLS and TCP connection state from the DB, as they become invalid, need re-registeration from SIP client
+    mysql -u $DBRWUSER --password=$DBRWPW $DBNAME -e "DELETE FROM locationtrunk WHERE contact like '%transport=tls%';"
+    mysql -u $DBRWUSER --password=$DBRWPW $DBNAME -e "DELETE FROM locationtrunk WHERE contact like '%transport=tcp%';"
+
+    mysql -u $DBRWUSER --password=$DBRWPW $DBNAME -e "DELETE FROM locationpbx   WHERE contact like '%transport=tls%';"
+    mysql -u $DBRWUSER --password=$DBRWPW $DBNAME -e "DELETE FROM locationpbx   WHERE contact like '%transport=tcp%';"
 }
 
 restart_opensips() {
@@ -27,11 +35,12 @@ setup_opensips() {
     /sbin/chkconfig mysqld --add
     /sbin/chkconfig --level 345 mysqld on
     /etc/init.d/mysqld start
+    source /usr/local/etc/opensips/opensipsctlrc
 
-    mysql -u opensips opensips_1_11 --password=opensipsrw -e "select * from blox_config"
-    if [ $? -eq 0 ] ; then
+    OPENSIPS_DBVER=$(mysql -u $DBRWUSER --password=$DBRWPW -e "show databases" | grep "^opensips_" | head -1 | sed 's/^opensips_//')
+    if [ -n "$OPENSIPS_DBVER" ] ; then
         BLOX_MIGRATE=$(cat /etc/.blox_migrate)
-        /usr/bin/blox_db_install.sh $BLOX_MIGRATE
+        /usr/bin/blox_db_install.sh $OPENSIPS_DBVER $BLOX_MIGRATE
     else
         /usr/bin/blox_db_install.sh
     fi

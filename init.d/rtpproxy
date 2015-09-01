@@ -11,6 +11,8 @@ else
 	export RTPROXY_CONFIGDIR=/etc/rtpproxy
 fi
 
+SUPPORT_PS_P=$(ps -p $$ 2>/dev/null)
+
 start_rtpproxy() {
   INSTANCE=1
   for config in $RTPROXY_CONFIGDIR/*.init
@@ -45,14 +47,12 @@ stop_rtpproxy() {
     if [ "$PIDFILE" = "$VARDIR/run/rtpproxy*.pid" ]
     then
       echo "Error: No rtpproxy process running"
-      return
     fi
     PID=$(cat $PIDFILE)
     kill $PID
     if [ $? != 0 ]
     then
       echo "Error: Killing process rtpproxy$INSTANCE $PID"
-      exit $?
     fi
     INSTANCE=$((INSTANCE+1))
   done
@@ -73,7 +73,11 @@ status_rtpproxy() {
       return
     fi
     PID=$(cat $PIDFILE)
-    ps uwww -p $PID
+    if [ -n "$SUPPORT_PS_P" ]; then
+      ps uwww -p $PID
+    else
+      ps uawww | awk "{if(\$1 == $PID) print \$0;}" | read #read to set $? exit status
+    fi
     if [ $? != 0 ]
     then
       echo "Error: No rtpproxy$INSTANCE process $PID"
