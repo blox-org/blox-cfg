@@ -1,3 +1,5 @@
+![alt text](http://blox.org/images/main-logo.png "Blox")
+
 # What is Blox  ? #
 
 **Blox** is a **Session Border Controller(SBC)** is used to control VoIP signaling and media streams. SBC is responsible for setting up, conducting, and tearing down calls. SBC allows owners to control the types of call that can be placed through the networks and also overcome some of the problems caused by firewalls and NAT for VoIP calls. A common location for a stand-alone SBC is a connection point, called a border, between a private local area network (LAN) and the Internet. SBC polices real-time voice traffic between IP network borders ensuring your private network is robustly secure and fully manageable.
@@ -25,8 +27,7 @@ Topology-hiding function is to prevent customers or other service providers from
 
 ## Basic Version ##
 - **Opensips** SIP router, generally used to route SIP messages between two endpoints following RFC 3261 and may SIP related supported RFC. The Opensips script does main SBC features like topology hiding, header manipulation, registration forwarding etc
-- **rtpproxy** Media router helps to route media between NATted environment also secures broken media protocol. It is customized to do firewall pinholing (dynamic port opening) using a virtual interface.
-- **miniupnpd-nat-pmp-auth** It is customized miniupnpd with authentication to do media pin-holing and port forwarding media to rtpproxy.
+- **rtpengine** Media router helps to route media between NATted environment also secures broken media protocol.
 
 ## Advanced Version ##
 

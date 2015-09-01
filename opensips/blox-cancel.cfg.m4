@@ -21,17 +21,27 @@
 route[ROUTE_CANCEL] {
     if (method == "CANCEL") {
         xdbg("SIP Method $rm received from $fu $si $sp to $ru\n");
+
         if($dlg_val(MediaProfileID)) {
             $avp(MediaProfileID) = $dlg_val(MediaProfileID) ;
         }
-        if($avp(MediaProfileID)) {
-            rtpproxy_unforce("$avp(MediaProfileID)");
+
+        if($avp(setid)) {
+            rtpengine_delete();
             xlog("L_INFO", "Mediaprofile stopping the $avp(MediaProfileID)\n");
         }
+
+	if($avp(DstMediaPort)) {
+        	$var(url) =  "http://127.0.0.1:8000" + "/unreservemediaports?local_rtp_port=" + $avp(DstMediaPort) ;
+        	xlog("L_INFO","Route: transcoding request : $var(url)\n");
+        	rest_get("$var(url)","$var(body)");
+	}
+
         $avp(resource) = "resource" + "-" + $ft ;
         route(DELETE_ALLOMTS_RESOURCE);
         $avp(resource) = "resource" + "-" + $tt ;
         route(DELETE_ALLOMTS_RESOURCE);
+
         if($avp(LAN)) { #/* PBX to SBC */
             route(LAN2WAN);
         } else {

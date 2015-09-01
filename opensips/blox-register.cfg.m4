@@ -98,14 +98,17 @@ route[ROUTE_REGISTER] {
                     $avp(LANPROTO) = $(avp(LANProfile){uri.param,transport});
                     fix_nated_register(); /* will set the (not just contact) received address to put in db */
                     force_rport();
-                    subst("/Contact: +<sip:(.*)@(.*)>(.*)$/Contact: <sip:\1@$avp(LANIP):$avp(LANPORT)>\3/");
+                    if(! subst("/Contact: +<sip:(.*)@(.*?)>;(.*)$/Contact: <sip:\1@$avp(LANIP):$avp(LANPORT)>;\3/")) {
+                        subst("/Contact: +<sip:(.*)@(.*?)>(.*)$/Contact: <sip:\1@$avp(LANIP):$avp(LANPORT)>/");
+                    }
 
                     $var(PBXIP) = $(avp(PBX){uri.host}) ;
                     $var(PBXPORT) = $(avp(PBX){uri.port}) ;
                     
+                    $ru = "sip:" + $var(PBXIP) + ":" + $var(PBXPORT) ;
                     $fs = $avp(LANPROTO) + ":" + $avp(LANIP) + ":" + $avp(LANPORT) ;
                     $du = $avp(PBX) + ";transport=" + $avp(LANPROTO)  ;
-        	    $var(reguri) = "sip:" + $fU + "@" + $var(PBXIP) + ":" + $var(PBXPORT) + ";" + "transport=" + $avp(LANPROTO) ;
+                    $var(reguri) = "sip:" + $fU + "@" + $var(PBXIP) + ":" + $var(PBXPORT) + ";" + "transport=" + $avp(LANPROTO) ;
                     xlog("Sending to $avp(LANIP) : $avp(LANPORT) : $fs :  $var(reguri)\n");
                     uac_replace_from("$var(reguri)");
                     uac_replace_to("$var(reguri)");

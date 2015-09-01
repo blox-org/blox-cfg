@@ -19,12 +19,24 @@
 
 
 #Used for WAN Profiles
-route[WAN2LAN] {
+route[MTS_WAN2LAN] {
+    xdbg("------------------ WAN_2_LAN -----------------------\n");
     if($dlg_val(MediaProfileID)) {
         $avp(MediaProfileID) = $dlg_val(MediaProfileID);
     }
 
     if (has_body("application/sdp")) {
+        if(!cache_fetch("local","allomtscodec",$var(codec))) {
+            route(ALLOMTSLOAD);
+            if(!cache_fetch("local","allomtscodec",$var(codec))) {
+                    xlog("L_ERR","Fatal: No allomts codec configured\n");
+                    drop(); # /* Drop request only route */
+                    exit ;
+            }
+        }
+        $json(jCodec) := $var(codec) ;
+        #xdbg("------------------ $json(jCodec)-----------------------\n");
+
         if(cache_fetch("local","$avp(MediaProfileID)",$avp(MediaProfile))) {
             xdbg("Loaded from cache $avp(MediaProfileID): $avp(MediaProfile)\n");
         } else if (avp_db_load("$avp(MediaProfileID)","$avp(MediaProfile)/blox_profile_config")) {
@@ -32,7 +44,7 @@ route[WAN2LAN] {
             xdbg("Stored in cache $avp(MediaProfileID): $avp(MediaProfile)\n");
         } else {
             xdbg("No profile configured for $avp(MediaProfileID): $avp(MediaProfile)\n");
-            sl_send_reply("500","Server error");
+            sl_send_reply("500","Internal Media Error");
             exit;
         }
 
@@ -43,10 +55,6 @@ route[WAN2LAN] {
             $avp(MediaWANIP) = $(avp(MediaProfile){param.value,WAN});
         }
         $avp(MediaTranscoding) = $(avp(MediaProfile){param.value,TRANSCODING});
-
-        if(is_dlg_flag_set("DLG_FLAG_TRANSCODING")) {
-            rtpproxy_unforce("$avp(MediaProfileID)");
-        }
 
         if(is_dlg_flag_set("DLG_FLAG_WAN2LAN")) { #Org Call Intiated from WAN2LAN
                 if($DLG_dir == "downstream") { /* Set aprop. LAN WAN Media IP */
@@ -66,9 +74,6 @@ route[WAN2LAN] {
                 }
         }
 
-        rtpproxy_offer("o","$avp(DstMediaIP)","$avp(MediaProfileID)","$var(proxy)","$var(newaddr)");
-        xdbg("Route: rtpproxy_offer............. $avp(DstMediaIP):$avp(MediaProfileID):$var(proxy):$var(newaddr):\n");
-
         if($avp(MediaTranscoding) == "1") {
             $avp(AUDIOCodec) = "MEDIA:" + $avp(MediaProfileID) ;
             if(cache_fetch("local","$avp(AUDIOCodec)",$avp(AUDIOCodec))) {
@@ -78,81 +83,100 @@ route[WAN2LAN] {
                 xdbg("Stored in cache $avp(AUDIOCodec): $avp(AUDIOCodec)\n");
             }
 
-            $var(tDstMediaPort) = $(var(newaddr){s.select,1,:}) ;
-            xdbg("Route: rtpproxy_offer............. $var(tDstMediaPort)\n");
-
-            $avp(DstMediaPort) = $(var(tDstMediaPort){s.int}) ;
-            if(is_direction("upstream")) { #Direction calculated in route
-                xdbg("Route: upstream($DLG_dir)\n");
-                $avp(SrcMediaPort) = ($avp(DstMediaPort) - gMediaPortOffset);
-            } else {
-                xdbg("Route: downstream($DLG_dir)\n");
-                $avp(SrcMediaPort) = ($avp(DstMediaPort) + gMediaPortOffset);
-            }
-    
             $var(oline) = $(rb{sdp.line,o});
             $var(cline) = $(rb{sdp.line,c});
-            $var(mline) = $(rb{sdp.line,m});
 
-            $var(osource) = $(var(oline){s.select,5, });
-            $var(mport) = $(var(mline){s.select,1, });
-            $var(mtype) = $(var(mline){s.select,2, });
-            $var(t38) = $(var(mline){s.select,3, });
+            $var(mt38)   = null ;
+            $var(maudio) = null ;
+            $var(mvideo) = null ;
 
-            if($var(mtype) == "udptl" && $var(t38) == "t38") {
-                $avp(SrcUdptl) = 1;
-                $avp(SrcT38) = 1;
+            $var(sdpidx) = 0 ;
+            $var(mline) = $(rb{sdp.line,m,$var(sdpidx)});
+            while($var(mline) != null && $var(mline) != "" && $var(sdpidx) < 3) { #COMMENT: Max 3 Media line will be processed 
+                $var(media) = $(var(mline){s.select,0, });
+                $var(media) = $(var(media){s.select,1,=});
+                $var(mport) = $(var(mline){s.select,1, });
+                $var(mtype) = $(var(mline){s.select,2, });
+                $var(t38) = $(var(mline){s.select,3, });
 
-                $var(i) = 0;
-                $var(aline) = $(rb{sdp.line,a,$var(i)});
-                $avp(rSrcT38Param) = null;
-                while($var(aline)) {
-                    $var(aline) = $(var(aline){s.substr,2,0}) ;
-                    if($var(i) != 0) {
-                        $avp(rSrcT38Param) = $avp(rSrcT38Param) + ";" + $var(aline) ;
-                    } else {
-                        $avp(rSrcT38Param) = $var(aline) ;
-                    }
-
-                    xdbg("------------------ $var(rSrcT38Param) ------------\n");
-                    $var(i) = $var(i) + 1;
+                xlog("L_WARN","Processing :$var(mport):$var(media):$var(t38): $var(mt38):$var(mvideo):$var(audio)\n");
+    
+                if($var(mtype) == "udptl" && $var(t38) == "t38" && $var(mt38) == null) {
+                    $avp(SrcUdptl) = 1;
+                    $avp(SrcT38) = 1;
+                    $var(mt38) = 1;
+                    $var(i) = 0;
                     $var(aline) = $(rb{sdp.line,a,$var(i)});
-                }
-                $avp(rSrcT38Param) = $(avp(rSrcT38Param){re.subst,/:/=/g}) ;
-            } else { #/* Parse SRTP Param*/
-                $avp(rSrcSRTPParam) = null ;
-                $avp(rSrcSRTPSDP) = null ;
-                $avp(DstSRTPParam) = null ;
-                $var(i) = 0;
-                $var(aline) = $(rb{sdp.line,a,$var(i)});
-                while($var(aline)) {
-                    $var(aline) = $(var(aline){s.substr,2,0}) ;
-                    $var(crypto) = $(var(aline){s.select,0,:}) ;
-                    if($var(crypto) == "crypto") {
-                        $var(param) = $(var(aline){s.select,1,:}) ;
-                        $var(tag) = $(var(param){s.select,0, }) ;
-                        $var(suite) = $(var(param){s.select,1, }) ;
-                        $var(inline) = $(var(param){s.select,2, }) ;
-                        if($var(inline) == "inline") {
-                            $var(encoded) = $(var(aline){s.select,2,:}) ;
-                            $var(decoded) = $(var(encoded){s.decode.base64}) ;
-                            $var(hexenc) = $(var(decoded){s.encode.hexa}) ;
-                            $var(rsrcmkey) = $(var(hexenc){s.substr,0,32});
-                            $var(rsrcmsalt) = $(var(hexenc){s.substr,32,0});
-                            $var(rSrcSRTPParam) = $var(suite) + ":" + $var(rsrcmkey) + ":" + $var(rsrcmsalt) + ":" + $var(encoded);
-                            avp_insert("$avp(rSrcSRTPParam)","$var(rSrcSRTPParam)","10");
-                            avp_insert("$avp(DstSRTPParam)","$var(rSrcSRTPParam)","10");
-                            avp_insert("$avp(rSrcSRTPSDP)","$var(aline)","10");
+                    $avp(rSrcT38Param) = null;
+                    while($var(aline)) {
+                        $var(aline) = $(var(aline){s.substr,2,0}) ;
+                        if($var(i) != 0) {
+                            $avp(rSrcT38Param) = $avp(rSrcT38Param) + ";" + $var(aline) ;
+                        } else {
+                            $avp(rSrcT38Param) = $var(aline) ;
                         }
-                        xdbg("--$json(rSrcSRTPParam)---\n");
+                        xdbg("------------------ $var(rSrcT38Param) ------------\n");
+                        $var(i) = $var(i) + 1;
+                        $var(aline) = $(rb{sdp.line,a,$var(i)});
                     }
-                    $var(i) = $var(i) + 1;
+                    $avp(rSrcT38Param) = $(avp(rSrcT38Param){re.subst,/:/=/g}) ;
+                    $avp(rSrcT38MediaPort) = $var(mport);
+                } else if($var(media) == "video" && $var(mvideo) == null) {
+                    $var(mvideo) = 1;
+                    xlog("L_WARN","Ignoring media: $var(mline) video not supported\n") ;
+                } else if($var(media) == "audio" && $var(maudio) == null) { #/* Parse SRTP Param*/
+                    $avp(srcaudiomline) = $var(mline) ;
+                    $var(maudio) = 1 ;
+                    $avp(rSrcSRTPParam) = null ;
+                    $avp(rSrcSRTPSDP) = null ;
+                    $avp(DstSRTPParam) = null ;
+                    $var(i) = 0;
                     $var(aline) = $(rb{sdp.line,a,$var(i)});
+                    while($var(aline)) {
+                        $var(aline) = $(var(aline){s.substr,2,0}) ;
+                        $var(crypto) = $(var(aline){s.select,0,:}) ;
+                        if($var(crypto) == "crypto") {
+                            $var(param) = $(var(aline){s.select,1,:}) ;
+                            $var(tag) = $(var(param){s.select,0, }) ;
+                            $var(suite) = $(var(param){s.select,1, }) ;
+                            $var(inline) = $(var(param){s.select,2, }) ;
+                            if($var(inline) == "inline") {
+                                $var(encoded) = $(var(aline){s.select,2,:}) ;
+                                $var(decoded) = $(var(encoded){s.decode.base64}) ;
+                                $var(hexenc) = $(var(decoded){s.encode.hexa}) ;
+                                $var(rsrcmkey) = $(var(hexenc){s.substr,0,32});
+                                $var(rsrcmsalt) = $(var(hexenc){s.substr,32,0});
+                                $var(rSrcSRTPParam) = $var(suite) + ":" + $var(rsrcmkey) + ":" + $var(rsrcmsalt) + ":" + $var(encoded);
+                                avp_insert("$avp(rSrcSRTPParam)","$var(rSrcSRTPParam)","10");
+                                avp_insert("$avp(DstSRTPParam)","$var(rSrcSRTPParam)","10");
+                                avp_insert("$avp(rSrcSRTPSDP)","$var(aline)","10");
+                            }
+                            xdbg("--$json(rSrcSRTPParam)---\n");
+                        }
+                        $var(i) = $var(i) + 1;
+                        $var(aline) = $(rb{sdp.line,a,$var(i)});
+                    }
+                    $avp(rSrcMediaPort) = $var(mport);
+                } else {
+                    xlog("L_WARN","Ignoring media: $var(mline) unknown not supported\n") ;
                 }
+                $var(sdpidx) = $var(sdpidx) + 1 ;
+                $var(mline) = $(rb{sdp.line,m,$var(sdpidx)});
             }
     
+            if($var(maudio) == null && $var(mt38) == null) {
+                    xlog("L_WARN","NOT ACCEPTABL HERE Support Fax or Audio\n");
+                    sl_send_reply("488","Not Acceptable Here");
+                    exit;
+            }
             
-           if($avp(rSrcSRTPParam) && ($avp(SrcSRTP) == SRTP_DISABLE)) {
+            if($var(mt38) && $var(rSrcSRTPParam)) { #T38 with SRTP not supported
+                    xlog("L_WARN","NOT ACCEPTABL HERE $avp(rSrcSRTPParam) <===> $avp(SrcMavp)\n");
+                    sl_send_reply("488","Not Acceptable Here");
+                    exit;
+            }
+
+            if($avp(rSrcSRTPParam) && ($avp(SrcSRTP) == SRTP_DISABLE)) {
                 if($var(mtype) == "RTP/SAVP" ) {
                     xlog("L_WARN","NOT ACCEPTABL HERE $avp(rSrcSRTPParam) <===> $avp(SrcMavp)\n");
                     sl_send_reply("488","Not Acceptable Here");
@@ -160,38 +184,34 @@ route[WAN2LAN] {
                 }
             }
         
-            if(($avp(SrcSRTP) == SRTP_COMPULSORY)) {
+            if($avp(SrcSRTP) == SRTP_COMPULSORY) {
                 if(($var(mtype) == "RTP/AVP" ) && (!$avp(rSrcSRTPParam))) {
                     xlog("L_WARN","NOT ACCEPTABL HERE $avp(rSrcSRTPParam) <===> $avp(SrcMavp) <===> $avp(DstSRTP)\n");
                     sl_send_reply("488","Not Acceptable Here");
                     exit;
-                }        
+                }
+            }
 
-            } 
-
-            $avp(rSrcMediaIP) = $(var(cline){s.select,2, });
-            $avp(rSrcMediaPort) = $var(mport);
-            $avp(rSrcCodec) = null;
-            xdbg("------------------ $avp(rSrcMediaIP):$avp(rSrcMediaPort):$avp(rSrcCodec) -------- :$avp(SrcMediaPort):$avp(DstMediaPort):\n");
 
             #Supported Codec
             $avp(18) = "g729";
             $avp(0) = "g711u";
             $avp(8) = "g711a";
+            $avp(9) = "g722_64";
+            $avp(98) = "ilbc_152";
+            #$avp(102) = "g722_1_32";
+            $avp(4) = "g723";
 
-            $var(jCodec)   := '{
-                        "g711u":  { "id": "0",  "codec": "g711u", "rtpmap": "a=rtpmap:0 PCMU/8000", "ptime": 20, "maxptime": 60 },
-                        "g729":   { "id": "18", "codec": "g729",  "rtpmap": "a=rtpmap:18 G729/8000", "ptime": 20, "maxptime": 60 },
-                        "g711a":  { "id": "8",  "codec": "g711a", "rtpmap": "a=rtpmap:8 PCMA/8000", "ptime": 20, "maxptime": 60 }
-            }';
-            $json(jCodec)   := $var(jCodec);
-
-            #xdbg("------------------ $json(jCodec)-----------------------\n");
+            $avp(PL_G726_32) = "g726_32";
+            $avp(PL_G726_16) = "g726_16";
+            $avp(PL_G726_24) = "g726_24";
+            $avp(PL_G726_40) = "g726_40";
 
             $var(i) = 3;
             $var(j) = 0;
-            $var(mcodec) = $(var(mline){s.select,$var(i), });
+            $var(mcodec) = $(avp(srcaudiomline){s.select,$var(i), });
 
+            $avp(rSrcCodec) = null;
             $json(jCodecList) := "{}" ; #jCodecList used for hash manipulation to avoid codec duplication added to rSrcCodec[]
             while($var(mcodec)) {
                 xdbg("------------------$var(mcodec)-----------------------\n");
@@ -203,7 +223,7 @@ route[WAN2LAN] {
                     $json(jCodecList/$var(codec)) = $json(jCodec/$var(codec)) ;
                 }
                 $var(i) = $var(i) + 1;
-                $var(mcodec) = $(var(mline){s.select,$var(i), });
+                $var(mcodec) = $(avp(srcaudiomline){s.select,$var(i), });
             }
             xdbg("Remote Src codec list $(avp(rSrcCodec)[0]) $(avp(rSrcCodec)[1])\n");
 
@@ -275,6 +295,36 @@ route[WAN2LAN] {
 
             xdbg("------------------$var(rtpmaps):$var(codecids)-----------------------\n");
 
+            #Lets reserve the get Media port and reserve it
+            $var(url) =  "http://127.0.0.1:8000" + "/reservemediaports" ;
+            xlog("L_INFO","Route: transcoding request : $var(url)\n");
+            rest_get("$var(url)","$var(body)");
+            if($var(body) == null) {
+                sl_send_reply("500","Server error");
+                exit ;
+            }
+
+            $json(res) := $var(body) ;
+            $var(newaddr) = $avp(DstMediaIP) + ":" + $json(res/local_rtp_port) ;
+            xlog("L_INFO","Route: transcoding reserverd............. :$var(body):$var(newaddr):\n");
+
+            $var(tDstMediaPort) = $(var(newaddr){s.select,1,:}) ;
+
+            $avp(DstMediaPort) = $(var(tDstMediaPort){s.int}) ;
+            if(is_direction("upstream")) { #Direction calculated in route
+                xdbg("Route: upstream($DLG_dir)\n");
+                $avp(SrcMediaPort) = ($avp(DstMediaPort) - gMediaPortOffset);
+            } else {
+                xdbg("Route: downstream($DLG_dir)\n");
+                $avp(SrcMediaPort) = ($avp(DstMediaPort) + gMediaPortOffset);
+            }
+            $avp(DstT38MediaPort) = ($avp(DstMediaPort) + gT38MediaPortOffset);
+            $avp(SrcT38MediaPort) = ($avp(SrcMediaPort) + gT38MediaPortOffset);
+
+            $avp(rSrcMediaIP) = $(var(cline){s.select,2, });
+
+            xdbg("------------------ $avp(rSrcMediaIP):$avp(rSrcMediaPort):$avp(rSrcCodec) -------- :$avp(SrcMediaPort):$avp(DstMediaPort):\n");
+
             if($avp(SrcT38)) {
                 if(!$avp(T38Param)) {
                     $var(cfgparam) = "cfgparam" ;
@@ -298,7 +348,7 @@ route[WAN2LAN] {
                     xdbg("------------------SrcT38Param: $avp(SrcT38Param)-----------------------\n");
 
                     $avp(SrcT38Param) = $avp(SrcT38Param) + ";T38FaxMaxDatagram:1400" ;
-                    $var(sdp) = $var(sdp) + "m=image " + $avp(SrcMediaPort) + " udptl t38\r\n" ;
+                    $var(sdp) = $var(sdp) + "m=image " + $avp(DstT38MediaPort) + " udptl t38\r\n" ;
                     $var(i) = 0;
                     $var(t38attr) = $(avp(SrcT38Param){s.select,$var(i),;}) ;
                     while($var(t38attr)) {
@@ -310,9 +360,7 @@ route[WAN2LAN] {
                 #Adding support for g711 termination for fax passthrough, if T38 not supported
                 $var(sdp) = $var(sdp) + "m=audio " + $avp(DstMediaPort) + " RTP/AVP " + "0 8\r\n" ;
             } else {
-                #$var(sdp) = $var(sdp) + "m=audio " + $avp(DstMediaPort) + " RTP/AVP " + $var(codecids) + "101\r\n" ;
-                #$var(sdp) = $var(sdp) + $var(rtpmaps) + "a=rtpmap:101 telephone-event/8000\r\na=fmtp:101 0-16\r\na=ptime:20\r\na=sendrecv\r\n";
-                if($avp(rSrcSRTPParam))    {
+                if($avp(rSrcSRTPParam)) {
                     if($avp(DstSRTP) == SRTP_OPTIONAL) {
                         $var(sdp) = $var(sdp) + "m=audio " + $avp(DstMediaPort) + " RTP/AVP "  + $var(codecids) + "101\r\n" ;
                         $var(sdp) = $var(sdp) + "m=audio " + $avp(DstMediaPort) + " RTP/SAVP " + $var(codecids) + "101\r\n" ;
@@ -367,11 +415,15 @@ route[WAN2LAN] {
             }
 
             add_body("$var(sdp)","application/sdp");
-        };
+        } else {
+            xlog("L_WARN", "+++++++++++++++shouldn't be here: transcoding: feature disabled for this profile++++++++++\n");
+            sl_send_reply("500","Internal Media Error");
+            exit ;
+        }
     };
 
-    t_on_reply("WAN2LAN");
-    t_on_failure("WAN2LAN");
+    t_on_reply("MTS_WAN2LAN");
+    t_on_failure("MTS_WAN2LAN");
 
     if (!t_relay()) {
         xlog("relay error $mb\n");
@@ -382,13 +434,7 @@ route[WAN2LAN] {
 }
 
 #Used for WAN PROFILE
-onreply_route[WAN2LAN] {
-    remove_hf("User-Agent");
-    insert_hf("User-Agent: USERAGENT\r\n","CSeq") ;
-    if(remove_hf("Server")) { #Removed Server success, then add ours
-        insert_hf("Server: USERAGENT\r\n","CSeq") ;
-    }
-
+onreply_route[MTS_WAN2LAN] {
     xdbg("Got Response $rs/ $fu/$ru/$si/$ci/$avp(rcv)\n");
 
     if(is_method("REGISTER")) {
@@ -399,6 +445,13 @@ onreply_route[WAN2LAN] {
             if(!save("locationpbx","rp1", "$fu")) {
                 xlog("L_ERROR", "Error saving the location\n");
             };
+
+            if($avp(WANADVIP)) { # Roaming user: replace it with advIP:Port
+                subst("/Contact: +<sip:(.*)@(.*)>(.*)$/Contact: <sip:\1@$avp(WANADVIP):$avp(WANADVPORT)>\3/");
+            } else {
+                subst("/Contact: +<sip:(.*)@(.*)>(.*)$/Contact: <sip:\1@$avp(WANIP):$avp(WANPORT)>\3/");
+            }
+
             xdbg("Saved Location $fu/$ru/$si/$ci/$avp(rcv)" );
         };
         exit;
@@ -406,34 +459,43 @@ onreply_route[WAN2LAN] {
 
     if (status =~ "(183)|2[0-9][0-9]") {
         if (has_body("application/sdp")) {
+            $avp(rDstSRTPParam) = null ;
             $var(transcoding) = 0 ;
+            $var(rSrcCodecIdx) = 0;
+            $var(cryptoline) = null ;
+            if(!cache_fetch("local","allomtscodec",$var(codec))) {
+                    route(ALLOMTSLOAD);
+                    if(!cache_fetch("local","allomtscodec",$var(codec))) {
+                            xlog("L_ERR","Fatal: No allomts codec configured\n");
+                            exit ;
+                    }
+            }
+            $json(jCodec) := $var(codec) ;
             if($avp(MediaTranscoding) == "1") {
                 $var(oline) = $(rb{sdp.line,o});
                 $var(mline) = $(rb{sdp.line,m});
                 $var(cline) = $(rb{sdp.line,c});
                 $var(transcoding) = 1 ;
-                #xdbg("sdp $var(oline):$var(mline):$var(cline)\n");
 
-                $avp(mline) = null ;
-                $var(i) = 0;
-                $var(mline) = $(rb{sdp.line,m,$var(i)});
-                xdbg("+++++++++++++++<<<<<type ------ $var(mline) ==> ++++++++++++++\n");
-                while($var(mline)) {
-                      avp_insert("$avp(mline)", "$var(mline)", "100"); 
-                    xdbg("+++++++++++++++TYPE ------ $var(mline) ==> $(avp(mline)[$var(i)]) ++++++++++++++\n");
-                    $var(i) = $var(i) + 1; 
-                    $var(mline) = $(rb{sdp.line,m,$var(i)});
-                }
-
-                $var(osource) = $(var(oline){s.select,5, });
                 $var(csource) = $(var(cline){s.select,2, });
+                $avp(rDstMediaIP) = $var(csource) ;
 
-                for ($var(mline) in $(avp(mline)[*])) {
+                $var(mt38)   = null ;
+                $var(maudio) = null ;
+                $var(mvideo) = null ;
+                $var(sdpidx) = 0 ;
+
+                $var(mline) = $(rb{sdp.line,m,$var(sdpidx)});
+                while($var(mline) != null && $var(mline) != "" && $var(sdpidx) < 3) { #COMMENT: Max 3 Media line will be processed 
+                    $var(media) = $(var(mline){s.select,0, });
+                    $var(media) = $(var(media){s.select,1,=});
+
                     $var(mport) = $(var(mline){s.select,1, });
                     $var(mtype) = $(var(mline){s.select,2, });
                     $var(t38) = $(var(mline){s.select,3, });
                     xdbg("+++++++++++++++type ------ $var(mline) ==> : $var(t38):$var(mtype):$var(mport) ++++++++++++++\n");
-                    if($var(mtype) == "udptl" && $var(t38) == "t38") {
+                    if($var(mtype) == "udptl" && $var(t38) == "t38" && $var(mt38) == null) {
+                        $var(mt38) = 1 ;
                         $avp(DstUdptl) = 1;
                         $avp(DstT38) = 1;
                         $avp(t38mline) = $var(mline) ;
@@ -453,31 +515,63 @@ onreply_route[WAN2LAN] {
                             $var(aline) = $(rb{sdp.line,a,$var(i)});
                         }
                         $avp(rDstT38Param) = $(avp(rDstT38Param){re.subst,/:/=/g}) ;
-                    } else {
-                        $avp(audiomline) = $var(mline) ;
+                        $avp(rDstT38MediaPort) = $var(mport);
+                    } else if($var(media) == "video" && $var(mvideo) == null) {
+                        $var(mvideo) = 1;
+                        xlog("L_WARN","Ignoring media: $var(mline) video not supported\n") ;
+                    } else if($var(media) == "audio" && $var(maudio) == null) { #/* Parse SRTP Param*/
+                        $var(maudio) = 1 ;
+                        $avp(dstaudiomline) = $var(mline) ;
                         $var(mcodec) = $(var(mline){s.select,3, });
                         $avp(18) = "g729";
                         $avp(0) = "g711u";
                         $avp(8) = "g711a";
+                        $avp(9) = "g722_64";
+#                       $avp(102) = "g722_1_32";
+                        $avp(4) = "g723";
+
+                        $avp(PL_G726_32) = "g726_32";
+                        $avp(PL_G726_16) = "g726_16";
+                        $avp(PL_G726_24) = "g726_24";
+                        $avp(PL_G726_40) = "g726_40";
+
+                        $avp(98) = "ilbc_152";
+
                         $avp(g729) = 18;
                         $avp(g711u) = 0;
                         $avp(g711a) = 8;
+                        $avp(g722_64) = 9;
+                        #$avp(g722_1_32) = 102;
+                        $avp(g723) = 4;
+
+                        $avp(g726_32) = PL_G726_32;
+                        $avp(g726_16) = PL_G726_16;
+                        $avp(g726_24) = PL_G726_24;
+                        $avp(g726_40) = PL_G726_40;
+
+                        $avp(ilbc_152) = 98;
+
                         $var(codec) = $avp($var(mcodec)) ;
 
-                        $var(i) = 0;
-                        $var(rScodec) = $(avp(rSrcCodec)[$var(i)]) ;
+                        $var(rSrcCodecIdx) = 0;
+                        $var(rScodec) = $(avp(rSrcCodec)[$var(rSrcCodecIdx)]) ;
                         xdbg("+++++audio++++++++++$var(mcodec)>>>$var(codec)++++++++++\n");
                         while($var(rScodec)) {
                             xdbg("+++++++++++++++$var(codec) <==> $var(rScodec)++++++++++\n");
                             if($var(codec) == $var(rScodec)) {
                                 $var(transcoding) = 0;
-                            }
-                            $var(rScodec) = null;
+                                $var(rScodec) = null;
+                            } else {
+                                $var(rScodec) = null;
  
-                            $var(i) = $var(i) + 1; 
-                            if($(avp(rSrcCodec)[$var(i)])) {
-                                $var(rScodec) = $(avp(rSrcCodec)[$var(i)]) ;
+                                $var(rSrcCodecIdx) = $var(rSrcCodecIdx) + 1; 
+                                if($(avp(rSrcCodec)[$var(rSrcCodecIdx)])) {
+                                    $var(rScodec) = $(avp(rSrcCodec)[$var(rSrcCodecIdx)]) ;
+                                }
                             }
+                        }
+                        if($var(transcoding) != 0) { /* If No codec matched will take the first received source codec id */
+                            $var(rSrcCodecIdx) = 0 ;
                         }
 
                         $var(i) = 0;
@@ -505,7 +599,20 @@ onreply_route[WAN2LAN] {
                             $var(i) = $var(i) + 1;
                             $var(aline) = $(rb{sdp.line,a,$var(i)});
                         }
+                        $avp(rDstMediaPort) = $var(mport);
+                    } else {
+                        xlog("L_WARN","Ignoring media: $var(mline) unknown not supported\n") ;
                     }
+                    $var(sdpidx) = $var(sdpidx) + 1 ;
+                    $var(mline) = $(rb{sdp.line,m,$var(sdpidx)});
+                }
+
+                if($var(mt38) == null && $var(maudio) == null) {
+                    strip_body(); #/* Exit here */
+                }
+
+                if($var(mt38) && $var(rDstSRTPParam)) { #T38 with SRTP not supported
+                    strip_body(); #/* Exit here */
                 }
     
                 xdbg("+++++++++++++++transcoding: $var(transcoding)+++++$avp(rDstT38Param)+++++\n");
@@ -518,295 +625,301 @@ onreply_route[WAN2LAN] {
                     if(($var(transcoding) == 0) && $avp(rSrcSRTPParam) && $avp(rDstSRTPParam)) {
                         xdbg("+++++++++++++++SRTP testing : $var(transcoding)+++++$avp(rDstSRTPParam)+++++\n");
                     } else {
-                    if($avp(SrcT38) || $avp(DstT38))
-                        $var(transcoding) = 1; #/* Reset it to transcoding, if codec match set to 0 above */
-                    if($avp(SrcSRTP) != "0" && $avp(rSrcSRTPParam)) {
-                        $var(transcoding) = 1; #/* Reset it to transcoding, if codec match set to 0 above */
-                        $var(jCrypto)   := '{
-                                    "AES_CM_128_HMAC_SHA1_80":  { "crypto": "aes_cm", "auth": "hmac_sha1", "mst_ksize": "128", "auth_size": "80" },
-                                    "AES_CM_128_HMAC_SHA1_32":  { "crypto": "aes_cm", "auth": "hmac_sha1", "mst_ksize": "128", "auth_size": "32" }, 
-                                    "F8_128_HMAC_SHA1_80":      { "crypto": "aes_f8", "auth": "hmac_sha1", "mst_ksize": "128", "auth_size": "80" }
-                        }';
-                        $json(jCrypto) := $var(jCrypto) ;
-                        $var(true) = 1 ;
-                        $var(suite) = null ;
-                        for ($var(crypto) in $(avp(rSrcSRTPParam)[*])) {
-                            if($var(true)) {
-                                $var(suite) = $(var(crypto){s.select,0,:});
-                                if($json(jCrypto/$var(suite))) { #Supported suite
-                                    $var(rsrcmkey) = $(var(crypto){s.select,1,:});
-                                    $var(rsrcmsalt) = $(var(crypto){s.select,2,:});
-                                    $var(true) = null ;
-                                }
-                            }
+                        if($avp(SrcT38) || $avp(DstT38)) {
+                            $var(transcoding) = 1; #/* Reset it to transcoding, if codec match set to 0 above */
                         }
-                        if($avp(rDstSRTPParam)) {
-                            $var(srcmkey) = $(avp(rDstSRTPParam){s.select,1,:});
-                            $var(srcmsalt) = $(avp(rDstSRTPParam){s.select,2,:});
-                        } else {
-                            if(($var(rsrcmkey) && $var(rsrcmsalt))) {
-                                $var(srcrhexenc) = $(RANDOM{s.encode.hexa}) +  $(RANDOM{s.encode.hexa}) +  $(RANDOM{s.encode.hexa}) +  $(RANDOM{s.encode.hexa});
-                                $var(srcmkey) = $(var(srcrhexenc){s.substr,0,32});
-                                $var(srcmsalt) = $(var(srcrhexenc){s.substr,32,28});
-                                $var(srcmkeysalt) = $var(srcmkey) + $var(srcmsalt) ;
-                                $var(srcmkshexdec) = $(var(srcmkeysalt){s.decode.hexa}) ;
-                                $var(srcinline) = $(var(srcmkshexdec){s.encode.base64}) ;
-                                xdbg("$var(srcrhexenc) ==> $var(srcmkey) <<>> $var(srcmsalt) <== $var(srcmkshexdec) <== $var(srcinline) \n");    
-                                $avp(SrcSRTPParam) = $var(suite) + ":" + $var(srcmkey) + ":" + $var(srcmsalt) ;
-                            } else {
-                                $avp(rSrcSRTPParam) = null ;
-                                strip_body(); #/* Exit here */
-                            }
-                        }
-                    }
-                    if($avp(rDstSRTPParam)) {
-                        $var(transcoding) = 1; #/* Reset it to transcoding, if codec match set to 0 above */
-                        $var(jCrypto)   := '{
-                                    "AES_CM_128_HMAC_SHA1_80":  { "crypto": "aes_cm", "auth": "hmac_sha1", "mst_ksize": "128", "auth_size": "80" },
-                                    "AES_CM_128_HMAC_SHA1_32":  { "crypto": "aes_cm", "auth": "hmac_sha1", "mst_ksize": "128", "auth_size": "32" }, 
-                                    "F8_128_HMAC_SHA1_80":      { "crypto": "aes_f8", "auth": "hmac_sha1", "mst_ksize": "128", "auth_size": "80" }
-                        }';
-                        $json(jCrypto) := $var(jCrypto) ;
-                        $var(true) = 1 ;
-                        $var(suite) = null ;
-                        for ($var(crypto) in $(avp(rDstSRTPParam)[*])) {
-                            if($var(true)) {
-                                $var(suite) = $(var(crypto){s.select,0,:});
-                                if($json(jCrypto/$var(suite))) { #Supported suite
-                                    $var(rdstmkey) = $(var(crypto){s.select,1,:});
-                                    $var(rdstmsalt) = $(var(crypto){s.select,2,:});
-                                    $var(true) = null ;
-                                }
-                            }
-                        }
-                        $var(true) = 1 ;
-                        for ($var(crypto) in $(avp(DstSRTPParam)[*])) {
-                            if($var(true)) {
-                                $var(dstsuite) = $(var(crypto){s.select,0,:});
-                                if($var(dstsuite) == $var(suite)) {
-                                    $var(dstmkey)  = $(var(crypto){s.select,1,:});
-                                    $var(dstmsalt) = $(var(crypto){s.select,2,:});
-                                    $var(true) = null;
-                                }
-                            }
-                        }
-                    }
-                    }
-                    $var(mport) = $(avp(audiomline){s.select,1, });
-                    $var(mtype) = $(avp(audiomline){s.select,2, });
-                    $var(t38) = $(avp(audiomline){s.select,3, });
-                }
-    
-                xdbg("+++++++++++++++transcoding: $var(transcoding)+++++$var(mport):$var(mtype):+++++\n");
-                # DO PASSTHROUGH USING TRANSCODING HARDWARE
-                rtpproxy_unforce("$avp(MediaProfileID)");
-
-                $avp(resource) = "resource" + "-" + $ft; /* Grab media port offset from resource-$ft */
-                route(DELETE_ALLOMTS_RESOURCE); #Delete previous session, if any
-
-                #remote rtp_nostrict=true in real system
-                #no strict used in REST rtp_nostrict=true due to lan/wan emulation with single nic card 
-                xdbg("------------------ $avp(rSrcMediaIP):$avp(rSrcMediaPort):$(avp(rSrcCodec)[0])-------- :$avp(SrcMediaPort):$avp(DstMediaPort):\n");
-                if($var(transcoding) == 0) { #/* No Transcoding required, PASSTHROUGH */
-                    $var(url) =  "gMTSSRV" + "/makepassthrough?remote_ipA=" + $avp(rSrcMediaIP) + "&remote_portA=" + $avp(rSrcMediaPort) + "&remote_ipB=" + $var(csource) + "&remote_portB=" + $var(mport) + "&local_portA=" + $avp(SrcMediaPort) + "&local_portB=" + $avp(DstMediaPort) ;
-                } else {
-                    if($avp(SrcT38)) {
-                        $var(local_rtp_port) = ($(avp(SrcMediaPort){s.int}) - 3); #Dummy port needed by DSP
-                        $var(remote_rtp_port) = ($(avp(rSrcMediaPort){s.int}) - 3); #Dummy port needed by DSP 
-                        xdbg("------------------ $avp(rSrcT38Param) ------------\n");
-                        $var(url) =  "gMTSSRV" + "/create?remote_ip=" + $avp(rSrcMediaIP) + "&codec=t38&local_t38_port=" + $avp(SrcMediaPort) + "&remote_t38_port=" + $avp(rSrcMediaPort) + "&local_rtp_port=" + $var(local_rtp_port) + "&remote_rtp_port=" + $var(remote_rtp_port) + "&rcname=sbc@allo.com&rtp_nostrict=true&enable_t38=yes" + "&t38_profile=1" ;
-                    } else if(($avp(SrcSRTP) != SRTP_DISABLE) && $avp(rSrcSRTPParam)) {
-                        $var(url) =  "http://127.0.0.1:8000" + "/create?remote_ip=" + $avp(rSrcMediaIP) + "&codec=" + $(avp(rSrcCodec)[0]) + "&local_rtp_port=" + $avp(SrcMediaPort) + "&remote_rtp_port=" + $avp(rSrcMediaPort) + "&rcname=sbc@allo.com&rtp_nostrict=true&enable_srtp=true&srtp_s_crypto=" + $json(jCrypto/$var(suite)/crypto) + "&srtp_s_auth=" + $json(jCrypto/$var(suite)/auth) + "&srtp_s_auth_size=" + $json(jCrypto/$var(suite)/auth_size) + "&srtp_s_mst_ksize=" + $json(jCrypto/$var(suite)/mst_ksize) + "&srtp_s_mst_key=" + $var(srcmkey) + "&srtp_s_mst_salt=" + $var(srcmsalt) + "&srtp_r_crypto=" + $json(jCrypto/$var(suite)/crypto) + "&srtp_r_auth=" + $json(jCrypto/$var(suite)/auth) + "&srtp_r_auth_size=" + $json(jCrypto/$var(suite)/auth_size) + "&srtp_r_mst_ksize=" + $json(jCrypto/$var(suite)/mst_ksize) + "&srtp_r_mst_key=" + $var(rsrcmkey) + "&srtp_r_mst_salt=" + $var(rsrcmsalt);
-                    } else {
-                        $var(url) =  "gMTSSRV" + "/create?remote_ip=" + $avp(rSrcMediaIP) + "&codec=" + $(avp(rSrcCodec)[0]) + "&local_rtp_port=" + $avp(SrcMediaPort) + "&remote_rtp_port=" + $avp(rSrcMediaPort) + "&rcname=sbc@allo.com&rtp_nostrict=true" ;
-                    }
-                }
-                xdbg("Connecting $var(url)\n");
-                rest_get("$var(url)","$var(body)");
-                $avp($avp(resource)) = $var(body);
-                $json(resource1) := $var(body) ;
-                if($json(resource1/VT-Index) != null) {
-                    $var(idx1) = $json(resource1/VT-Index) ;
-                } else if($json(resource1/CPP-Index) != null) {
-                    $var(idx1) = $json(resource1/CPP-Index) ;
-                }
-                avp_db_store("$hdr(call-id)","$avp($avp(resource))");
-                xdbg("Got Response $avp(resource) -> $avp($avp(resource)): $(avp(rSrcCodec)[0]):$avp(rSrcMediaPort)<==>$avp(SrcMediaPort)\n");
-
-                $avp(resource) = "resource" + "-" + $tt ;
-                route(DELETE_ALLOMTS_RESOURCE); #Delete previous session, if any
-
-                if($var(transcoding) == 0) {
-                    $var(url) =  "gMTSSRV" + "/makepassthrough?remote_ipA=" + $var(csource) + "&remote_portA=" + $var(mport) + "&remote_ipB=" + $avp(rSrcMediaIP) + "&remote_portB=" + $avp(rSrcMediaPort) +  "&local_portA=" + $avp(DstMediaPort) + "&local_portB=" + $avp(SrcMediaPort) ;;
-                } else {
-                    $avp(rDstMediaIP) = $var(csource) ;
-                    $avp(rDstMediaPort) =  $var(mport);
-                    $avp(rDstCodec) = null ;
-                    avp_insert("$avp(rDstCodec)","$var(codec)","10");
-                    if($var(DstT38)) {
-                        $var(local_rtp_port) = ($(avp(DstMediaPort){s.int}) - 3); #Dummy port needed by DSP
-                        $var(remote_rtp_port) = ($(avp(rDstMediaPort){s.int}) - 3); #Dummy port needed by DSP 
-                        $var(url) =  "gMTSSRV" + "/create?remote_ip=" + $avp(rDstMediaIP) + "&codec=t38&local_t38_port=" + $avp(DstMediaPort) + "&remote_t38_port=" + $avp(rDstMediaPort) + "&local_rtp_port=" + $var(local_rtp_port) + "&remote_rtp_port=" + $var(remote_rtp_port) + "&rcname=sbc@allo.com&rtp_nostrict=true&enable_t38=yes" + "&T38FaxVersion=" + $(avp(rDstT38Param){param.value,T38FaxVersion}) + "&T38MaxBitRate=" +  $(avp(rDstT38Param){param.value,T38MaxBitRate}) + "&T38FaxRateManagement=" + $(avp(rDstT38Param){param.value,T38FaxRateManagement}) + "&T38FaxMaxDatagram=" + $(avp(rDstT38Param){param.value,T38FaxMaxDatagram}) + "&T38FaxUdpEC=" + $(avp(rDstT38Param){param.value,T38FaxUdpEC}) ;
-                    } else if($avp(rDstSRTPParam)) {
-                        $var(url) =  "gMTSSRV" + "/create?remote_ip=" + $avp(rDstMediaIP) + "&codec=" + $(avp(rDstCodec)[0]) + "&local_rtp_port=" + $avp(DstMediaPort) + "&remote_rtp_port=" + $avp(rDstMediaPort) + "&rcname=sbc@allo.com&rtp_nostrict=true&enable_srtp=true&srtp_s_crypto=" + $json(jCrypto/$var(suite)/crypto) + "&srtp_s_auth=" + $json(jCrypto/$var(suite)/auth) + "&srtp_s_auth_size=" + $json(jCrypto/$var(suite)/auth_size) + "&srtp_s_mst_ksize=" + $json(jCrypto/$var(suite)/mst_ksize) + "&srtp_s_mst_key=" + $var(dstmkey) + "&srtp_s_mst_salt=" + $var(dstmsalt) + "&srtp_r_crypto=" + $json(jCrypto/$var(suite)/crypto) + "&srtp_r_auth=" + $json(jCrypto/$var(suite)/auth) + "&srtp_r_auth_size=" + $json(jCrypto/$var(suite)/auth_size) + "&srtp_r_mst_ksize=" + $json(jCrypto/$var(suite)/mst_ksize) + "&srtp_r_mst_key=" + $var(rdstmkey) + "&srtp_r_mst_salt=" + $var(rdstmsalt);
-                    } else {
-                        $var(url) =  "gMTSSRV" + "/create?remote_ip=" + $var(csource) + "&codec=" + $var(codec) + "&remote_rtp_port=" + $var(mport) + "&rcname=sbc@allo.com&local_rtp_port=" + $avp(DstMediaPort) + "&rtp_nostrict=true";
-                    }
-                }
-                xdbg("Connecting $var(url)\n");
-                rest_get("$var(url)","$var(body)");
-                $avp($avp(resource)) = $var(body);
-                $json(resource2) := $var(body) ;
-                if($json(resource2/VT-Index) != null) {
-                            $var(idx2) = $json(resource2/VT-Index) ;
-                } else if($json(resource2/CPP-Index) != null) {
-                            $var(idx2) = $json(resource2/CPP-Index) ;
-                }
-
-                xdbg("Got Index ---->> $var(idx1) <==> $var(idx2) <<  $json(resource2) >> $json(resource2/CPP-Index)\n");
-                avp_db_store("$hdr(call-id)","$avp($avp(resource))");
-                xdbg("Got Response $avp(resource) -> $avp($avp(resource)): $var(csource):$avp(mport)<==>$avp(DstMediaPort)\n");
-
-                $var(jCodec)   := '{
-                            "g729":   { "id": "18", "codec": "g729",  "rtpmap": "a=rtpmap:18 G729/8000", "ptime": 20, "maxptime": 60 },
-                            "g711u":  { "id": "0",  "codec": "g711u", "rtpmap": "a=rtpmap:0 PCMU/8000", "ptime": 20, "maxptime": 60 },
-                            "g711a":  { "id": "8",  "codec": "g711a", "rtpmap": "a=rtpmap:8 PCMA/8000", "ptime": 20, "maxptime": 60 }
-                }';
-                $json(jCodec)   := $var(jCodec);
-
-                if($avp(rSrcCodec)) {
-                    $var(rSrcCodecid) = $avp($(avp(rSrcCodec)[0])) ;
-                    if($avp($var(rSrcCodecid))) {
-                        $var(rScodec)  = $avp($var(rSrcCodecid)) ;
-                        $json(rjCodec) := $json(jCodec/$var(rScodec)) ;
-                        $var(rSrcRtpmap) = $json(rjCodec/rtpmap) ;
-                    }
-                }
-
-                $var(SDPID1) = $(var(oline){s.select,1, });
-                $var(SDPID2) = $(var(oline){s.select,2, });
-                xdbg(">>>>>>>>>------------------$var(oline)-->>>> $var(SDPID1) <<>> $var(SDPID2) ---------------------\n");
-                $var(sdp) = "v=0\r\n" ;
-                $var(sdp) = $var(sdp) + "o=- " + $var(SDPID1) + " " + $var(SDPID2) + " IN IP4 " + $avp(SrcMediaIP) + "\r\n";
-                $var(sdp) = $var(sdp) + $(rb{sdp.line,s}) + "\r\n" ;
-                $var(sdp) = $var(sdp) + "c=IN IP4 " + $avp(SrcMediaIP) + "\r\n";
-                $var(sdp) = $var(sdp) + $(rb{sdp.line,t}) + "\r\n" ;
-
-                if($avp(SrcT38) && $avp(DstT38)) {
-                    $var(sdp) = $var(sdp) + "m=image " + $avp(SrcMediaPort) + " udptl t38\r\n" ;
-                    $var(i) = 0;
-                    $var(t38attr) = $(avp(rDstT38Param){s.select,$var(i),;}) ;
-                    while($var(t38attr)) {
-                        $var(sdp) = $var(sdp) + "a=" + $var(t38attr) + "\r\n" ;
-                        $var(i) = $var(i) + 1;
-                        $var(t38attr) = $(avp(rDstT38Param){s.select,$var(i),;}) ;
-                    }
-                } else {
-                    if($avp(SrcT38)) {
-			$var(mtype) = null ;
-                        $avp(T38Param:1) = "MEDIA:" + $avp(MediaProfileID) ;
-                        if(cache_fetch("local","$avp(T38Param:1)",$avp(T38Param:1))) {
-                            xdbg("Loaded from cache $avp(T38Param:1): $avp(T38Param:1)\n");
-                        } else if (avp_db_load("$avp(T38Param:1)","$avp(T38Param:1)/blox_config")) {
-                            cache_store("local","$avp(T38Param:1)","$avp(T38Param:1)");
-                            xdbg("Stored in cache $avp(T38Param:1): $avp(T38Param:1)\n");
-                        }
-
-                        $avp(SrcT38Param) = $avp(T38Param:1) ;
-                        xdbg("------------------SrcT38Param: $avp(SrcT38Param)-----------------------\n");
-
-                        $avp(SrcT38Param) = $avp(SrcT38Param) + ";T38FaxMaxDatagram:1400" ;
-                        $var(sdp) = $var(sdp) + "m=image " + $avp(SrcMediaPort) + " udptl t38\r\n" ;
-                        $var(i) = 0;
-                        $var(t38attr) = $(avp(SrcT38Param){s.select,$var(i),;}) ;
-                        while($var(t38attr)) {
-                            $var(sdp) = $var(sdp) + "a=" + $var(t38attr) + "\r\n" ;
-                            $var(i) = $var(i) + 1;
-                            $var(t38attr) = $(avp(SrcT38Param){s.select,$var(i),;}) ;
-                        }
-                        #Adding support for g711 termination for fax passthrough, if T38 not supported
-                        #$var(sdp) = $var(sdp) + "m=audio " + $avp(SrcMediaPort) + " RTP/AVP " + "0 8\r\n" ;
-                        xdbg("---------+++++++++++Adding T38 in 200 ok reply"); 
-                    } else if($avp(rSrcSRTPParam) && $avp(rDstSRTPParam)) {
-                        if($avp(SrcSRTP) == SRTP_OPTIONAL || $avp(SrcSRTP) == SRTP_COMPULSORY) {
+                        if($avp(SrcSRTP) != SRTP_DISABLE && $avp(rSrcSRTPParam)) {
+                            $var(transcoding) = 1; #/* Reset it to transcoding, if codec match set to 0 above */
                             $var(jCrypto)   := '{
                                         "AES_CM_128_HMAC_SHA1_80":  { "crypto": "aes_cm", "auth": "hmac_sha1", "mst_ksize": "128", "auth_size": "80" },
                                         "AES_CM_128_HMAC_SHA1_32":  { "crypto": "aes_cm", "auth": "hmac_sha1", "mst_ksize": "128", "auth_size": "32" }, 
                                         "F8_128_HMAC_SHA1_80":      { "crypto": "aes_f8", "auth": "hmac_sha1", "mst_ksize": "128", "auth_size": "80" }
                             }';
                             $json(jCrypto) := $var(jCrypto) ;
-                            $var(true) = 1;
-                            for ($var(crypto) in $(avp(rDstSRTPParam)[*])) {
+                            $var(true) = 1 ;
+                            $var(suite) = null ;
+                            for ($var(crypto) in $(avp(rSrcSRTPParam)[*])) {
                                 if($var(true)) {
                                     $var(suite) = $(var(crypto){s.select,0,:});
                                     if($json(jCrypto/$var(suite))) { #Supported suite
-                                        $var(rdstinline) = $(var(crypto){s.select,3,:});
+                                        $var(rsrcmkey) = $(var(crypto){s.select,1,:});
+                                        $var(rsrcmsalt) = $(var(crypto){s.select,2,:});
                                         $var(true) = null ;
                                     }
                                 }
                             }
-
-                            $var(mtype) = " RTP/SAVP " ;
-                            $var(cryptoline) = "a=crypto:1 " + $var(suite) + " inline:" + $var(rdstinline) + "\r\n" ;
-                            xdbg("---------+++++++++++Adding Both Side SRTP 200 ok reply $var(suite) : $var(rdstinline)"); 
-                        } else {
-                            #/* Handled in Route with 488, Error Can't come here*/
+                            if($avp(rDstSRTPParam)) {
+                                $var(srcmkey) = $(avp(rDstSRTPParam){s.select,1,:});
+                                $var(srcmsalt) = $(avp(rDstSRTPParam){s.select,2,:});
+                            } else {
+                                if(($var(rsrcmkey) && $var(rsrcmsalt))) {
+                                    $var(srcrhexenc) = $(RANDOM{s.encode.hexa}) +  $(RANDOM{s.encode.hexa}) +  $(RANDOM{s.encode.hexa}) +  $(RANDOM{s.encode.hexa});
+                                    $var(srcmkey) = $(var(srcrhexenc){s.substr,0,32});
+                                    $var(srcmsalt) = $(var(srcrhexenc){s.substr,32,28});
+                                    $var(srcmkeysalt) = $var(srcmkey) + $var(srcmsalt) ;
+                                    $var(srcmkshexdec) = $(var(srcmkeysalt){s.decode.hexa}) ;
+                                    $var(srcinline) = $(var(srcmkshexdec){s.encode.base64}) ;
+                                    xdbg("$var(srcrhexenc) ==> $var(srcmkey) <<>> $var(srcmsalt) <== $var(srcmkshexdec) <== $var(srcinline) \n");    
+                                    $avp(SrcSRTPParam) = $var(suite) + ":" + $var(srcmkey) + ":" + $var(srcmsalt) ;
+                                } else {
+                                    $avp(rSrcSRTPParam) = null ;
+                                    strip_body(); #/* Exit here */
+                                }
+                            }
                         }
-                    } else if($avp(rSrcSRTPParam)) {
-                        xdbg("SRTP configuration  ---->> $avp(SrcMavp) ==  <==> <<  $avp(MediaEncryption) \n");
+                        if($avp(rDstSRTPParam)) {
+                            $var(transcoding) = 1; #/* Reset it to transcoding, if codec match set to 0 above */
+                            $var(jCrypto)   := '{
+                                        "AES_CM_128_HMAC_SHA1_80":  { "crypto": "aes_cm", "auth": "hmac_sha1", "mst_ksize": "128", "auth_size": "80" },
+                                        "AES_CM_128_HMAC_SHA1_32":  { "crypto": "aes_cm", "auth": "hmac_sha1", "mst_ksize": "128", "auth_size": "32" }, 
+                                        "F8_128_HMAC_SHA1_80":      { "crypto": "aes_f8", "auth": "hmac_sha1", "mst_ksize": "128", "auth_size": "80" }
+                            }';
+                            $json(jCrypto) := $var(jCrypto) ;
+                            $var(true) = 1 ;
+                            $var(suite) = null ;
+                            for ($var(crypto) in $(avp(rDstSRTPParam)[*])) {
+                                if($var(true)) {
+                                    $var(suite) = $(var(crypto){s.select,0,:});
+                                    if($json(jCrypto/$var(suite))) { #Supported suite
+                                        $var(rdstmkey) = $(var(crypto){s.select,1,:});
+                                        $var(rdstmsalt) = $(var(crypto){s.select,2,:});
+                                        $var(true) = null ;
+                                    }
+                                }
+                            }
+                            $var(true) = 1 ;
+                            for ($var(crypto) in $(avp(DstSRTPParam)[*])) {
+                                if($var(true)) {
+                                    $var(dstsuite) = $(var(crypto){s.select,0,:});
+                                    if($var(dstsuite) == $var(suite)) {
+                                        $var(dstmkey)  = $(var(crypto){s.select,1,:});
+                                        $var(dstmsalt) = $(var(crypto){s.select,2,:});
+                                        $var(true) = null;
+                                    }
+                                }
+                            }
+                        }
+                        $var(mport) = $(avp(dstaudiomline){s.select,1, });
+                        $var(mtype) = $(avp(dstaudiomline){s.select,2, });
+                        $var(t38) = $(avp(dstaudiomline){s.select,3, });
+                    }
+    
+                    xdbg("+++++++++++++++transcoding: $var(transcoding)+++++$var(rDstMediaPort):$var(maudio):+++++\n");
+
+                    $avp(resource) = "resource" + "-" + $ft; /* Grab media port offset from resource-$ft */
+                    route(DELETE_ALLOMTS_RESOURCE); #Delete previous session, if any
+
+                    #remote rtp_nostrict=true in real system
+                    #no strict used in REST rtp_nostrict=true due to lan/wan emulation with single nic card 
+                    xdbg("------------------ $avp(rSrcMediaIP):$avp(rSrcMediaPort):$(avp(rSrcCodec)[$var(rSrcCodecIdx)])-------- :$avp(SrcMediaPort):$avp(DstMediaPort):\n");
+                    if($var(transcoding) == 0) { #/* No Transcoding required, PASSTHROUGH */
+                        if($avp(SrcT38)) {
+                            $var(url) =  "gMTSSRV" + "/makepassthrough?remote_ipA=" + $avp(rSrcMediaIP) + "&remote_portA=" + $avp(rSrcT38MediaPort) + "&remote_ipB=" + $avp(rDstMediaIP) + "&remote_portB=" + $avp(rDstT38MediaPort) + "&local_portA=" + $avp(SrcT38MediaPort) + "&local_portB=" + $avp(DstT38MediaPort) ;
+                        } else {
+                            $var(url) =  "gMTSSRV" + "/makepassthrough?remote_ipA=" + $avp(rSrcMediaIP) + "&remote_portA=" + $avp(rSrcMediaPort) + "&remote_ipB=" + $avp(rDstMediaIP) + "&remote_portB=" + $avp(rDstMediaPort) + "&local_portA=" + $avp(SrcMediaPort) + "&local_portB=" + $avp(DstMediaPort) ;
+                        }
+                    } else {
+                        if($avp(SrcT38)) {
+                            if($avp(rSrcMediaPort) == null) {
+                                $avp(rSrcMediaPort) = $avp(rSrcT38MediaPort) - gT38MediaPortOffset ;
+                            }
+                            xdbg("------------------ $avp(rSrcT38Param) ------------\n");
+                            $var(url) =  "gMTSSRV" + "/create?remote_ip=" + $avp(rSrcMediaIP) + "&codec=t38&local_t38_port=" + $avp(SrcT38MediaPort) + "&remote_t38_port=" + $avp(rSrcT38MediaPort) + "&local_rtp_port=" + $avp(SrcMediaPort) + "&remote_rtp_port=" + $avp(rSrcMediaPort) + "&rcname=sbc@allo.com&rtp_nostrict=true&enable_t38=yes" + "&t38_profile=1" ;
+                        } else if($avp(SrcSRTP) != SRTP_DISABLE && $avp(rSrcSRTPParam)) {
+                            $var(url) =  "gMTSSRV" + "/create?remote_ip=" + $avp(rSrcMediaIP) + "&codec=" + $(avp(rSrcCodec)[$var(rSrcCodecIdx)]) + "&local_rtp_port=" + $avp(SrcMediaPort) + "&remote_rtp_port=" + $avp(rSrcMediaPort) + "&rcname=sbc@allo.com&rtp_nostrict=true&enable_srtp=true&srtp_s_crypto=" + $json(jCrypto/$var(suite)/crypto) + "&srtp_s_auth=" + $json(jCrypto/$var(suite)/auth) + "&srtp_s_auth_size=" + $json(jCrypto/$var(suite)/auth_size) + "&srtp_s_mst_ksize=" + $json(jCrypto/$var(suite)/mst_ksize) + "&srtp_s_mst_key=" + $var(srcmkey) + "&srtp_s_mst_salt=" + $var(srcmsalt) + "&srtp_r_crypto=" + $json(jCrypto/$var(suite)/crypto) + "&srtp_r_auth=" + $json(jCrypto/$var(suite)/auth) + "&srtp_r_auth_size=" + $json(jCrypto/$var(suite)/auth_size) + "&srtp_r_mst_ksize=" + $json(jCrypto/$var(suite)/mst_ksize) + "&srtp_r_mst_key=" + $var(rsrcmkey) + "&srtp_r_mst_salt=" + $var(rsrcmsalt);
+                        } else {
+                            $var(url) =  "gMTSSRV" + "/create?remote_ip=" + $avp(rSrcMediaIP) + "&codec=" + $(avp(rSrcCodec)[$var(rSrcCodecIdx)]) + "&local_rtp_port=" + $avp(SrcMediaPort) + "&remote_rtp_port=" + $avp(rSrcMediaPort) + "&rcname=sbc@allo.com&rtp_nostrict=true" ;
+                        }
+                    }
+                    xlog("L_INFO","Connecting $var(url)\n");
+                    rest_get("$var(url)","$var(body)");
+                    $avp($avp(resource)) = $var(body);
+                    $json(resource1) := $var(body) ;
+                    if($json(resource1/VT-Index) != null) {
+                        $var(idx1) = $json(resource1/VT-Index) ;
+                    } else if($json(resource1/CPP-Index) != null) {
+                        $var(idx1) = $json(resource1/CPP-Index) ;
+                    }
+                    if($var(idx1) >= 0) {
+                        avp_db_store("$hdr(call-id)","$avp($avp(resource))");
+                    }
+                    xlog("L_INFO","Got Response $avp(resource) -> $avp($avp(resource)): $(avp(rSrcCodec)[$var(rSrcCodecIdx)]):$avp(rSrcMediaPort)<==>$avp(SrcMediaPort)\n");
+
+                    $avp(resource) = "resource" + "-" + $tt ;
+                    route(DELETE_ALLOMTS_RESOURCE); #Delete previous session, if any
+
+                    if($var(transcoding) == 0) {
+                        if($avp(SrcT38)) {
+                            $var(url) =  "gMTSSRV" + "/makepassthrough?remote_ipA=" + $avp(rDstMediaIP) + "&remote_portA=" + $avp(rDstT38MediaPort) + "&remote_ipB=" + $avp(rSrcMediaIP) + "&remote_portB=" + $avp(rSrcT38MediaPort) +  "&local_portA=" + $avp(DstT38MediaPort) + "&local_portB=" + $avp(SrcT38MediaPort) ;;
+                        } else {
+                            $var(url) =  "gMTSSRV" + "/makepassthrough?remote_ipA=" + $avp(rDstMediaIP) + "&remote_portA=" + $avp(rDstMediaPort) + "&remote_ipB=" + $avp(rSrcMediaIP) + "&remote_portB=" + $avp(rSrcMediaPort) +  "&local_portA=" + $avp(DstMediaPort) + "&local_portB=" + $avp(SrcMediaPort) ;;
+                        }
+                    } else {
+                        $avp(rDstCodec) = null ;
+                        avp_insert("$avp(rDstCodec)","$var(codec)","10");
+                        if($var(DstT38)) {
+                            if($avp(rDstMediaPort) == null)  {
+                                $avp(rDstMediaPort) = $avp(rDstT38MediaPort) - gT38MediaPortOffset ; #Dummy reserved port
+                            }
+                            $var(url) =  "gMTSSRV" + "/create?remote_ip=" + $avp(rDstMediaIP) + "&codec=t38&local_t38_port=" + $avp(DstMediaPort) + "&remote_t38_port=" + $avp(rDstMediaPort) + "&local_rtp_port=" + $avp(DstMediaPort) + "&remote_rtp_port=" + $avp(rDstMediaPort) + "&rcname=sbc@allo.com&rtp_nostrict=true&enable_t38=yes" + "&T38FaxVersion=" + $(avp(rDstT38Param){param.value,T38FaxVersion}) + "&T38MaxBitRate=" +  $(avp(rDstT38Param){param.value,T38MaxBitRate}) + "&T38FaxRateManagement=" + $(avp(rDstT38Param){param.value,T38FaxRateManagement}) + "&T38FaxMaxDatagram=" + $(avp(rDstT38Param){param.value,T38FaxMaxDatagram}) + "&T38FaxUdpEC=" + $(avp(rDstT38Param){param.value,T38FaxUdpEC}) ;
+                        } else if($avp(rDstSRTPParam)) {
+                            $var(url) =  "gMTSSRV" + "/create?remote_ip=" + $avp(rDstMediaIP) + "&codec=" + $(avp(rDstCodec)[0]) + "&local_rtp_port=" + $avp(DstMediaPort) + "&remote_rtp_port=" + $avp(rDstMediaPort) + "&rcname=sbc@allo.com&rtp_nostrict=true&enable_srtp=true&srtp_s_crypto=" + $json(jCrypto/$var(suite)/crypto) + "&srtp_s_auth=" + $json(jCrypto/$var(suite)/auth) + "&srtp_s_auth_size=" + $json(jCrypto/$var(suite)/auth_size) + "&srtp_s_mst_ksize=" + $json(jCrypto/$var(suite)/mst_ksize) + "&srtp_s_mst_key=" + $var(dstmkey) + "&srtp_s_mst_salt=" + $var(dstmsalt) + "&srtp_r_crypto=" + $json(jCrypto/$var(suite)/crypto) + "&srtp_r_auth=" + $json(jCrypto/$var(suite)/auth) + "&srtp_r_auth_size=" + $json(jCrypto/$var(suite)/auth_size) + "&srtp_r_mst_ksize=" + $json(jCrypto/$var(suite)/mst_ksize) + "&srtp_r_mst_key=" + $var(rdstmkey) + "&srtp_r_mst_salt=" + $var(rdstmsalt);
+                        } else {
+                            $var(url) =  "gMTSSRV" + "/create?remote_ip=" + $avp(rDstMediaIP) + "&codec=" + $var(codec) + "&remote_rtp_port=" + $avp(rDstMediaPort) + "&rcname=sbc@allo.com&local_rtp_port=" + $avp(DstMediaPort) + "&rtp_nostrict=true";
+                        }
+                    }
+                    xlog("L_INFO","Connecting $var(url)\n");
+                    rest_get("$var(url)","$var(body)");
+                    $avp($avp(resource)) = $var(body);
+                    $json(resource2) := $var(body) ;
+                    if($json(resource2/VT-Index) != null) {
+                                $var(idx2) = $json(resource2/VT-Index) ;
+                    } else if($json(resource2/CPP-Index) != null) {
+                                $var(idx2) = $json(resource2/CPP-Index) ;
+                    }
+
+                    xdbg("Got Index ---->> $var(idx1) <==> $var(idx2) <<  $json(resource2) >> $json(resource2/CPP-Index)\n");
+                    if($var(idx2) >= 0) {
+                        avp_db_store("$hdr(call-id)","$avp($avp(resource))");
+                    }
+                    xlog("L_INFO","Got Response $avp(resource) -> $avp($avp(resource)): $var(csource):$avp(mport)<==>$avp(DstMediaPort)\n");
+                    if($avp(rSrcCodec)) {
+                        $var(rSrcCodecid) = $avp($(avp(rSrcCodec)[$var(rSrcCodecIdx)])) ;
+                        if($avp($var(rSrcCodecid))) {
+                            $var(rScodec)  = $avp($var(rSrcCodecid)) ;
+                            $json(rjCodec) := $json(jCodec/$var(rScodec)) ;
+                            $var(rSrcRtpmap) = $json(rjCodec/rtpmap) ;
+                        }
+                    }
+
+                    $var(SDPID1) = $(var(oline){s.select,1, });
+                    $var(SDPID2) = $(var(oline){s.select,2, });
+                    xdbg(">>>>>>>>>------------------$var(oline)-->>>> $var(SDPID1) <<>> $var(SDPID2) ---------------------\n");
+                    $var(sdp) = "v=0\r\n" ;
+                    $var(sdp) = $var(sdp) + "o=- " + $var(SDPID1) + " " + $var(SDPID2) + " IN IP4 " + $avp(SrcMediaIP) + "\r\n";
+                    $var(sdp) = $var(sdp) + $(rb{sdp.line,s}) + "\r\n" ;
+                    $var(sdp) = $var(sdp) + "c=IN IP4 " + $avp(SrcMediaIP) + "\r\n";
+                    $var(sdp) = $var(sdp) + $(rb{sdp.line,t}) + "\r\n" ;
+
+                    if($avp(SrcT38) && $avp(DstT38)) {
+                        $var(sdp) = $var(sdp) + "m=image " + $avp(SrcMediaPort) + " udptl t38\r\n" ;
+                        $var(i) = 0;
+                        $var(t38attr) = $(avp(rDstT38Param){s.select,$var(i),;}) ;
+                        while($var(t38attr)) {
+                            $var(sdp) = $var(sdp) + "a=" + $var(t38attr) + "\r\n" ;
+                            $var(i) = $var(i) + 1;
+                            $var(t38attr) = $(avp(rDstT38Param){s.select,$var(i),;}) ;
+                        }
+                    } else {
+                        if($avp(SrcT38)) {
+                            $var(mtype) = null ;
+                            $avp(T38Param:1) = "MEDIA:" + $avp(MediaProfileID) ;
+                            if(cache_fetch("local","$avp(T38Param:1)",$avp(T38Param:1))) {
+                                xdbg("Loaded from cache $avp(T38Param:1): $avp(T38Param:1)\n");
+                            } else if (avp_db_load("$avp(T38Param:1)","$avp(T38Param:1)/blox_config")) {
+                                cache_store("local","$avp(T38Param:1)","$avp(T38Param:1)");
+                                xdbg("Stored in cache $avp(T38Param:1): $avp(T38Param:1)\n");
+                            }
+
+                            $avp(SrcT38Param) = $avp(T38Param:1) ;
+                            xdbg("------------------SrcT38Param: $avp(SrcT38Param)-----------------------\n");
+
+                            $avp(SrcT38Param) = $avp(SrcT38Param) + ";T38FaxMaxDatagram:1400" ;
+                            $var(sdp) = $var(sdp) + "m=image " + $avp(SrcMediaPort) + " udptl t38\r\n" ;
+                            $var(i) = 0;
+                            $var(t38attr) = $(avp(SrcT38Param){s.select,$var(i),;}) ;
+                            while($var(t38attr)) {
+                                $var(sdp) = $var(sdp) + "a=" + $var(t38attr) + "\r\n" ;
+                                $var(i) = $var(i) + 1;
+                                $var(t38attr) = $(avp(SrcT38Param){s.select,$var(i),;}) ;
+                            }
+                            #Adding support for g711 termination for fax passthrough, if T38 not supported
+                            #$var(sdp) = $var(sdp) + "m=audio " + $avp(SrcMediaPort) + " RTP/AVP " + "0 8\r\n" ;
+                            xdbg("---------+++++++++++Adding T38 in 200 ok reply"); 
+                        } else if($avp(rSrcSRTPParam) && $avp(rDstSRTPParam)) {
+                            if($avp(SrcSRTP) == SRTP_OPTIONAL || $avp(SrcSRTP) == SRTP_COMPULSORY) {
+                                $var(jCrypto)   := '{
+                                            "AES_CM_128_HMAC_SHA1_80":  { "crypto": "aes_cm", "auth": "hmac_sha1", "mst_ksize": "128", "auth_size": "80" },
+                                            "AES_CM_128_HMAC_SHA1_32":  { "crypto": "aes_cm", "auth": "hmac_sha1", "mst_ksize": "128", "auth_size": "32" }, 
+                                            "F8_128_HMAC_SHA1_80":      { "crypto": "aes_f8", "auth": "hmac_sha1", "mst_ksize": "128", "auth_size": "80" }
+                                }';
+                                $json(jCrypto) := $var(jCrypto) ;
+                                $var(true) = 1;
+                                for ($var(crypto) in $(avp(rDstSRTPParam)[*])) {
+                                    if($var(true)) {
+                                        $var(suite) = $(var(crypto){s.select,0,:});
+                                        if($json(jCrypto/$var(suite))) { #Supported suite
+                                            $var(rdstinline) = $(var(crypto){s.select,3,:});
+                                            $var(true) = null ;
+                                        }
+                                    }
+                                }
+
+                                $var(mtype) = " RTP/SAVP " ;
+                                $var(cryptoline) = "a=crypto:1 " + $var(suite) + " inline:" + $var(rdstinline) + "\r\n" ;
+                                xdbg("---------+++++++++++Adding Both Side SRTP 200 ok reply $var(suite) : $var(rdstinline)"); 
+                            } else {
+                                #/* Handled in Route with 488, Error Can't come here*/
+                            }
+                        } else if($avp(rSrcSRTPParam)) {
+                            xdbg("SRTP configuration  ---->> $avp(SrcMavp) ==  <==> <<  $avp(MediaEncryption) \n");
   
-                        if($avp(SrcSRTP) != SRTP_DISABLE) {
-                            $var(mtype) = " RTP/SAVP ";
-                            $var(cryptoline) = "a=crypto:1 " + $var(suite) + " inline:" + $var(srcinline) + "\r\n" ;
+                            if($avp(SrcSRTP) != SRTP_DISABLE) {
+                                $var(mtype) = " RTP/SAVP ";
+                                $var(cryptoline) = "a=crypto:1 " + $var(suite) + " inline:" + $var(srcinline) + "\r\n" ;
+                            } else {
+                                $var(mtype) = " RTP/AVP ";
+                            }
                         } else {
                             $var(mtype) = " RTP/AVP ";
                         }
-                    } else {
-                        $var(mtype) = " RTP/AVP ";
+                        if($var(mtype)) {
+                            $var(sdp) = $var(sdp) + "m=audio " + $avp(SrcMediaPort) + $var(mtype) + $var(rSrcCodecid) + " 101\r\n" ;
+                        }
+                        if($var(cryptoline)) {
+                            $var(sdp) = $var(sdp) + $var(cryptoline) ;
+                        }
+                        if($var(mtype)) {
+                            $var(sdp) = $var(sdp) + $var(rSrcRtpmap) + "\r\na=rtpmap:101 telephone-event/8000\r\na=fmtp:101 0-16\r\na=ptime:20\r\na=sendrecv\r\n";
+                        }
                     }
-                    if($var(mtype)) {
-                        $var(sdp) = $var(sdp) + "m=audio " + $avp(SrcMediaPort) + $var(mtype) + $var(rSrcCodecid) + " 101\r\n" ;
-                    }
-                    if($var(cryptoline)) {
-                        $var(sdp) = $var(sdp) + $var(cryptoline) ;
-                    }
-                    if($var(mtype)) {
-                        $var(sdp) = $var(sdp) + $var(rSrcRtpmap) + "\r\na=rtpmap:101 telephone-event/8000\r\na=fmtp:101 0-16\r\na=ptime:20\r\na=sendrecv\r\n";
-                    }
-                }
 
-                xdbg("Got Index ---->> $var(idx1) <==> $var(idx2) <<  $avp(SrcMediaIP) : $avp(SrcMediaPort)\n" ) ;
-                #transcoding failed for any reason no need to update the sdp
-                if($var(idx1) >= 0 && $var(idx2) >= 0) {
-                    add_body("$var(sdp)","application/sdp");
-                    set_dlg_flag("DLG_FLAG_TRANSCODING") ; #81 Dialog Transcoding flag
-                }
+                    xdbg("Got Index ---->> $var(idx1) <==> $var(idx2) <<  $avp(SrcMediaIP) : $avp(SrcMediaPort)\n" ) ;
+                    #transcoding failed for any reason no need to update the sdp
+                    if($var(idx1) >= 0 && $var(idx2) >= 0) {
+                        add_body("$var(sdp)","application/sdp");
+                        set_dlg_flag("DLG_FLAG_TRANSCODING") ; #81 Dialog Transcoding flag
+                    }
 
-                if($json(resource1/VT-Index) != null && $json(resource2/VT-Index) != null) { #Connect Needed for only voice termnation
-                    route(CONNECT_ALLOMTS_RESOURCE);
+                    if($json(resource1/VT-Index) != null && $json(resource2/VT-Index) != null) { #Connect Needed for only voice termnation
+                        route(CONNECT_ALLOMTS_RESOURCE);
+                    }
                 }
             } else {
-                rtpproxy_answer("of","$avp(SrcMediaIP)","$avp(MediaProfileID)");
                 xlog("L_WARN", "+++++++++++++++transcoding: feature disabled for this profile++++++++++\n");
             }
         };
         # Is this a transaction behind a NAT and we did not
         # know at time of request processing?
-    } 
+    }
 
     if (nat_uac_test("1")) {
         fix_nated_contact();
     };
 }
 
-failure_route[WAN2LAN] {
+failure_route[MTS_WAN2LAN] {
     if(is_method("INVITE")) {
         if (status =~ "488") {
             xlog("L_WARN", "Not handled, Dropping Call\n");
         }
+        if($avp(DstMediaPort) != null) {
+            $var(url) =  "http://127.0.0.1:8000" + "/unreservemediaports?local_rtp_port=" + $avp(DstMediaPort) ;
+            xlog("L_INFO","Route: transcoding request : $var(url)\n");
+            rest_get("$var(url)","$var(body)");
+        }
     }
     if (t_was_cancelled()) {
-        rtpproxy_unforce("$avp(MediaProfileID)");
         $avp(resource) = "resource" + "-" + $ft ;
         route(DELETE_ALLOMTS_RESOURCE);
         exit;

@@ -50,8 +50,8 @@ modparam("acc", "log_level", 3)
 modparam("acc", "log_flag", ACC_FLAG_LOG_FLAG)
 modparam("acc", "db_flag", ACC_FLAG_DB_FLAG)
 modparam("acc", "cdr_flag", ACC_FLAG_CDR_FLAG)
-modparam("acc", "log_extra", "src=$dlg_val(from);dst=$dlg_val(request);channel=$dlg_val(channel);dstchannel=$dlg_val(dchannel)")
-modparam("acc", "db_extra", "src=$dlg_val(from);dst=$dlg_val(request);channel=$dlg_val(channel);dstchannel=$dlg_val(dchannel)")
+modparam("acc", "log_extra", "src=$dlg_val(from);dst=$dlg_val(request);channel=$dlg_val(channel);dstchannel=$dlg_val(dchannel);direction=$dlg_val(direction)")
+modparam("acc", "db_extra",  "src=$dlg_val(from);dst=$dlg_val(request);channel=$dlg_val(channel);dstchannel=$dlg_val(dchannel);direction=$dlg_val(direction)")
 #modparam("acc", "multi_leg_info", "leg_src=$avp(src);leg_dst=$avp(dst)")
 
 modparam("usrloc", "nat_bflag", "NAT")
@@ -76,13 +76,12 @@ modparam("registrar", "tcp_persistent_flag", 7)
 
 ################## NAT ######################
 
-modparam("uac_registrant|dialog|usrloc|auth_db|drouting|acc|avpops|rtpproxy", "db_url", "mysql://opensips:opensipsrw@localhost/opensips_1_11")
+modparam("uac_registrant|dialog|usrloc|auth_db|drouting|acc|avpops", "db_url", "mysql://opensips:opensipsrw@localhost/opensips_1_11")
 modparam("uac_registrant", "timer_interval", 10)
 
-#modparam("rtpproxy","rtpproxy_sock", "udp:127.0.0.1:40001")
-modparam("rtpproxy", "rtpproxy_autobridge", 1)
-modparam("rtpproxy", "rtpproxy_timeout", "0.5")
-modparam("rtpproxy", "rtpproxy_retr", 3)
+
+modparam("rtpengine", "setid_avp", "$avp(setid)")
+import_file  "blox-modparam-rtpengine.cfg"
 
 modparam("mi_fifo", "fifo_name", "/tmp/opensips_fifo")
 
@@ -90,8 +89,6 @@ modparam("tm", "onreply_avp_mode", 1)
 #modparam("tm", "ruri_matching", 0)
 #modparam("tm", "restart_fr_on_each_reply", 0)
 #modparam("tm", "own_timer_proc", 1)
-
-
 
 #UAC_AUTH Limitation to increment CSeq during Auth not usefull
 #modparam("uac_auth","credential","2020202020:asterisk:2020202020")
@@ -109,6 +106,12 @@ modparam("rest_client", "ssl_verifyhost", 0)
 modparam("rr", "append_fromtag", 1)
 
 #list of user agent patterns
-modparam("regex", "file", "/usr/local/etc/opensips/regex-groups.cfg")
+modparam("regex", "file", "/usr/local/etc/opensips/regex-groups-all.cfg")
 modparam("regex", "pcre_caseless", 1)
 modparam("regex", "pcre_multiline", 1)
+
+modparam("cfgutils", "shvset", "yes=s:yes")
+modparam("cfgutils", "shvset", "no=s:no")
+
+modparam("dialog","th_dlg_contact_uri_params","th_cthdr")
+modparam("dialog","th_dlg_contact_params","th_cthdr_param")

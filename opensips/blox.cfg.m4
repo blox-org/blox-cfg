@@ -31,6 +31,16 @@ include_file "blox-modules.cfg"
 # ----------------- setting module-specific parameters ---------------
 include_file "blox-modparam.cfg"
 
+startup_route {
+    avp_db_query("SELECT codec FROM  blox_codec","$avp(codec)");
+    cache_store("local", "allomtscodec", "$avp(codec)");
+}
+
+route[ALLOMTSLOAD] {
+    avp_db_query("SELECT codec FROM  blox_codec","$avp(codec)");
+    cache_store("local", "allomtscodec", "$avp(codec)");
+}
+
 # main routing logic
 route {
     xlog("L_INFO", "Received $Ri:$Rp Got $rm $fu/$ru/$si:$sp/$du/$retcode\n" );
@@ -108,7 +118,9 @@ route {
         if (is_method("BYE|CANCEL")) {
             if($dlg_val(MediaProfileID)) {
                 $avp(MediaProfileID) = $dlg_val(MediaProfileID) ;
-                rtpproxy_unforce("$avp(MediaProfileID)");
+                if($avp(setid)) {
+                    rtpengine_delete();
+                }
                 xlog("L_INFO", "Mediaprofile stopping the $avp(MediaProfileID)\n");
             }
             $avp(resource) = "resource" + "-" + $ft ;
@@ -129,7 +141,9 @@ route {
             if (is_method("BYE|CANCEL")) {
                 if($dlg_val(MediaProfileID)) {
                     $avp(MediaProfileID) = $dlg_val(MediaProfileID) ;
-                    rtpproxy_unforce("$avp(MediaProfileID)");
+                    if($avp(setid)) {
+                        rtpengine_delete();
+                    }
                     xlog("L_INFO", "Mediaprofile stopping the $avp(MediaProfileID)\n");
                 }
                 $avp(resource) = "resource" + "-" + $ft ;
@@ -174,7 +188,10 @@ route {
 # ----------- Experimentation routers ------------------------
 failure_route[missed_call] {
     if (t_was_cancelled()) {
-        rtpproxy_unforce("$avp(MediaProfileID)");
+        $avp(MediaProfileID) = $dlg_val(MediaProfileID) ;
+        if($avp(setid)) {
+            rtpengine_delete();
+        }
         $avp(resource) = "resource" + "-" + $ft ;
         route(DELETE_ALLOMTS_RESOURCE);
         exit;
@@ -228,6 +245,8 @@ include_file "blox-cancel.cfg"
 # ----------- SBC Feature routers ------------------------
 include_file "blox-lcr.cfg"
 include_file "blox-cac.cfg"
+include_file "blox-enum.cfg"
+include_file "blox-sip-header-manipulation.cfg"
 ###########################################################################################
 # ----------- SIP Profile based routers without MTS ------------------------
 import_file  "blox-allomts-dummy.cfg"
@@ -238,4 +257,7 @@ import_file  "blox-wan2lan.cfg"
 import_file  "blox-allomts.cfg"
 import_file  "blox-lan2wan-allomts.cfg"
 import_file  "blox-wan2lan-allomts.cfg"
+###########################################################################################
+# ----------- Addon Module ------------------------
+import_file  "blox-humbug.cfg"
 ###########################################################################################

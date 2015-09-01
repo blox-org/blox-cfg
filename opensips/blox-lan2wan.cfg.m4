@@ -41,39 +41,19 @@ route[LAN2WAN] {
             exit;
         }
 
-        $avp(MediaLANIP) = $(avp(MediaProfile){param.value,LAN});
-        if($avp(WANADVIP)) {
-            $avp(MediaWANIP) = $avp(WANADVIP) ;
-        } else {
-            $avp(MediaWANIP) = $(avp(MediaProfile){param.value,WAN});
-        }
         $avp(MediaTranscoding) = $(avp(MediaProfile){param.value,TRANSCODING});
-        #$avp(MediaTranscoding) = 0;
+        if($avp(MediaTranscoding) == "1") {
+		route(MTS_LAN2WAN);
+		exit ;
+	}
+
+        $avp(setid) = $(avp(MediaProfileID){s.int}) ;
 
         if(is_dlg_flag_set("DLG_FLAG_TRANSCODING")) {
-            rtpproxy_unforce("$avp(MediaProfileID)");
+            rtpengine_delete();
         }
 
-        if(is_dlg_flag_set("DLG_FLAG_LAN2WAN")) { #Org Call Intiated from LAN2WAN
-                if($DLG_dir == "downstream") { /* Set aprop. LAN WAN Media IP */
-                    $avp(DstMediaIP) = $avp(MediaWANIP) ;
-                    $avp(SrcMediaIP) = $avp(MediaLANIP) ;
-                } else {
-                    $avp(DstMediaIP) = $avp(MediaLANIP) ;
-                    $avp(SrcMediaIP) = $avp(MediaWANIP) ;
-                }
-        } else { #Should be Re-Invite from LAN2WAN
-                if($DLG_dir == "downstream") { /* Set aprop. LAN WAN Media IP */
-                    $avp(DstMediaIP) = $avp(MediaLANIP) ;
-                    $avp(SrcMediaIP) = $avp(MediaWANIP) ;
-                } else {
-                    $avp(DstMediaIP) = $avp(MediaWANIP) ;
-                    $avp(SrcMediaIP) = $avp(MediaLANIP) ;
-                }
-        }
-
-        rtpproxy_offer("o","$avp(DstMediaIP)","$avp(MediaProfileID)","$var(proxy)","$var(newaddr)");
-        xdbg("Route: rtpproxy_offer............. $avp(DstMediaIP):$avp(MediaProfileID):$var(proxy):$var(newaddr):\n");
+        rtpengine_offer("force internal external trust-address replace-origin replace-session-connection");
     };
 
     t_on_reply("LAN2WAN");
@@ -91,9 +71,7 @@ onreply_route[LAN2WAN] {
     xdbg("Got Response $rs/ $fu/$ru/$si/$ci/$avp(rcv)\n");
     if (status =~ "(183)|2[0-9][0-9]") {
         if (has_body("application/sdp")) {
-            $var(transcoding) = 0 ;
-            xdbg("+++++++++++++++transcoding: $var(transcoding)++++++++++\n");
-            rtpproxy_answer("of","$avp(SrcMediaIP)","$avp(MediaProfileID)");
+            rtpengine_answer("force external internal trust-address replace-origin replace-session-connection");
         };
 
         # Is this a transaction behind a NAT and we did not
@@ -107,7 +85,7 @@ onreply_route[LAN2WAN] {
 
 failure_route[LAN2WAN] {
     if (t_was_cancelled()) {
-        rtpproxy_unforce("$avp(MediaProfileID)");
+        rtpengine_delete();
         $avp(resource) = "resource" + "-" + $ft ;
         route(DELETE_ALLOMTS_RESOURCE);
         exit;

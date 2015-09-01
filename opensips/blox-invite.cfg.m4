@@ -128,9 +128,11 @@ route[ROUTE_INVITE] {
 
             if($avp(TRUNK)) {
                 xdbg("Routing Forwarded PBX MESSAGE $avp(TRUNK)\n");
+
                 $var(cfgparam) = "cfgparam" ;
                 $avp($var(cfgparam)) = $avp(TRUNK);
                 avp_db_store("$hdr(call-id)","$avp($var(cfgparam))");
+
                 $var(TRUNKUSER) = $(avp(TRUNK){uri.user});
                 $var(TRUNKIP) = $(avp(TRUNK){uri.host});
                 $var(TRUNKPORT) = $(avp(TRUNK){uri.port});
@@ -141,6 +143,25 @@ route[ROUTE_INVITE] {
                 $avp(GWID) = $(avp(TRUNK){uri.param,GWID});
                 $avp(SrcSRTP) = $(avp(TRUNK){uri.param,LANSRTP});
                 $avp(DstSRTP) = $(avp(TRUNK){uri.param,WANSRTP});
+                $avp(SIPHM) = $(avp(TRUNK){uri.param,SIPHM});
+                $var(ENUMSX) = $(avp(TRUNK){uri.param,ENUMSX}); #SUFFIX, default: e164.arpa.
+                $var(ENUMSE) = $(avp(TRUNK){uri.param,ENUMSE}); #SERVICE, default: e2u+sip
+                $var(ENUMTYPE) = $(avp(TRUNK){uri.param,ENUMTYPE}); #SERVICE, default: e2u+sip
+
+                if($var(TRUNKUSER)==""){$var(TRUNKUSER)=null;}
+                if($var(TRUNKIP)==""){$var(TRUNKIP)=null;}
+                if($var(TRUNKPORT)==""){$var(TRUNKPORT)=null;}
+                if($var(TRUNKDOMAIN)==""){$var(TRUNKDOMAIN)=null;}
+                if($avp(WAN)==""){$avp(WAN)=null;}
+                if($avp(T38Param)==""){$avp(T38Param)=null;}
+                if($avp(MEDIA)==""){$avp(MEDIA)=null;}
+                if($avp(GWID)==""){$avp(GWID)=null;}
+                if($avp(SrcSRTP)==""){$avp(SrcSRTP)=null;}
+                if($avp(DstSRTP)==""){$avp(DstSRTP)=null;}
+                if($avp(SIPHM)==""){$avp(SIPHM)=null;}
+                if($var(ENUMTYPE)==""){$var(ENUMTYPE)=null;}
+                if($var(ENUMSE)==""){$var(ENUMSE)=null;}
+                if($var(ENUMSX)==""){$var(ENUMSX)=null;}
 
                 if($avp(WAN)) {
                     if(cache_fetch("local","$avp(WAN)",$avp(WANProfile))) {
@@ -165,11 +186,15 @@ route[ROUTE_INVITE] {
                             drop();
                             exit;
                         }
-                        topology_hiding("C");
-                        $dlg_val(MediaProfileID) = $(avp(TRUNK){uri.param,MEDIA}) ;
+                        $dlg_val(MediaProfileID) = $avp(MEDIA);
                         $dlg_val(from) = $fu ;
                         $dlg_val(request) = $ru ;
                         $dlg_val(channel) = "sip:" + $si + ":" + $sp;
+                        $dlg_val(direction) = "outbound";
+                        if($avp(SIPHM)) {
+                                route(SIP_HEADER_MANIPULATE,$avp(SIPHM));
+                        } 
+                        topology_hiding("C");
                         xdbg("Storing the cseq offset for $ft\n") ;
                         if($(hdr(Diversion))) {
                             $dlg_val(dchannel) = $avp(TRUNK) + ";Diversion=" + $(hdr(Diversion)) ;
@@ -202,13 +227,13 @@ route[ROUTE_INVITE] {
                                 $avp(WANADVIP) = $(avp(WANProfile){uri.param,advip});
                                 $avp(WANADVPORT) = $(avp(WANProfile){uri.param,advport});
 
-                                $var(to) = "sip:" + $rU + "@" + $var(TRUNKIP) + ":" + $var(TRUNKPORT) ;
+                                if($avp(WANPROTO)==""){$avp(WANPROTO)=null;}
+                                if($avp(WANADVIP)==""){$avp(WANADVIP)=null;}
+                                if($avp(WANADVPORT)==""){$avp(WANADVPORT)=null;}
+
+                                $var(to)   = "sip:" + $rU             + "@" + $var(TRUNKIP) + ":" + $var(TRUNKPORT) ;
+                                $var(from) = "sip:" + $var(TRUNKUSER) + "@" + $var(TRUNKIP) + ":" + $var(TRUNKPORT) ;
                                 uac_replace_to("$var(to)");
-                                if($avp(WANADVIP)) {
-                                    $var(from) = "sip:" + $var(TRUNKUSER) + "@" + $avp(WANADVIP) + ":" + $avp(WANADVPORT) ;
-                                } else {
-                                    $var(from) = "sip:" + $var(TRUNKUSER) + "@" + $avp(WANIP) + ":" + $avp(WANPORT) ;
-                                }
                                 uac_replace_from("$var(from)");
                             } else {
                                 xlog("L_ERROR", "No WAN Profile, Leaking through To/From Header\n");
@@ -217,11 +242,15 @@ route[ROUTE_INVITE] {
                         }
                         remove_hf("Diversion");
                         $du = $ru ;
+                        
+                        if($var(ENUMSE) != null && $var(ENUMSX) != null) {
+                            route(ENUM,$var(ENUMTYPE),$var(ENUMSX),$var(ENUMSE)) ;
+                        }
                         if($var(TRUNKDOMAIN)) {
                             $ru = "sip:" + $tU + "@" + $var(TRUNKDOMAIN) ;
                         }
                         t_on_failure("LAN2WAN");
-                        xdbg("Routing $ru to $du from $si : $sp via $fs\n" );
+                        xdbg("Routing $var(from) $var(to) $ru to $du from $si : $sp via $fs\n" );
                         route(LAN2WAN);
                     } else {
                         xlog("L_INFO", "Failed to route to $avp(GWID) $avp(TRUNK) from $si : $sp\n" );
@@ -247,9 +276,11 @@ route[ROUTE_INVITE] {
 
                 if($avp(PBX)) {
                     xdbg("Got route $Ri RE\n");
+
                     $var(cfgparam) = "cfgparam" ;
                     $avp($var(cfgparam)) = $avp(PBX);
                     avp_db_store("$hdr(call-id)","$avp($var(cfgparam))");
+
                     #/* Check Roaming Extension routing */
                     $var(PBXIP) = $(avp(PBX){uri.host}) ;
                     $var(PBXPORT) = $(avp(PBX){uri.port}) ;
@@ -258,6 +289,20 @@ route[ROUTE_INVITE] {
                     $avp(MEDIA)  = $(avp(PBX){uri.param,MEDIA});
                     $avp(SrcSRTP) = $(avp(PBX){uri.param,LANSRTP});
                     $avp(DstSRTP) = $(avp(PBX){uri.param,WANSRTP});
+                    $var(ENUMSX) = $(avp(PBX){uri.param,ENUMSX}); #SUFFIX, default: e164.arpa.
+                    $var(ENUMSE) = $(avp(PBX){uri.param,ENUMSE}); #SERVICE, default: e2u+sip
+                    $var(ENUMTYPE) = $(avp(PBX){uri.param,ENUMTYPE}); #SERVICE, default: e2u+sip
+
+                    if($var(PBXIP)==""){$var(PBXIP)=null;}
+                    if($var(PBXPORT)==""){$var(PBXPORT)=null;}
+                    if($avp(WAN)==""){$avp(WAN)=null;}
+                    if($avp(T38Param)==""){$avp(T38Param)=null;}
+                    if($avp(MEDIA)==""){$avp(MEDIA)=null;}
+                    if($avp(SrcSRTP)==""){$avp(SrcSRTP)=null;}
+                    if($avp(DstSRTP)==""){$avp(DstSRTP)=null;}
+                    if($var(ENUMSX)==""){$var(ENUMSX)=null;}
+                    if($var(ENUMSE)==""){$var(ENUMSE)=null;}
+                    if($var(ENUMTYPE)==""){$var(ENUMTYPE)=null;}
 
                     $avp(cac_uuid) = $avp(PBX) ; 
                     setflag(487); 
@@ -305,11 +350,12 @@ route[ROUTE_INVITE] {
 
                     if(!has_totag()) {
                         create_dialog("PpB");
-                        $dlg_val(MediaProfileID) = $(avp(PBX){uri.param,MEDIA}) ;
+                        $dlg_val(MediaProfileID) = $avp(MEDIA);
                         $dlg_val(from) = $fu ;
                         $dlg_val(request) = $ru ;
                         $dlg_val(channel) = "sip:" + $si + ":" + $sp;
                         $dlg_val(dchannel) = $du ;
+                        $dlg_val(direction) = "outbound";
                         topology_hiding("C");
                         setflag(ACC_FLAG_CDR_FLAG);
                         setflag(ACC_FLAG_LOG_FLAG);
@@ -318,6 +364,10 @@ route[ROUTE_INVITE] {
                         append_hf("P-hint: tophide applied\r\n"); 
                         set_dlg_flag("DLG_FLAG_LAN2WAN") ;
                     };
+
+                    if($var(ENUMSE) != null && $var(ENUMSX) != null) {
+                        route(ENUM,$var(ENUMTYPE),$var(ENUMSX),$var(ENUMSE));
+                    }
 
                     if($avp(WANADVIP)) {
                         $var(to) = "sip:" + $rU + "@" + $avp(WANADVIP) + ":" + $avp(WANADVPORT) ;
@@ -361,6 +411,24 @@ route[ROUTE_INVITE] {
                 $avp(SrcSRTP) = $(avp(TRUNK){uri.param,WANSRTP});
                 $avp(DstSRTP) = $(avp(TRUNK){uri.param,LANSRTP});
                 $avp(WAN) = $(avp(TRUNK){uri.param,WAN});
+                $avp(LAN) = $(avp(TRUNK){uri.param,LAN});
+                $avp(INBNDURI) = $(avp(TRUNK){uri.param,INBNDURI});
+
+                if($var(TRUNKUSER)==""){$var(TRUNKUSER)=null;}
+                if($var(TRUNKIP)==""){$var(TRUNKIP)=null;}
+                if($var(TRUNKPORT)==""){$var(TRUNKPORT)=null;}
+                if($var(TRUNKDOMAIN)==""){$var(TRUNKDOMAIN)=null;}
+                if($avp(T38Param)==""){$avp(T38Param)=null;}
+                if($avp(MEDIA)==""){$avp(MEDIA)=null;}
+                if($avp(SrcSRTP)==""){$avp(SrcSRTP)=null;}
+                if($avp(DstSRTP)==""){$avp(DstSRTP)=null;}
+                if($avp(WAN)==""){$avp(WAN)=null;}
+                if($avp(LAN)==""){$avp(LAN)=null;}
+                if($avp(INBNDURI)==""){$avp(INBNDURI)=null;}
+
+                if($avp(INBNDURI)){
+                    $avp(INBNDURI) = 'sip:' + $(avp(INBNDURI){s.decode.hexa}) ;
+                }
 
                 if(cache_fetch("local","$avp(WAN)",$avp(WANProfile))) {
                     xdbg("Loaded from cache $avp(WAN): $avp(WANProfile)\n");
@@ -374,30 +442,55 @@ route[ROUTE_INVITE] {
                     exit;
                 }
 
-                if($avp(WANProfile)) {
+                if($avp(WANProfile)) { # /* Passed to WAN2LAN */
                     $avp(WANIP) = $(avp(WANProfile){uri.host});
                     $avp(WANPORT) = $(avp(WANProfile){uri.port});
                     $avp(WANPROTO) = $(avp(WANProfile){uri.param,transport});
                     $avp(WANADVIP) = $(avp(WANProfile){uri.param,advip});
                     $avp(WANADVPORT) = $(avp(WANProfile){uri.param,advport});
+
+                    if($avp(WANPROTO)==""){$avp(WANPROTO)=null;}
+                    if($avp(WANADVIP)==""){$avp(WANADVIP)=null;}
+                    if($avp(WANADVPORT)==""){$avp(WANADVPORT)=null;}
                 }
 
-                if (!lookup("locationtrunk","m")) { ; /* Find PBX Registered to US */
-                    xdbg("Error no registration to SBC for TRUNK $avp(TRUNK)\n");
-                    switch ($retcode) {
-                        case -1:
-                        case -3:
-                            t_newtran();
-                            t_on_failure("LAN2WAN");
-                            t_reply("404", "Not Found");
-                            exit;
-                        case -2:
-                            append_hf("Allow: INVITE, ACK, REFER, NOTIFY, CANCEL, BYE, REGISTER" );
-                            sl_send_reply("405", "Method Not Allowed");
-                            exit;
+                if($avp(INBNDURI)) {
+                    if(cache_fetch("local","$avp(LAN)",$avp(LANProfile))) {
+                        xdbg("Loaded from cache $avp(LAN): $avp(LANProfile)\n");
+                    } else if (avp_db_load("$avp(LAN)","$avp(LANProfile)/blox_profile_config")) {
+                        cache_store("local","$avp(LAN)","$avp(LANProfile)");
+                        xdbg("Stored in cache $avp(LAN): $avp(LANProfile)\n");
+                    } else {
+                        $avp(LANProfile) = null;
+                        xlog("L_INFO", "Drop MESSAGE $ru from $si : $sp\n" );
+                        drop(); # /* Default 5060 open to accept packets from LAN side, but we don't process it */
+                        exit;
+                    }
+
+                    $avp(LANIP) = $(avp(LANProfile){uri.host});
+                    $avp(LANPORT) = $(avp(LANProfile){uri.port});
+                    $avp(LANPROTO) = $(avp(LANProfile){uri.param,transport});
+                    $fs = $avp(LANPROTO) + ":" + $avp(LANIP) + ":" + $avp(LANPORT) ;
+                    $ru = $avp(INBNDURI) + ';transport=' + $avp(LANPROTO) ;
+                    $du = $avp(INBNDURI) + ';transport=' + $avp(LANPROTO) ;
+                } else {
+                    if (!lookup("locationtrunk","m")) { ; /* Find PBX Registered to US */
+                        xdbg("Error no registration to SBC for TRUNK $avp(TRUNK)\n");
+                        switch ($retcode) {
+                            case -1:
+                            case -3:
+                                t_newtran();
+                                t_on_failure("LAN2WAN");
+                                t_reply("404", "Not Found");
+                                exit;
+                            case -2:
+                                append_hf("Allow: INVITE, ACK, REFER, NOTIFY, CANCEL, BYE, REGISTER" );
+                                sl_send_reply("405", "Method Not Allowed");
+                                exit;
+                        }
                     }
                 }
-                xdbg("Found to route $du TRUNK\n");
+                xdbg("Found to route $fs $ru $du TRUNK\n");
 
                 $avp(cac_uuid) = $avp(TRUNK) ; 
                 setflag(487); /* Send 487 reply with route INBOUND_CALL_ACCESS_CONTROL, if failed */
@@ -409,6 +502,7 @@ route[ROUTE_INVITE] {
                     $dlg_val(request) = $ru ;
                     $dlg_val(channel) = "sip:" + $si + ":" + $sp;
                     $dlg_val(dchannel) = $du;
+                    $dlg_val(direction) = "inbound";
                     topology_hiding("C");
                     setflag(ACC_FLAG_CDR_FLAG);
                     setflag(ACC_FLAG_LOG_FLAG);
@@ -453,6 +547,15 @@ route[ROUTE_INVITE] {
                 $avp(DstSRTP) = $(avp(PBX){uri.param,LANSRTP});
                 $var(PBXIPAUTH) = $(avp(PBX){uri.param,IPAuth}) ;
 
+                if($var(PBXIP)==""){$var(PBXIP)=null;}
+                if($var(PBXPORT)==""){$var(PBXPORT)=null;}
+                if($avp(LAN)==""){$avp(LAN)=null;}
+                if($avp(T38Param)==""){$avp(T38Param)=null;}
+                if($avp(MEDIA)==""){$avp(MEDIA)=null;}
+                if($avp(SrcSRTP)==""){$avp(SrcSRTP)=null;}
+                if($avp(DstSRTP)==""){$avp(DstSRTP)=null;}
+                if($var(PBXIPAUTH)==""){$var(PBXIPAUTH)=null;}
+
                 $avp(cac_uuid) = $avp(PBX) ; 
                 setflag(487);
                 route(INBOUND_CALL_ACCESS_CONTROL); /* Check for call limitation */
@@ -466,10 +569,12 @@ route[ROUTE_INVITE] {
                     }
 
                     $avp(WANADVIP) = $(avp(WANProfile){uri.param,advip});
-                    if($avp(WANADVIP) == null || $avp(WANADVIP) == "") {#check for "" string not just null
-                        $avp(WANSOCKET) = $pr + ":" + $Ri + ":" + $Rp ;
-                    } else {
+                    if($avp(WANADVIP)==""){$avp(WANADVIP)=null;}
+
+                    if($avp(WANADVIP)) {
                         $avp(WANSOCKET) = $pr + ":" + $avp(WANADVIP) + ":" + $Rp ;
+                    } else {
+                        $avp(WANSOCKET) = $pr + ":" + $Ri + ":" + $Rp ;
                     }
 
                     $avp(RESOCKET) = "sip:" + $si + ":" + $sp ;
@@ -557,6 +662,7 @@ route[ROUTE_INVITE] {
                         $dlg_val(request) = $ru ;
                         $dlg_val(channel) = "sip:" + $si + ":" + $sp;
                         $dlg_val(dchannel) = $avp(PBX);
+                        $dlg_val(direction) = "inbound";
                         topology_hiding("CR");
                         setflag(ACC_FLAG_CDR_FLAG);
                         setflag(ACC_FLAG_LOG_FLAG);
@@ -564,6 +670,9 @@ route[ROUTE_INVITE] {
                         setflag(ACC_FLAG_FAILED_TRANSACTION);
                         append_hf("P-hint: tophide applied\r\n"); 
                         set_dlg_flag("DLG_FLAG_WAN2LAN") ;
+
+#import_file "blox-humbug-invite.cfg"
+ 
                     }
                     $fs = $avp(LANPROTO) + ":" + $avp(LANIP) + ":" + $avp(LANPORT) ;
                     $du = $avp(PBX) + "transport=" + $avp(LANPROTO)  ;
