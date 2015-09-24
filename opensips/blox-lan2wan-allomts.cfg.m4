@@ -96,103 +96,103 @@ route[MTS_LAN2WAN] {
             $var(sdpidx) = 0 ;
             $var(mline) = $(rb{sdp.line,m,$var(sdpidx)});
             while($var(mline) != null && $var(mline) != "" && $var(sdpidx) < 3) { #COMMENT: Max 3 Media line will be processed 
-                $var(media) = $(var(mline){s.select,0, });
-                $var(media) = $(var(media){s.select,1,=});
-                $var(mport) = $(var(mline){s.select,1, });
-                $var(mtype) = $(var(mline){s.select,2, });
-                $var(t38) = $(var(mline){s.select,3, });
-
-                xlog("L_WARN","Processing :$var(mport):$var(media):$var(t38): $var(mt38):$var(mvideo):$var(audio)\n");
-    
-                if($var(mtype) == "udptl" && $var(t38) == "t38" && $var(mt38) == null) {
-                    $avp(SrcUdptl) = 1;
-                    $avp(SrcT38) = 1;
-                    $var(mt38) = 1;
-                    $var(i) = 0;
-                    $var(aline) = $(rb{sdp.line,a,$var(i)});
-                    $avp(rSrcT38Param) = null;
-                    while($var(aline)) {
-                        $var(aline) = $(var(aline){s.substr,2,0}) ;
-                        if($var(i) != 0) {
-                            $avp(rSrcT38Param) = $avp(rSrcT38Param) + ";" + $var(aline) ;
-                        } else {
-                            $avp(rSrcT38Param) = $var(aline) ;
-                        }
-                        xdbg("------------------ $var(rSrcT38Param) ------------\n");
-                        $var(i) = $var(i) + 1;
-                        $var(aline) = $(rb{sdp.line,a,$var(i)});
-                    }
-                    $avp(rSrcT38Param) = $(avp(rSrcT38Param){re.subst,/:/=/g}) ;
-                    $avp(rSrcT38MediaPort) = $var(mport);
-                } else if($var(media) == "video" && $var(mvideo) == null) {
-                    $var(mvideo) = 1;
-                    xlog("L_WARN","Ignoring media: $var(mline) video not supported\n") ;
-                } else if($var(media) == "audio" && $var(maudio) == null) { #/* Parse SRTP Param*/
-                    $avp(srcaudiomline) = $var(mline) ;
-                    $var(maudio) = 1 ;
-                    $avp(rSrcSRTPParam) = null ;
-                    $avp(rSrcSRTPSDP) = null ;
-                    $avp(DstSRTPParam) = null ;
-                    $var(i) = 0;
-                    $var(aline) = $(rb{sdp.line,a,$var(i)});
-                    while($var(aline)) {
-                        $var(aline) = $(var(aline){s.substr,2,0}) ;
-                        $var(crypto) = $(var(aline){s.select,0,:}) ;
-                        if($var(crypto) == "crypto") {
-                            $var(param) = $(var(aline){s.select,1,:}) ;
-                            $var(tag) = $(var(param){s.select,0, }) ;
-                            $var(suite) = $(var(param){s.select,1, }) ;
-                            $var(inline) = $(var(param){s.select,2, }) ;
-                            if($var(inline) == "inline") {
-                                $var(encoded) = $(var(aline){s.select,2,:}) ;
-                                $var(decoded) = $(var(encoded){s.decode.base64}) ;
-                                $var(hexenc) = $(var(decoded){s.encode.hexa}) ;
-                                $var(rsrcmkey) = $(var(hexenc){s.substr,0,32});
-                                $var(rsrcmsalt) = $(var(hexenc){s.substr,32,0});
-                                $var(rSrcSRTPParam) = $var(suite) + ":" + $var(rsrcmkey) + ":" + $var(rsrcmsalt) + ":" + $var(encoded);
-                                avp_insert("$avp(rSrcSRTPParam)","$var(rSrcSRTPParam)","10");
-                                avp_insert("$avp(DstSRTPParam)","$var(rSrcSRTPParam)","10");
-                                avp_insert("$avp(rSrcSRTPSDP)","$var(aline)","10");
-                            }
-                            xdbg("--$json(rSrcSRTPParam)---\n");
-                        }
-                        $var(i) = $var(i) + 1;
-                        $var(aline) = $(rb{sdp.line,a,$var(i)});
-                    }
-                    $avp(rSrcMediaPort) = $var(mport);
+                if(($avp(SrcSRTP) == SRTP_DISABLE) && ($(var(mline){s.select,2, }) == "RTP/SAVP")) {
+                    xdbg("Ingoring mline $var(mline) SRTP Disabled\n");
                 } else {
-                    xlog("L_WARN","Ignoring media: $var(mline) unknown not supported\n") ;
-                }
+                    $var(media) = $(var(mline){s.select,0, });
+                    $var(media) = $(var(media){s.select,1,=});
+                    $var(mport) = $(var(mline){s.select,1, });
+                    $var(mtype) = $(var(mline){s.select,2, });
+                    $var(t38) = $(var(mline){s.select,3, });
+
+                    xlog("L_WARN","Processing :$var(mport):$var(media):$var(t38): $var(mt38):$var(mvideo):$var(audio)\n");
+    
+                    if($var(mtype) == "udptl" && $var(t38) == "t38" && $var(mt38) == null) {
+                        $avp(SrcUdptl) = 1;
+                        $avp(SrcT38) = 1;
+                        $var(mt38) = 1;
+                        $var(i) = 0;
+                        $var(aline) = $(rb{sdp.line,a,$var(i)});
+                        $avp(rSrcT38Param) = null;
+                        while($var(aline)) {
+                            $var(aline) = $(var(aline){s.substr,2,0}) ;
+                            if($var(i) != 0) {
+                                $avp(rSrcT38Param) = $avp(rSrcT38Param) + ";" + $var(aline) ;
+                            } else {
+                                $avp(rSrcT38Param) = $var(aline) ;
+                            }
+                            xdbg("------------------ $var(rSrcT38Param) ------------\n");
+                            $var(i) = $var(i) + 1;
+                            $var(aline) = $(rb{sdp.line,a,$var(i)});
+                        }
+                        $avp(rSrcT38Param) = $(avp(rSrcT38Param){re.subst,/:/=/g}) ;
+                        $avp(rSrcT38MediaPort) = $var(mport);
+                    } else if($var(media) == "video" && $var(mvideo) == null) {
+                        $var(mvideo) = 1;
+                        xlog("L_WARN","Ignoring media: $var(mline) video not supported\n") ;
+                    } else if($var(media) == "audio" && $var(maudio) == null) { #/* Parse SRTP Param*/
+                        $avp(srcaudiomline) = $var(mline) ;
+                        $var(maudio) = 1 ;
+                        $avp(rSrcSRTPParam) = null ;
+                        $avp(rSrcSRTPSDP) = null ;
+                        $avp(DstSRTPParam) = null ;
+                        $var(i) = 0;
+                        $var(aline) = $(rb{sdp.line,a,$var(i)});
+                        while($var(aline)) {
+                            $var(aline) = $(var(aline){s.substr,2,0}) ;
+                            $var(crypto) = $(var(aline){s.select,0,:}) ;
+                            if($var(crypto) == "crypto") {
+                                $var(param) = $(var(aline){s.select,1,:}) ;
+                                $var(tag) = $(var(param){s.select,0, }) ;
+                                $var(suite) = $(var(param){s.select,1, }) ;
+                                $var(inline) = $(var(param){s.select,2, }) ;
+                                if($var(inline) == "inline") {
+                                    $var(encoded) = $(var(aline){s.select,2,:}) ;
+                                    $var(decoded) = $(var(encoded){s.decode.base64}) ;
+                                    $var(hexenc) = $(var(decoded){s.encode.hexa}) ;
+                                    $var(rsrcmkey) = $(var(hexenc){s.substr,0,32});
+                                    $var(rsrcmsalt) = $(var(hexenc){s.substr,32,0});
+                                    $var(rSrcSRTPParam) = $var(suite) + ":" + $var(rsrcmkey) + ":" + $var(rsrcmsalt) + ":" + $var(encoded);
+                                    avp_insert("$avp(rSrcSRTPParam)","$var(rSrcSRTPParam)","10");
+                                    avp_insert("$avp(DstSRTPParam)","$var(rSrcSRTPParam)","10");
+                                    avp_insert("$avp(rSrcSRTPSDP)","$var(aline)","10");
+                                }
+                                xdbg("--$json(rSrcSRTPParam)---\n");
+                            }
+                            $var(i) = $var(i) + 1;
+                            $var(aline) = $(rb{sdp.line,a,$var(i)});
+                        }
+                        $avp(rSrcMediaPort) = $var(mport);
+                    } else {
+                        xlog("L_WARN","Ignoring media: $var(mline) unknown not supported\n") ;
+                    }
+
+                    if($var(maudio) == null && $var(mt38) == null) {
+                            xlog("L_WARN","NOT ACCEPTABL HERE Support Fax or Audio\n");
+                            sl_send_reply("488","Not Acceptable Here");
+                            exit;
+                    }
+            	}
                 $var(sdpidx) = $var(sdpidx) + 1 ;
                 $var(mline) = $(rb{sdp.line,m,$var(sdpidx)});
             }
     
-            if($var(maudio) == null && $var(mt38) == null) {
-                    xlog("L_WARN","NOT ACCEPTABL HERE Support Fax or Audio\n");
-                    sl_send_reply("488","Not Acceptable Here");
-                    exit;
-            }
-            
-            if($var(mt38) && $var(rSrcSRTPParam)) { #T38 with SRTP not supported
+            if($var(mt38) && $avp(rSrcSRTPParam)) { #T38 with SRTP not supported
                     xlog("L_WARN","NOT ACCEPTABL HERE $avp(rSrcSRTPParam) <===> $avp(SrcMavp)\n");
                     sl_send_reply("488","Not Acceptable Here");
                     exit;
             }
 
-            if($avp(rSrcSRTPParam) && ($avp(SrcSRTP) == SRTP_DISABLE)) {
-                if($var(mtype) == "RTP/SAVP" ) {
+            if(($avp(SrcSRTP) == SRTP_DISABLE) && ($var(mtype) != "RTP/AVP")) {
                     xlog("L_WARN","LAN_2_WAN NOT ACCEPTABL HERE $avp(rSrcSRTPParam) <===> $avp(SrcMavp)\n");
                     sl_send_reply("488","Not Acceptable Here");
                     exit;
-                }
             }
         
-            if($avp(SrcSRTP) == SRTP_COMPULSORY) {
-                if(($var(mtype) == "RTP/AVP" ) && (!$avp(rSrcSRTPParam))){
+            if($avp(SrcSRTP) == SRTP_COMPULSORY && (!$avp(rSrcSRTPParam))) {
                     xlog("L_WARN"," LAN_2_WAN NOT ACCEPTABL HERE $avp(rSrcSRTPParam) <===> $avp(SrcMavp) <===> $avp(DstSRTP)\n");_
                     sl_send_reply("488","Not Acceptable Here");
                     exit;
-                }
             }
 
 
