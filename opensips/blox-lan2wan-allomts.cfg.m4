@@ -141,7 +141,7 @@ route[MTS_LAN2WAN] {
                         while($var(aline)) {
                             $var(aline) = $(var(aline){s.substr,2,0}) ;
                             $var(crypto) = $(var(aline){s.select,0,:}) ;
-                            if($var(crypto) == "crypto") {
+                            if(($avp(SrcSRTP) != SRTP_DISABLE) && ($var(crypto) == "crypto")) {
                                 $var(param) = $(var(aline){s.select,1,:}) ;
                                 $var(tag) = $(var(param){s.select,0, }) ;
                                 $var(suite) = $(var(param){s.select,1, }) ;
@@ -841,6 +841,7 @@ onreply_route[MTS_LAN2WAN] {
                                 xdbg("---------+++++++++++Adding Both Side SRTP 200 ok reply $var(suite) : $var(rdstinline)"); 
                             } else {
                                 #/* Handled in Route with 488, Error Can't come here*/
+                    		xlog("L_ERR","BROKEN ROUTE\n");
                             }
                         } else if($avp(rSrcSRTPParam)) {
                             xdbg("SRTP configuration  ---->> $avp(SrcMavp) ==  <==> <<  $avp(MediaEncryption) \n");
