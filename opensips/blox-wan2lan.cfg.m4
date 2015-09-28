@@ -79,6 +79,13 @@ onreply_route[WAN2LAN] {
             if(!save("locationpbx","rp1", "$fu")) {
                 xlog("L_ERROR", "Error saving the location\n");
             };
+
+            if($avp(WANADVIP)) { # Roaming user: replace it with advIP:Port
+                subst("/Contact: +<sip:(.*)@(.*)>(.*)$/Contact: <sip:\1@$avp(WANADVIP):$avp(WANADVPORT)>\3/");
+            } else {
+                subst("/Contact: +<sip:(.*)@(.*)>(.*)$/Contact: <sip:\1@$avp(WANIP):$avp(WANPORT)>\3/");
+            }
+
             xdbg("Saved Location $fu/$ru/$si/$ci/$avp(rcv)" );
         };
         exit;
