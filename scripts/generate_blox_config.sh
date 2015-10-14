@@ -62,9 +62,10 @@ do
         m4 $CONFDIR/blox-ua.m4 $CONFDIR/blox-define.m4 $CONFDIR/blox-define-nat.m4 $CONFDIR/blox-version.m4 $CONFDIR/blox-humbug.m4 $CONFDIR/blox-codec.m4 $m4config > $OUTDIR/$(basename $m4config|sed 's/\.m4$//')
 done
 
-
 rm -f $OUTDIR/blox-tls-*.cfg
 cp $CONFDIR/*.cfg $OUTDIR
+
+cat $OUTDIR/regex-groups.cfg >> $OUTDIR/regex-groups-all.cfg
 
 #if [ -n "$TRANSCODING" ]
 #then
