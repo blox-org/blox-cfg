@@ -29,9 +29,9 @@ route[MTS_LAN2WAN] {
         if(!cache_fetch("local","allomtscodec",$var(codec))) {
             route(ALLOMTSLOAD);
             if(!cache_fetch("local","allomtscodec",$var(codec))) {
-                    xlog("L_ERR","Fatal: No allomts codec configured\n");
-                    drop(); # /* Drop request only route */
-                    exit ;
+                xlog("L_ERR","Fatal: No allomts codec configured\n");
+                drop(); # /* Drop request only route */
+                exit ;
             }
         }
         $json(jCodec) := $var(codec) ;
@@ -172,7 +172,7 @@ route[MTS_LAN2WAN] {
                             sl_send_reply("488","Not Acceptable Here");
                             exit;
                     }
-            	}
+                }
                 $var(sdpidx) = $var(sdpidx) + 1 ;
                 $var(mline) = $(rb{sdp.line,m,$var(sdpidx)});
             }
@@ -298,8 +298,14 @@ route[MTS_LAN2WAN] {
 
             xdbg("------------------$var(rtpmaps):$var(codecids)-----------------------\n");
 
-            #Lets reserve the get Media port and reserve it
-            $var(url) =  "http://127.0.0.1:8000" + "/reservemediaports" ;
+            #Lets reserve the get Media port and reserve it  
+            $avp(uid) = $hdr(call-id);    
+            if($ft && $tt)
+                $var(uid) = $avp(uid)+"-"+$ft+"-"+$tt;        
+            else
+                $var(uid) = $avp(uid);
+
+            $var(url) =  "http://127.0.0.1:8000" + "/reservemediaports?uniqueid=" + $var(uid) ;
             xlog("L_INFO","Route: transcoding request : $var(url)\n");
             rest_get("$var(url)","$var(body)");
             if($var(body) == null) {
@@ -440,6 +446,11 @@ onreply_route[MTS_LAN2WAN] {
     xdbg("Got Response $rs/ $fu/$ru/$si/$ci/$avp(rcv)\n");
     if (status =~ "(183)|2[0-9][0-9]") {
         if (has_body("application/sdp")) {
+            if($ft && $tt)
+                $var(uid) = $avp(uid)+"-"+$ft+"-"+$tt;        
+            else
+                $var(uid) = $avp(uid);
+
             $avp(rDstSRTPParam) = null ;
             $var(transcoding) = 0 ;
             $var(rSrcCodecIdx) = 0;
@@ -587,6 +598,15 @@ onreply_route[MTS_LAN2WAN] {
                     $var(sdpidx) = $var(sdpidx) + 1 ;
                     $var(mline) = $(rb{sdp.line,m,$var(sdpidx)});
                 }
+                if(($var(mtype) == "RTP/SAVP" && $var(mport) == "0")) {
+                    xlog("L_WARN","lan2wan Ignoring mport is 0 for RTP/SAVP  $avp(DstSRTP) $avp(SrcSRTP) $var(mtype) $var(mport) $var(RTP/SAVP)  \n");
+                    #while(avp_delete("$avp(rDstSRTPParam)")) {
+                    #}
+                    # TODO: Replace the below line($avp(rDstSRTPParam) = "") with while loop. avp_delete will clear the 
+                    # rDstSRTPParam array. 
+                    $avp(rDstSRTPParam) = "";
+                    $var(crypto) = null;
+                }
 
                 if($var(mt38) == null && $var(maudio) == null) {
                     strip_body(); #/* Exit here */
@@ -695,9 +715,9 @@ onreply_route[MTS_LAN2WAN] {
                     xdbg("------------------ $avp(rSrcMediaIP):$avp(rSrcMediaPort):$(avp(rSrcCodec)[$var(rSrcCodecIdx)])-------- :$avp(SrcMediaPort):$avp(DstMediaPort):\n");
                     if($var(transcoding) == 0) { #/* No Transcoding required, PASSTHROUGH */
                         if($avp(SrcT38)) {
-                            $var(url) =  "gMTSSRV" + "/makepassthrough?remote_ipA=" + $avp(rSrcMediaIP) + "&remote_portA=" + $avp(rSrcT38MediaPort) + "&remote_ipB=" + $avp(rDstMediaIP) + "&remote_portB=" + $avp(rDstT38MediaPort) + "&local_portA=" + $avp(SrcT38MediaPort) + "&local_portB=" + $avp(DstT38MediaPort) ;
+                            $var(url) =  "gMTSSRV" + "/makepassthrough?remote_ipA=" + $avp(rSrcMediaIP) + "&remote_portA=" + $avp(rSrcT38MediaPort) + "&remote_ipB=" + $avp(rDstMediaIP) + "&remote_portB=" + $avp(rDstT38MediaPort) + "&local_portA=" + $avp(SrcT38MediaPort) + "&local_portB=" + $avp(DstT38MediaPort) +"&uniqueid="+$var(uid) ;
                         } else {
-                            $var(url) =  "gMTSSRV" + "/makepassthrough?remote_ipA=" + $avp(rSrcMediaIP) + "&remote_portA=" + $avp(rSrcMediaPort) + "&remote_ipB=" + $avp(rDstMediaIP) + "&remote_portB=" + $avp(rDstMediaPort) + "&local_portA=" + $avp(SrcMediaPort) + "&local_portB=" + $avp(DstMediaPort) ;
+                            $var(url) =  "gMTSSRV" + "/makepassthrough?remote_ipA=" + $avp(rSrcMediaIP) + "&remote_portA=" + $avp(rSrcMediaPort) + "&remote_ipB=" + $avp(rDstMediaIP) + "&remote_portB=" + $avp(rDstMediaPort) + "&local_portA=" + $avp(SrcMediaPort) + "&local_portB=" + $avp(DstMediaPort) +"&uniqueid="+$var(uid) ;
                         }
                     } else {
                         if($avp(SrcT38)) {
@@ -705,11 +725,11 @@ onreply_route[MTS_LAN2WAN] {
                                 $avp(rSrcMediaPort) = $avp(rSrcT38MediaPort) - gT38MediaPortOffset ;
                             }
                             xdbg("------------------ $avp(rSrcT38Param) ------------\n");
-                            $var(url) =  "gMTSSRV" + "/create?remote_ip=" + $avp(rSrcMediaIP) + "&codec=t38&local_t38_port=" + $avp(SrcT38MediaPort) + "&remote_t38_port=" + $avp(rSrcT38MediaPort) + "&local_rtp_port=" + $avp(SrcMediaPort) + "&remote_rtp_port=" + $avp(rSrcMediaPort) + "&rcname=sbc@allo.com&rtp_nostrict=true&enable_t38=yes" + "&t38_profile=1" ;
+                            $var(url) =  "gMTSSRV" + "/create?remote_ip=" + $avp(rSrcMediaIP) + "&codec=t38&local_t38_port=" + $avp(SrcT38MediaPort) + "&remote_t38_port=" + $avp(rSrcT38MediaPort) + "&local_rtp_port=" + $avp(SrcMediaPort) + "&remote_rtp_port=" + $avp(rSrcMediaPort) + "&rcname=sbc@allo.com&rtp_nostrict=true&enable_t38=yes" + "&t38_profile=1" +"&uniqueid="+$var(uid) ;
                         } else if($avp(SrcSRTP) != SRTP_DISABLE && $avp(rSrcSRTPParam)) {
-                            $var(url) =  "gMTSSRV" + "/create?remote_ip=" + $avp(rSrcMediaIP) + "&codec=" + $(avp(rSrcCodec)[$var(rSrcCodecIdx)]) + "&local_rtp_port=" + $avp(SrcMediaPort) + "&remote_rtp_port=" + $avp(rSrcMediaPort) + "&rcname=sbc@allo.com&rtp_nostrict=true&enable_srtp=true&srtp_s_crypto=" + $json(jCrypto/$var(suite)/crypto) + "&srtp_s_auth=" + $json(jCrypto/$var(suite)/auth) + "&srtp_s_auth_size=" + $json(jCrypto/$var(suite)/auth_size) + "&srtp_s_mst_ksize=" + $json(jCrypto/$var(suite)/mst_ksize) + "&srtp_s_mst_key=" + $var(srcmkey) + "&srtp_s_mst_salt=" + $var(srcmsalt) + "&srtp_r_crypto=" + $json(jCrypto/$var(suite)/crypto) + "&srtp_r_auth=" + $json(jCrypto/$var(suite)/auth) + "&srtp_r_auth_size=" + $json(jCrypto/$var(suite)/auth_size) + "&srtp_r_mst_ksize=" + $json(jCrypto/$var(suite)/mst_ksize) + "&srtp_r_mst_key=" + $var(rsrcmkey) + "&srtp_r_mst_salt=" + $var(rsrcmsalt);
+                            $var(url) =  "gMTSSRV" + "/create?remote_ip=" + $avp(rSrcMediaIP) + "&codec=" + $(avp(rSrcCodec)[$var(rSrcCodecIdx)]) + "&local_rtp_port=" + $avp(SrcMediaPort) + "&remote_rtp_port=" + $avp(rSrcMediaPort) + "&rcname=sbc@allo.com&rtp_nostrict=true&enable_srtp=true&srtp_s_crypto=" + $json(jCrypto/$var(suite)/crypto) + "&srtp_s_auth=" + $json(jCrypto/$var(suite)/auth) + "&srtp_s_auth_size=" + $json(jCrypto/$var(suite)/auth_size) + "&srtp_s_mst_ksize=" + $json(jCrypto/$var(suite)/mst_ksize) + "&srtp_s_mst_key=" + $var(srcmkey) + "&srtp_s_mst_salt=" + $var(srcmsalt) + "&srtp_r_crypto=" + $json(jCrypto/$var(suite)/crypto) + "&srtp_r_auth=" + $json(jCrypto/$var(suite)/auth) + "&srtp_r_auth_size=" + $json(jCrypto/$var(suite)/auth_size) + "&srtp_r_mst_ksize=" + $json(jCrypto/$var(suite)/mst_ksize) + "&srtp_r_mst_key=" + $var(rsrcmkey) + "&srtp_r_mst_salt=" + $var(rsrcmsalt)+"&uniqueid="+$var(uid) ;
                         } else {
-                            $var(url) =  "gMTSSRV" + "/create?remote_ip=" + $avp(rSrcMediaIP) + "&codec=" + $(avp(rSrcCodec)[$var(rSrcCodecIdx)]) + "&local_rtp_port=" + $avp(SrcMediaPort) + "&remote_rtp_port=" + $avp(rSrcMediaPort) + "&rcname=sbc@allo.com&rtp_nostrict=true" ;
+                            $var(url) =  "gMTSSRV" + "/create?remote_ip=" + $avp(rSrcMediaIP) + "&codec=" + $(avp(rSrcCodec)[$var(rSrcCodecIdx)]) + "&local_rtp_port=" + $avp(SrcMediaPort) + "&remote_rtp_port=" + $avp(rSrcMediaPort) + "&rcname=sbc@allo.com&rtp_nostrict=true" +"&uniqueid="+$var(uid) ;
                         }
                     }
                     xlog("L_INFO","Connecting $var(url)\n");
@@ -731,9 +751,9 @@ onreply_route[MTS_LAN2WAN] {
 
                     if($var(transcoding) == 0) {
                         if($avp(SrcT38)) {
-                            $var(url) =  "gMTSSRV" + "/makepassthrough?remote_ipA=" + $avp(rDstMediaIP) + "&remote_portA=" + $avp(rDstT38MediaPort) + "&remote_ipB=" + $avp(rSrcMediaIP) + "&remote_portB=" + $avp(rSrcT38MediaPort) +  "&local_portA=" + $avp(DstT38MediaPort) + "&local_portB=" + $avp(SrcT38MediaPort) ;;
+                            $var(url) =  "gMTSSRV" + "/makepassthrough?remote_ipA=" + $avp(rDstMediaIP) + "&remote_portA=" + $avp(rDstT38MediaPort) + "&remote_ipB=" + $avp(rSrcMediaIP) + "&remote_portB=" + $avp(rSrcT38MediaPort) +  "&local_portA=" + $avp(DstT38MediaPort) + "&local_portB=" + $avp(SrcT38MediaPort) +"&uniqueid="+$var(uid) ;;
                         } else {
-                            $var(url) =  "gMTSSRV" + "/makepassthrough?remote_ipA=" + $avp(rDstMediaIP) + "&remote_portA=" + $avp(rDstMediaPort) + "&remote_ipB=" + $avp(rSrcMediaIP) + "&remote_portB=" + $avp(rSrcMediaPort) +  "&local_portA=" + $avp(DstMediaPort) + "&local_portB=" + $avp(SrcMediaPort) ;;
+                            $var(url) =  "gMTSSRV" + "/makepassthrough?remote_ipA=" + $avp(rDstMediaIP) + "&remote_portA=" + $avp(rDstMediaPort) + "&remote_ipB=" + $avp(rSrcMediaIP) + "&remote_portB=" + $avp(rSrcMediaPort) +  "&local_portA=" + $avp(DstMediaPort) + "&local_portB=" + $avp(SrcMediaPort) +"&uniqueid="+$var(uid) ;;
                         }
                     } else {
                         $avp(rDstCodec) = null ;
@@ -742,11 +762,11 @@ onreply_route[MTS_LAN2WAN] {
                             if($avp(rDstMediaPort) == null)  {
                                 $avp(rDstMediaPort) = $avp(rDstT38MediaPort) - gT38MediaPortOffset ; #Dummy reserved port
                             }
-                            $var(url) =  "gMTSSRV" + "/create?remote_ip=" + $avp(rDstMediaIP) + "&codec=t38&local_t38_port=" + $avp(DstMediaPort) + "&remote_t38_port=" + $avp(rDstMediaPort) + "&local_rtp_port=" + $avp(DstMediaPort) + "&remote_rtp_port=" + $avp(rDstMediaPort) + "&rcname=sbc@allo.com&rtp_nostrict=true&enable_t38=yes" + "&T38FaxVersion=" + $(avp(rDstT38Param){param.value,T38FaxVersion}) + "&T38MaxBitRate=" +  $(avp(rDstT38Param){param.value,T38MaxBitRate}) + "&T38FaxRateManagement=" + $(avp(rDstT38Param){param.value,T38FaxRateManagement}) + "&T38FaxMaxDatagram=" + $(avp(rDstT38Param){param.value,T38FaxMaxDatagram}) + "&T38FaxUdpEC=" + $(avp(rDstT38Param){param.value,T38FaxUdpEC}) ;
+                            $var(url) =  "gMTSSRV" + "/create?remote_ip=" + $avp(rDstMediaIP) + "&codec=t38&local_t38_port=" + $avp(DstMediaPort) + "&remote_t38_port=" + $avp(rDstMediaPort) + "&local_rtp_port=" + $avp(DstMediaPort) + "&remote_rtp_port=" + $avp(rDstMediaPort) + "&rcname=sbc@allo.com&rtp_nostrict=true&enable_t38=yes" + "&T38FaxVersion=" + $(avp(rDstT38Param){param.value,T38FaxVersion}) + "&T38MaxBitRate=" +  $(avp(rDstT38Param){param.value,T38MaxBitRate}) + "&T38FaxRateManagement=" + $(avp(rDstT38Param){param.value,T38FaxRateManagement}) + "&T38FaxMaxDatagram=" + $(avp(rDstT38Param){param.value,T38FaxMaxDatagram}) + "&T38FaxUdpEC=" + $(avp(rDstT38Param){param.value,T38FaxUdpEC}) +"&uniqueid="+$var(uid) ;
                         } else if($avp(rDstSRTPParam)) {
-                            $var(url) =  "gMTSSRV" + "/create?remote_ip=" + $avp(rDstMediaIP) + "&codec=" + $(avp(rDstCodec)[0]) + "&local_rtp_port=" + $avp(DstMediaPort) + "&remote_rtp_port=" + $avp(rDstMediaPort) + "&rcname=sbc@allo.com&rtp_nostrict=true&enable_srtp=true&srtp_s_crypto=" + $json(jCrypto/$var(suite)/crypto) + "&srtp_s_auth=" + $json(jCrypto/$var(suite)/auth) + "&srtp_s_auth_size=" + $json(jCrypto/$var(suite)/auth_size) + "&srtp_s_mst_ksize=" + $json(jCrypto/$var(suite)/mst_ksize) + "&srtp_s_mst_key=" + $var(dstmkey) + "&srtp_s_mst_salt=" + $var(dstmsalt) + "&srtp_r_crypto=" + $json(jCrypto/$var(suite)/crypto) + "&srtp_r_auth=" + $json(jCrypto/$var(suite)/auth) + "&srtp_r_auth_size=" + $json(jCrypto/$var(suite)/auth_size) + "&srtp_r_mst_ksize=" + $json(jCrypto/$var(suite)/mst_ksize) + "&srtp_r_mst_key=" + $var(rdstmkey) + "&srtp_r_mst_salt=" + $var(rdstmsalt);
+                            $var(url) =  "gMTSSRV" + "/create?remote_ip=" + $avp(rDstMediaIP) + "&codec=" + $(avp(rDstCodec)[0]) + "&local_rtp_port=" + $avp(DstMediaPort) + "&remote_rtp_port=" + $avp(rDstMediaPort) + "&rcname=sbc@allo.com&rtp_nostrict=true&enable_srtp=true&srtp_s_crypto=" + $json(jCrypto/$var(suite)/crypto) + "&srtp_s_auth=" + $json(jCrypto/$var(suite)/auth) + "&srtp_s_auth_size=" + $json(jCrypto/$var(suite)/auth_size) + "&srtp_s_mst_ksize=" + $json(jCrypto/$var(suite)/mst_ksize) + "&srtp_s_mst_key=" + $var(dstmkey) + "&srtp_s_mst_salt=" + $var(dstmsalt) + "&srtp_r_crypto=" + $json(jCrypto/$var(suite)/crypto) + "&srtp_r_auth=" + $json(jCrypto/$var(suite)/auth) + "&srtp_r_auth_size=" + $json(jCrypto/$var(suite)/auth_size) + "&srtp_r_mst_ksize=" + $json(jCrypto/$var(suite)/mst_ksize) + "&srtp_r_mst_key=" + $var(rdstmkey) + "&srtp_r_mst_salt=" + $var(rdstmsalt)+"&uniqueid="+$var(uid) ;
                         } else {
-                            $var(url) =  "gMTSSRV" + "/create?remote_ip=" + $avp(rDstMediaIP) + "&codec=" + $var(codec) + "&remote_rtp_port=" + $avp(rDstMediaPort) + "&rcname=sbc@allo.com&local_rtp_port=" + $avp(DstMediaPort) + "&rtp_nostrict=true";
+                            $var(url) =  "gMTSSRV" + "/create?remote_ip=" + $avp(rDstMediaIP) + "&codec=" + $var(codec) + "&remote_rtp_port=" + $avp(rDstMediaPort) + "&rcname=sbc@allo.com&local_rtp_port=" + $avp(DstMediaPort) + "&rtp_nostrict=true"+"&uniqueid="+$var(uid) ;
                         }
                     }
                     xlog("L_INFO","Connecting $var(url)\n");
@@ -841,7 +861,7 @@ onreply_route[MTS_LAN2WAN] {
                                 xdbg("---------+++++++++++Adding Both Side SRTP 200 ok reply $var(suite) : $var(rdstinline)"); 
                             } else {
                                 #/* Handled in Route with 488, Error Can't come here*/
-                    		xlog("L_ERR","BROKEN ROUTE\n");
+                                xlog("L_ERR","BROKEN ROUTE\n");
                             }
                         } else if($avp(rSrcSRTPParam)) {
                             xdbg("SRTP configuration  ---->> $avp(SrcMavp) ==  <==> <<  $avp(MediaEncryption) \n");
@@ -896,7 +916,12 @@ failure_route[MTS_LAN2WAN] {
             xlog("L_WARN", "Not handled, Dropping Call\n");
         }
         if($avp(DstMediaPort) != null) {
-            $var(url) =  "http://127.0.0.1:8000" + "/unreservemediaports?local_rtp_port=" + $avp(DstMediaPort) ;
+            if($ft && $tt)
+                $var(uid) = $avp(uid)+"-"+$ft+"-"+$tt;        
+            else
+                $var(uid) = $avp(uid);
+
+            $var(url) =  "http://127.0.0.1:8000" + "/unreservemediaports?local_rtp_port=" + $avp(DstMediaPort) +"&uniqueid="+$var(uid) ;
             xlog("L_INFO","Route: transcoding request : $var(url)\n");
             rest_get("$var(url)","$var(body)");
         }
