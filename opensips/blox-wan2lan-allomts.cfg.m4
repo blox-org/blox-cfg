@@ -300,12 +300,13 @@ route[MTS_WAN2LAN] {
 
             #Lets reserve the get Media port and reserve it
             $avp(uid) = $hdr(call-id);
-            if($ft && $tt)
+            if($ft && $tt) {
                 $var(uid) = $avp(uid)+"-"+$ft+"-"+$tt;
-            else
+            } else {
                 $var(uid) = $avp(uid);
+            }
 
-            $var(url) =  "http://127.0.0.1:8000" + "/reservemediaports?uniqueid="+$var(uid);
+            $var(url) =  "gMTSSRV" + "/reservemediaports?uniqueid="+$var(uid);
             xlog("L_INFO","Route: transcoding request : $var(url)\n");
             rest_get("$var(url)","$var(body)");
             if($var(body) == null) {
@@ -468,10 +469,12 @@ onreply_route[MTS_WAN2LAN] {
 
     if (status =~ "(183)|2[0-9][0-9]") {
         if (has_body("application/sdp")) {
-            if($ft && $tt)
+            if($ft && $tt) {
                 $var(uid) = $avp(uid)+"-"+$ft+"-"+$tt;
-            else
+            } else {
                 $var(uid) = $avp(uid);
+            }
+
             $avp(rDstSRTPParam) = null ;
             $var(transcoding) = 0 ;
             $var(rSrcCodecIdx) = 0;
@@ -942,7 +945,7 @@ failure_route[MTS_WAN2LAN] {
             else
                 $var(uid) = $avp(uid);
 
-            $var(url) =  "http://127.0.0.1:8000" + "/unreservemediaports?local_rtp_port=" + $avp(DstMediaPort) +"&uniqueid="+$var(uid);
+            $var(url) =  "gMTSSRV" + "/unreservemediaports?local_rtp_port=" + $avp(DstMediaPort) +"&uniqueid="+$var(uid);
             xlog("L_INFO","Route: transcoding request : $var(url)\n");
             rest_get("$var(url)","$var(body)");
         }
