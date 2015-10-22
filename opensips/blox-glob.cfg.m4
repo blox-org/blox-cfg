@@ -27,8 +27,8 @@ port=5060
 dns=no
 rev_dns=no
 
-server_header="Server: USERAGENT-MAJORVERSION.MINORVERSION.REVNUMBER-RELEASE"
-user_agent_header="User-Agent: USERAGENT-MAJORVERSION.MINORVERSION.REVNUMBER-RELEASE"
+server_header="Server: USERAGENT"
+user_agent_header="User-Agent: USERAGENT"
 
 #TLS Configuration
 disable_tls=0
