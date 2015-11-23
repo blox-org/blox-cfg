@@ -655,13 +655,24 @@ route[ROUTE_INVITE] {
                     $avp(LANIP) = $(avp(LANProfile){uri.host});
                     $avp(LANPORT) = $(avp(LANProfile){uri.port});
                     $avp(LANPROTO) = $(avp(LANProfile){uri.param,transport});
+                    $avp(LANDOMAIN) = $(avp(LANProfile){uri.param,domain});
+                    if($avp(LANDOMAIN)==""){$avp(LANDOMAIN)=null;}
+
+                    $fs = $avp(LANPROTO) + ":" + $avp(LANIP) + ":" + $avp(LANPORT) ;
+                    $du = $avp(PBX) + "transport=" + $avp(LANPROTO)  ;
+                    if($avp(LANDOMAIN)) {
+                        $ru = "sip:" + $rU + "@" + $avp(LANDOMAIN) ;
+                    } else {
+                        $ru = "sip:" + $rU + "@" + $var(PBXIP) + ":" + $var(PBXPORT) ;
+                    }
+
                     if(!has_totag()) {
                         create_dialog("PpB");
                         $dlg_val(MediaProfileID) = $(avp(PBX){uri.param,MEDIA});
                         $dlg_val(from) = $fu ;
                         $dlg_val(request) = $ru ;
                         $dlg_val(channel) = "sip:" + $si + ":" + $sp;
-                        $dlg_val(dchannel) = $avp(PBX);
+                        $dlg_val(dchannel) = $du ;
                         $dlg_val(direction) = "inbound";
                         topology_hiding("CR");
                         setflag(ACC_FLAG_CDR_FLAG);
@@ -674,9 +685,11 @@ route[ROUTE_INVITE] {
 #import_file "blox-humbug-invite.cfg"
  
                     }
-                    $fs = $avp(LANPROTO) + ":" + $avp(LANIP) + ":" + $avp(LANPORT) ;
-                    $du = $avp(PBX) + "transport=" + $avp(LANPROTO)  ;
-                    $ru = "sip:" + $rU + "@" + $var(PBXIP) + ":" + $var(PBXPORT) ;
+
+                    if(client_nat_test("3")) {
+                        $avp(rSrcNATIP) = $si ;
+                    }
+
                     t_on_failure("WAN2LAN");
                     route(WAN2LAN);
                     exit;

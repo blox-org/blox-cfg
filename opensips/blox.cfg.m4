@@ -134,6 +134,7 @@ route {
         exit;
     };
 
+    $avp(rSrcNATIP) = null;
     if (has_totag() && (uri == myself)  && is_method("INVITE|ACK|BYE|UPDATE|CANCEL|REFER|NOTIFY")) {
          if(match_dialog()) {
             xdbg("In-Dialog topology hiding request - $DLG_dir\n");

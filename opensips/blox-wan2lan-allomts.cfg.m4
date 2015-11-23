@@ -301,13 +301,14 @@ route[MTS_WAN2LAN] {
             #Lets reserve the get Media port and reserve it
             $avp(uid) = $hdr(call-id);
             if($ft && $tt) {
-                $var(uid) = $avp(uid)+"-"+$ft+"-"+$tt;
+                $var(uid) = $avp(uid)+"-"+$ft+"-"+$tt;        
             } else {
                 $var(uid) = $avp(uid);
             }
 
             $var(url) =  "gMTSSRV" + "/reservemediaports?uniqueid="+$var(uid);
             xlog("L_INFO","Route: transcoding request : $var(url)\n");
+
             rest_get("$var(url)","$var(body)");
             if($var(body) == null) {
                 sl_send_reply("500","Server error");
@@ -331,7 +332,11 @@ route[MTS_WAN2LAN] {
             $avp(DstT38MediaPort) = ($avp(DstMediaPort) + gT38MediaPortOffset);
             $avp(SrcT38MediaPort) = ($avp(SrcMediaPort) + gT38MediaPortOffset);
 
-            $avp(rSrcMediaIP) = $(var(cline){s.select,2, });
+            if ($avp(rSrcNATIP)) {
+                $avp(rSrcMediaIP) = $avp(rSrcNATIP);
+            } else {
+                $avp(rSrcMediaIP) = $(var(cline){s.select,2, });
+            }
 
             xdbg("------------------ $avp(rSrcMediaIP):$avp(rSrcMediaPort):$avp(rSrcCodec) -------- :$avp(SrcMediaPort):$avp(DstMediaPort):\n");
 
@@ -447,33 +452,9 @@ route[MTS_WAN2LAN] {
 onreply_route[MTS_WAN2LAN] {
     xdbg("Got Response $rs/ $fu/$ru/$si/$ci/$avp(rcv)\n");
 
-    if(is_method("REGISTER")) {
-        if(status =~ "200") {
-            xdbg("Got REGISTER REPLY $fu/$ru/$si/$ci/$avp(rcv)" );
-            $avp(regattr) = $pr + ":" + $si + ":" + $sp ;
-            #$var(aor) = "sip:" + $fU + "@" + $avp(WANIP) + ":" + $avp(WANPORT) ;
-            if(!save("locationpbx","rp1", "$fu")) {
-                xlog("L_ERROR", "Error saving the location\n");
-            };
-
-            if($avp(WANADVIP)) { # Roaming user: replace it with advIP:Port
-                subst("/Contact: +<sip:(.*)@(.*)>(.*)$/Contact: <sip:\1@$avp(WANADVIP):$avp(WANADVPORT)>\3/");
-            } else {
-                subst("/Contact: +<sip:(.*)@(.*)>(.*)$/Contact: <sip:\1@$avp(WANIP):$avp(WANPORT)>\3/");
-            }
-
-            xdbg("Saved Location $fu/$ru/$si/$ci/$avp(rcv)" );
-        };
-        exit;
-    };
-
     if (status =~ "(183)|2[0-9][0-9]") {
         if (has_body("application/sdp")) {
-            if($ft && $tt) {
-                $var(uid) = $avp(uid)+"-"+$ft+"-"+$tt;
-            } else {
-                $var(uid) = $avp(uid);
-            }
+            $var(uid) = $avp(uid);
 
             $avp(rDstSRTPParam) = null ;
             $var(transcoding) = 0 ;
@@ -940,10 +921,11 @@ failure_route[MTS_WAN2LAN] {
             xlog("L_WARN", "Not handled, Dropping Call\n");
         }
         if($avp(DstMediaPort) != null) {
-            if($ft && $tt)
+            if($ft && $tt) {
                 $var(uid) = $avp(uid)+"-"+$ft+"-"+$tt;        
-            else
+            } else {
                 $var(uid) = $avp(uid);
+            }
 
             $var(url) =  "gMTSSRV" + "/unreservemediaports?local_rtp_port=" + $avp(DstMediaPort) +"&uniqueid="+$var(uid);
             xlog("L_INFO","Route: transcoding request : $var(url)\n");
