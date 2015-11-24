@@ -67,16 +67,12 @@ cp $CONFDIR/*.cfg $OUTDIR
 
 cat $OUTDIR/regex-groups.cfg >> $OUTDIR/regex-groups-all.cfg
 
-#if [ -n "$TRANSCODING" ]
-#then
-#	rm -f $OUTDIR/blox-lan2wan.cfg
-#	rm -f $OUTDIR/blox-wan2lan.cfg
-#	rm -f $OUTDIR/blox-allomts-dummy.cfg
-#else
-#	rm -f $OUTDIR/blox-lan2wan-allomts.cfg
-#	rm -f $OUTDIR/blox-wan2lan-allomts.cfg
-#	rm -f $OUTDIR/blox-allomts.cfg
-#fi
+if [ -n "$TRANSCODING" ]
+then
+	rm -f $OUTDIR/blox-allomts-dummy.cfg
+else
+	rm -f $OUTDIR/blox-allomts.cfg
+fi
 
 #TLS Configuration
 for tlsconfig in $(ls $CONFDIR/blox-tls-*.cfg)
