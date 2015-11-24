@@ -47,8 +47,17 @@ delete_iptables() {
 	$IPTABLES -t nat -D ${PREFIX}POSTROUTING -s $IPMASK -o $ETH_IF -j MASQUERADE
 }
 
+flush_iptables() {
+	$IPTABLES -t nat -F MINIUPNPD
+	$IPTABLES -t nat -F ${PREFIX}POSTROUTING
+	$IPTABLES -t nat -F ${PREFIX}PREROUTING
+	$IPTABLES -t filter -F ${PREFIX}FORWARD
+	$IPTABLES -t filter -F MINIUPNPD
+}
+
 
 start_allomtsserver() {
+	flush_iptables
 	for config in $MEDIAPROFILE_CONFIGDIR/*.init
 	do
     		if [ "$config" = "$MEDIAPROFILE_CONFIGDIR/*.init" ]
@@ -75,6 +84,7 @@ start_allomtsserver() {
 }
 
 stop_allomtsserver() {
+	flush_iptables
 	for config in $MEDIAPROFILE_CONFIGDIR/*.init
 	do
     		if [ "$config" = "$MEDIAPROFILE_CONFIGDIR/*.init" ]
@@ -97,6 +107,7 @@ stop_allomtsserver() {
 			break ;
 		fi
 	done
+
 	if [ -f /usr/local/ngx-allomts-server/logs/nginx.pid ]
 	then
 		kill $(cat /usr/local/ngx-allomts-server/logs/nginx.pid)
