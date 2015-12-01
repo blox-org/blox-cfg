@@ -147,23 +147,10 @@ onreply_route[WAN2LAN_REGISTER] {
         if(status =~ "200") {
             xdbg("Got REGISTER REPLY $fu/$ru/$si/$ci/$avp(rcv)" );
             $avp(regattr) = $pr + ":" + $si + ":" + $sp ;
-            #$var(aor) = "sip:" + $fU + "@" + $avp(WANIP) + ":" + $avp(WANPORT) ;
-            if(!save("locationpbx","rp1fc1", "$tu")) {
+            $var(aor) = "sip:" + $tU + "@" + $avp(WANIP) + ":" + $avp(WANPORT) ;
+            if(!save("locationpbx","rp1fc1", "$var(aor)")) {
                 xlog("L_ERROR", "Error saving the location\n");
             };
-
-            if($hdr(Expires) == "0") { #Remove the presence info
-                avp_db_query("SELECT username, socket FROM locationpresence WHERE contact = '$avp(contact)'","$avp(user);$avp(socket)");
-                $var(i) = 0;
-                while($(avp(user)[$var(i)]) != null && $(avp(user)[$var(i)]) != "") {
-                    $var(uri) = "sip:" + $(avp(user)[$var(i)]) + "@" + $(avp(socket)[$var(i)]{s.select,1,:}) + ":" + $(avp(socket)[$var(i)]{s.select,2,:}) + ";transport=" + $(avp(socket)[$var(i)]{s.select,0,:});
-                    xlog("L_INFO", "Removing locationpresence   $var(uri) >> $(avp(user)[$var(i)])   $avp(contact)") ;
-                    remove("locationpresence","$var(uri)","$avp(contact)") ;
-                    $var(i) = $var(i) + 1 ;
-                }
-            	xdbg("UnSaved Location $fu/$ru/$si/$ci/$avp(rcv)" );
-                xlog("L_INFO", "Removing the locationpresence for $avp(contact)\n");
-            }
 
             if($avp(WANADVIP)) { # Roaming user: replace it with advIP:Port
                 subst("/Contact: +<sip:(.*)@(.*)>(.*)$/Contact: <sip:\1@$avp(WANADVIP):$avp(WANADVPORT)>\3/");
