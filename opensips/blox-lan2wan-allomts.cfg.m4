@@ -929,10 +929,7 @@ failure_route[MTS_LAN2WAN] {
             xlog("L_WARN", "Not handled, Dropping Call\n");
         }
         if($avp(DstMediaPort) != null) {
-            if($ft && $tt)
-                $var(uid) = $avp(uid)+"-"+$ft+"-"+$tt;        
-            else
-                $var(uid) = $avp(uid);
+            $var(uid) = $avp(uid);
 
             $var(url) =  "gMTSSRV" + "/unreservemediaports?local_rtp_port=" + $avp(DstMediaPort) +"&uniqueid="+$var(uid) ;
             xlog("L_INFO","Route: transcoding request : $var(url)\n");

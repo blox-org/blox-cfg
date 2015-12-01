@@ -301,14 +301,13 @@ route[MTS_WAN2LAN] {
             #Lets reserve the get Media port and reserve it
             $avp(uid) = $hdr(call-id);
             if($ft && $tt) {
-                $var(uid) = $avp(uid)+"-"+$ft+"-"+$tt;        
+                $var(uid) = $avp(uid)+"-"+$ft+"-"+$tt;
             } else {
                 $var(uid) = $avp(uid);
             }
 
             $var(url) =  "gMTSSRV" + "/reservemediaports?uniqueid="+$var(uid);
             xlog("L_INFO","Route: transcoding request : $var(url)\n");
-
             rest_get("$var(url)","$var(body)");
             if($var(body) == null) {
                 sl_send_reply("500","Server error");
