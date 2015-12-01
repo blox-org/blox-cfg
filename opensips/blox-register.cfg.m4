@@ -123,7 +123,8 @@ route[ROUTE_REGISTER] {
                     if(client_nat_test("3")) {
                         nat_keepalive();
                     }
-                    route(WAN2LAN_REGISTER);
+                    route(WAN2LAN);
+                    t_on_reply("WAN2LAN_REGISTER");
                     exit;
                 }
             }
