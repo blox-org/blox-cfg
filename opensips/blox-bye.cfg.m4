@@ -20,19 +20,78 @@
 
 route[ROUTE_BYE] {
     if (method == "BYE") {
-        xdbg("SIP Method $rm received from $fu $si $sp to $ru\n");
-        $avp(cfgparam) = "cfgparam" ;
-        avp_db_delete("$hdr(call-id)","$avp($avp(cfgparam))") ;
-        if($dlg_val(MediaProfileID)) {
-            $avp(MediaProfileID) = $dlg_val(MediaProfileID) ;
+        if($avp(LAN)) {
+            $avp(uuid) = "PBX:" + $avp(LAN) ;
+            if(cache_fetch("local","$avp(uuid)",$avp(PBX))) {
+                xdbg("Loaded from cache $avp(uuid): $avp(PBX)\n");
+            } else if (avp_db_load("$avp(uuid)","$avp(PBX)/blox_config")) {
+                cache_store("local","$avp(uuid)","$avp(PBX)");
+                xdbg("Stored in cache $avp(uuid): $avp(PBX)\n");
+            } else {
+                xlog("L_WARN", "SIP Profile for $si:$sp access denied\n");
+                sl_send_reply("603", "Declined");
+                exit;
+            }
+
+            if($avp(PBX)) {
+            $avp(WAN) = $(avp(PBX){uri.param,WAN});
+
+            if(cache_fetch("local","$avp(WAN)",$avp(WANProfile))) {
+                xdbg("Loaded from cache $avp(WAN): $avp(WANProfile)\n");
+            } else if (avp_db_load("$avp(WAN)","$avp(WANProfile)/blox_profile_config")) {
+                cache_store("local","$avp(WAN)","$avp(WANProfile)");
+                xdbg("Stored in cache $avp(WAN): $avp(WANProfile)\n");
+            } else {
+                $avp(WANProfile) = null;
+                xlog("L_INFO", "Drop MESSAGE $ru from $si : $sp\n" );
+                drop(); # /* Default 5060 open to accept packets from WAN side, but we don't process it */
+                exit;
+            }
+
+            if($avp(WANProfile)) {
+                $avp(WANIP) = $(avp(WANProfile){uri.host});
+                $avp(WANPORT) = $(avp(WANProfile){uri.port});
+                $avp(WANPROTO) = $(avp(WANProfile){uri.param,transport});
+                $avp(WANADVIP) = $(avp(WANProfile){uri.param,advip});
+                $avp(WANADVPORT) = $(avp(WANProfile){uri.param,advport});
+                $fs = $avp(WANPROTO) + ":" + $avp(WANIP) + ":" + $avp(WANPORT);
+            }
+
+            #search for aor mapped to pbx wan profile
+            $var(aor) = "sip:" + $tU + "@" + $avp(WANIP) + ":" + $avp(WANPORT) ;
+            xdbg("Looking for $var(aor) in locationpbx\n");
+
+            # /* Last Check for Roaming Extension */
+            if (!lookup("locationpbx","m", "$var(aor)")) { ; #/* Find RE Registered to US */
+                switch ($retcode) {
+                    case -1:
+                    case -3:
+                        t_newtran();
+                        t_on_failure("WAN2LAN");
+                        t_reply("404", "Not Found");
+                        exit;
+                    case -2:
+                        append_hf("Allow: INVITE, ACK, REFER, NOTIFY, CANCEL, BYE, REGISTER" );
+                        sl_send_reply("405", "Method Not Allowed");
+                        exit;
+                }
+            };
+
+            if($var(ENUMSE) != null && $var(ENUMSX) != null) {
+                route(ENUM,$var(ENUMTYPE),$var(ENUMSX),$var(ENUMSE));
+            }
+
+            if($avp(WANADVIP)) {
+                $var(to) = "sip:" + $rU + "@" + $avp(WANADVIP) + ":" + $avp(WANADVPORT) ;
+                $var(from) = "sip:" + $fU + "@" + $avp(WANADVIP) + ":" + $avp(WANADVPORT) ;
+            } else {
+                $var(to) = "sip:" + $rU + "@" + $avp(WANIP) + ":" + $avp(WANPORT) ;
+                $var(from) = "sip:" + $fU + "@" + $avp(WANIP) + ":" + $avp(WANPORT) ;
+            }
+            uac_replace_to("$var(to)");
+            uac_replace_from("$var(from)");
+            xlog("L_INFO","Found PBX Requesting $ru -> $var(to)/$du -> $var(from)" );
+            }
         }
-        if($avp(MediaProfileID)) {
-            rtpproxy_unforce("$avp(MediaProfileID)");
-            xlog("L_INFO", "Mediaprofile stopping the $avp(MediaProfileID)\n");
-        }
-        $avp(resource) = "resource" + "-" + $ft ;
-        route(DELETE_ALLOMTS_RESOURCE);
-        $avp(resource) = "resource" + "-" + $tt ;
-        route(DELETE_ALLOMTS_RESOURCE);
     }
 }

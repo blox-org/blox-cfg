@@ -48,7 +48,11 @@ route[WAN2LAN] {
             rtpengine_delete();
         }
 
-        rtpengine_offer("force external internal trust-address replace-origin replace-session-connection");
+        if(nat_uac_test("3")) {
+            rtpengine_offer("force external internal replace-origin replace-session-connection");
+        } else {
+            rtpengine_offer("force external internal trust-address replace-origin replace-session-connection");
+        }
     };
 
     t_on_reply("WAN2LAN");
@@ -75,8 +79,8 @@ onreply_route[WAN2LAN] {
         if(status =~ "200") {
             xdbg("Got REGISTER REPLY $fu/$ru/$si/$ci/$avp(rcv)" );
             $avp(regattr) = $pr + ":" + $si + ":" + $sp ;
-            #$var(aor) = "sip:" + $fU + "@" + $avp(WANIP) + ":" + $avp(WANPORT) ;
-            if(!save("locationpbx","rp1", "$fu")) {
+            $var(aor) = "sip:" + $tU + "@" + $avp(WANIP) + ":" + $avp(WANPORT) ;
+            if(!save("locationpbx","rp1", "$var(aor)")) {
                 xlog("L_ERROR", "Error saving the location\n");
             };
 
@@ -94,7 +98,11 @@ onreply_route[WAN2LAN] {
     if (status =~ "(183)|2[0-9][0-9]") {
         if (has_body("application/sdp")) {
             $var(transcoding) = 0 ;
-            rtpengine_answer("force internal external trust-address replace-origin replace-session-connection");
+            if(	nat_uac_test("3")) {
+                rtpengine_answer("force internal external replace-origin replace-session-connection");
+            } else {
+            	rtpengine_answer("force internal external trust-address replace-origin replace-session-connection");
+            }
         };
         # Is this a transaction behind a NAT and we did not
         # know at time of request processing?

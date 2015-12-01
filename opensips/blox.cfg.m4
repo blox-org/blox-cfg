@@ -134,12 +134,11 @@ route {
         exit;
     };
 
-    $avp(rSrcNATIP) = null;
-    if (has_totag() && (uri == myself)  && is_method("INVITE|ACK|BYE|UPDATE|CANCEL|REFER|NOTIFY")) {
+    if (has_totag() && (uri == myself)  && is_method("INVITE|ACK|BYE|UPDATE|REFER|NOTIFY")) {
          if(match_dialog()) {
             xdbg("In-Dialog topology hiding request - $DLG_dir\n");
             append_hf("P-hint: $DLG_dir\r\n");
-            if (is_method("BYE|CANCEL")) {
+            if (is_method("BYE")) {
                 if($dlg_val(MediaProfileID)) {
                     $avp(MediaProfileID) = $dlg_val(MediaProfileID) ;
                     if($avp(setid)) {
@@ -151,6 +150,9 @@ route {
                 route(DELETE_ALLOMTS_RESOURCE);
                 $avp(resource) = "resource" + "-" + $tt ;
                 route(DELETE_ALLOMTS_RESOURCE);
+                if(method == "BYE") {
+                    route(ROUTE_BYE);
+                }
             };
             xdbg("ROUTING SIP Method $rm received from $fu $si $sp to $ru ($avp(rcv))\n");
             if($avp(LAN)) {
@@ -242,6 +244,7 @@ failure_route[UAC_AUTH_FAIL] {
 include_file "blox-register.cfg"
 include_file "blox-invite.cfg"
 include_file "blox-cancel.cfg"
+include_file "blox-bye.cfg"
 ###########################################################################################
 # ----------- SBC Feature routers ------------------------
 include_file "blox-lcr.cfg"

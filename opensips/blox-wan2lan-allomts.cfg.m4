@@ -332,8 +332,8 @@ route[MTS_WAN2LAN] {
             $avp(DstT38MediaPort) = ($avp(DstMediaPort) + gT38MediaPortOffset);
             $avp(SrcT38MediaPort) = ($avp(SrcMediaPort) + gT38MediaPortOffset);
 
-            if ($avp(rSrcNATIP)) {
-                $avp(rSrcMediaIP) = $avp(rSrcNATIP);
+            if( nat_uac_test("3")) {
+                $avp(rSrcMediaIP) = $si ;
             } else {
                 $avp(rSrcMediaIP) = $(var(cline){s.select,2, });
             }
@@ -450,6 +450,12 @@ route[MTS_WAN2LAN] {
 
 #Used for WAN PROFILE
 onreply_route[MTS_WAN2LAN] {
+    remove_hf("User-Agent");
+    insert_hf("User-Agent: USERAGENT\r\n","CSeq") ;
+    if(remove_hf("Server")) { #Removed Server success, then add ours
+        insert_hf("Server: USERAGENT\r\n","CSeq") ;
+    }
+
     xdbg("Got Response $rs/ $fu/$ru/$si/$ci/$avp(rcv)\n");
 
     if (status =~ "(183)|2[0-9][0-9]") {
@@ -474,8 +480,11 @@ onreply_route[MTS_WAN2LAN] {
                 $var(cline) = $(rb{sdp.line,c});
                 $var(transcoding) = 1 ;
 
-                $var(csource) = $(var(cline){s.select,2, });
-                $avp(rDstMediaIP) = $var(csource) ;
+                if( nat_uac_test("3")) {
+                    $avp(rDstMediaIP) = $si ;
+                } else {
+                    $avp(rDstMediaIP) = $(var(cline){s.select,2, });
+                }
 
                 $var(mt38)   = null ;
                 $var(maudio) = null ;
@@ -788,7 +797,7 @@ onreply_route[MTS_WAN2LAN] {
                     if($var(idx2) >= 0) {
                         avp_db_store("$hdr(call-id)","$avp($avp(resource))");
                     }
-                    xlog("L_INFO","Got Response $avp(resource) -> $avp($avp(resource)): $var(csource):$avp(mport)<==>$avp(DstMediaPort)\n");
+                    xlog("L_INFO","Got Response $avp(resource) -> $avp($avp(resource)): $var(rDstMediaIP):$avp(mport)<==>$avp(DstMediaPort)\n");
                     if($avp(rSrcCodec)) {
                         $var(rSrcCodecid) = $avp($(avp(rSrcCodec)[$var(rSrcCodecIdx)])) ;
                         if($avp($var(rSrcCodecid))) {

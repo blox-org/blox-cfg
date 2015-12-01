@@ -685,11 +685,6 @@ route[ROUTE_INVITE] {
 #import_file "blox-humbug-invite.cfg"
  
                     }
-
-                    if(client_nat_test("3")) {
-                        $avp(rSrcNATIP) = $si ;
-                    }
-
                     t_on_failure("WAN2LAN");
                     route(WAN2LAN);
                     exit;

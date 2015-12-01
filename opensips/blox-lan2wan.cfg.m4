@@ -43,9 +43,9 @@ route[LAN2WAN] {
 
         $avp(MediaTranscoding) = $(avp(MediaProfile){param.value,TRANSCODING});
         if($avp(MediaTranscoding) == "1") {
-		route(MTS_LAN2WAN);
-		exit ;
-	}
+            route(MTS_LAN2WAN);
+            exit ;
+        }
 
         $avp(setid) = $(avp(MediaProfileID){s.int}) ;
 
@@ -53,7 +53,11 @@ route[LAN2WAN] {
             rtpengine_delete();
         }
 
-        rtpengine_offer("force internal external trust-address replace-origin replace-session-connection");
+        if(nat_uac_test("3")) {
+            rtpengine_offer("force internal external replace-origin replace-session-connection");
+        } else {
+            rtpengine_offer("force internal external trust-address replace-origin replace-session-connection");
+        }
     };
 
     t_on_reply("LAN2WAN");
@@ -71,7 +75,11 @@ onreply_route[LAN2WAN] {
     xdbg("Got Response $rs/ $fu/$ru/$si/$ci/$avp(rcv)\n");
     if (status =~ "(183)|2[0-9][0-9]") {
         if (has_body("application/sdp")) {
-            rtpengine_answer("force external internal trust-address replace-origin replace-session-connection");
+            if(nat_uac_test("3")) {
+                rtpengine_answer("force external internal replace-origin replace-session-connection");
+            } else { 
+                rtpengine_answer("force external internal trust-address replace-origin replace-session-connection");
+            }
         };
 
         # Is this a transaction behind a NAT and we did not
