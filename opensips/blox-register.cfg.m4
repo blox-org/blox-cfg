@@ -105,10 +105,16 @@ route[ROUTE_REGISTER] {
                     $var(PBXIP) = $(avp(PBX){uri.host}) ;
                     $var(PBXPORT) = $(avp(PBX){uri.port}) ;
                     
-                    $ru = "sip:" + $var(PBXIP) + ":" + $var(PBXPORT) ;
+                    if($avp(LANDOMAIN)) {
+                        $ru = "sip:" + $avp(LANDOMAIN) + ":" + $var(PBXPORT) ;
+                    	$var(reguri) = "sip:" + $tU + "@" + $avp(LANDOMAIN) + ":" + $var(PBXPORT) + ";" + "transport=" + $avp(LANPROTO) ;
+                    } else {
+                        $ru = "sip:" + $var(PBXIP) + ":" + $var(PBXPORT) ;
+                    	$var(reguri) = "sip:" + $tU + "@" + $var(PBXIP) + ":" + $var(PBXPORT) + ";" + "transport=" + $avp(LANPROTO) ;
+                    }
+
                     $fs = $avp(LANPROTO) + ":" + $avp(LANIP) + ":" + $avp(LANPORT) ;
                     $du = $avp(PBX) + ";transport=" + $avp(LANPROTO)  ;
-                    $var(reguri) = "sip:" + $fU + "@" + $var(PBXIP) + ":" + $var(PBXPORT) + ";" + "transport=" + $avp(LANPROTO) ;
                     xlog("Sending to $avp(LANIP) : $avp(LANPORT) : $fs :  $var(reguri)\n");
                     uac_replace_from("$var(reguri)");
                     uac_replace_to("$var(reguri)");
@@ -117,13 +123,56 @@ route[ROUTE_REGISTER] {
                     if(client_nat_test("3")) {
                         nat_keepalive();
                     }
-                    route(WAN2LAN);
+                    route(WAN2LAN_REGISTER);
                     exit;
                 }
             }
         }
         xlog("L_INFO", "REGISTER Unprocessed, Dropping SIP Method $rm received from $fu $si $sp to $ru ($avp(rcv))\n"); #/* Don't know what to do */
         drop();
+        exit;
+    };
+}
+
+onreply_route[WAN2LAN_REGISTER] {
+    remove_hf("User-Agent");
+    insert_hf("User-Agent: USERAGENT\r\n","CSeq") ;
+    if(remove_hf("Server")) { #Removed Server success, then add ours
+    	insert_hf("Server: USERAGENT\r\n","CSeq") ;
+    }
+
+    xdbg("Got Response $rs/ $fu/$ru/$si/$ci/$avp(rcv)\n");
+
+    if(is_method("REGISTER")) {
+        if(status =~ "200") {
+            xdbg("Got REGISTER REPLY $fu/$ru/$si/$ci/$avp(rcv)" );
+            $avp(regattr) = $pr + ":" + $si + ":" + $sp ;
+            #$var(aor) = "sip:" + $fU + "@" + $avp(WANIP) + ":" + $avp(WANPORT) ;
+            if(!save("locationpbx","rp1fc1", "$tu")) {
+                xlog("L_ERROR", "Error saving the location\n");
+            };
+
+            if($hdr(Expires) == "0") { #Remove the presence info
+                avp_db_query("SELECT username, socket FROM locationpresence WHERE contact = '$avp(contact)'","$avp(user);$avp(socket)");
+                $var(i) = 0;
+                while($(avp(user)[$var(i)]) != null && $(avp(user)[$var(i)]) != "") {
+                    $var(uri) = "sip:" + $(avp(user)[$var(i)]) + "@" + $(avp(socket)[$var(i)]{s.select,1,:}) + ":" + $(avp(socket)[$var(i)]{s.select,2,:}) + ";transport=" + $(avp(socket)[$var(i)]{s.select,0,:});
+                    xlog("L_INFO", "Removing locationpresence   $var(uri) >> $(avp(user)[$var(i)])   $avp(contact)") ;
+                    remove("locationpresence","$var(uri)","$avp(contact)") ;
+                    $var(i) = $var(i) + 1 ;
+                }
+            	xdbg("UnSaved Location $fu/$ru/$si/$ci/$avp(rcv)" );
+                xlog("L_INFO", "Removing the locationpresence for $avp(contact)\n");
+            }
+
+            if($avp(WANADVIP)) { # Roaming user: replace it with advIP:Port
+                subst("/Contact: +<sip:(.*)@(.*)>(.*)$/Contact: <sip:\1@$avp(WANADVIP):$avp(WANADVPORT)>\3/");
+            } else {
+                subst("/Contact: +<sip:(.*)@(.*)>(.*)$/Contact: <sip:\1@$avp(WANIP):$avp(WANPORT)>\3/");
+            }
+
+            xdbg("Saved Location $fu/$ru/$si/$ci/$avp(rcv)" );
+        };
         exit;
     };
 }

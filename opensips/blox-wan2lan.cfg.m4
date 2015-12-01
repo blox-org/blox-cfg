@@ -75,26 +75,6 @@ onreply_route[WAN2LAN] {
 
     xdbg("Got Response $rs/ $fu/$ru/$si/$ci/$avp(rcv)\n");
 
-    if(is_method("REGISTER")) {
-        if(status =~ "200") {
-            xdbg("Got REGISTER REPLY $fu/$ru/$si/$ci/$avp(rcv)" );
-            $avp(regattr) = $pr + ":" + $si + ":" + $sp ;
-            $var(aor) = "sip:" + $tU + "@" + $avp(WANIP) + ":" + $avp(WANPORT) ;
-            if(!save("locationpbx","rp1", "$var(aor)")) {
-                xlog("L_ERROR", "Error saving the location\n");
-            };
-
-            if($avp(WANADVIP)) { # Roaming user: replace it with advIP:Port
-                subst("/Contact: +<sip:(.*)@(.*)>(.*)$/Contact: <sip:\1@$avp(WANADVIP):$avp(WANADVPORT)>\3/");
-            } else {
-                subst("/Contact: +<sip:(.*)@(.*)>(.*)$/Contact: <sip:\1@$avp(WANIP):$avp(WANPORT)>\3/");
-            }
-
-            xdbg("Saved Location $fu/$ru/$si/$ci/$avp(rcv)" );
-        };
-        exit;
-    };
-
     if (status =~ "(183)|2[0-9][0-9]") {
         if (has_body("application/sdp")) {
             $var(transcoding) = 0 ;
