@@ -123,8 +123,14 @@ route[ROUTE_REGISTER] {
                     if(client_nat_test("3")) {
                         nat_keepalive();
                     }
-                    route(WAN2LAN);
+
                     t_on_reply("WAN2LAN_REGISTER");
+
+                    if (!t_relay()) {
+                        xlog("relay error $mb\n");
+                        sl_reply_error();
+                    };
+
                     exit;
                 }
             }
