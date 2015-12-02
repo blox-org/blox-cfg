@@ -136,7 +136,8 @@ route {
 
     if (has_totag() && (uri == myself)  && is_method("INVITE|ACK|BYE|UPDATE|REFER|NOTIFY")) {
          if(match_dialog()) {
-            xdbg("In-Dialog topology hiding request - $DLG_dir\n");
+            $avp(contact) = $DLG_dir + "-contact";
+            xdbg("In-Dialog topology hiding request - $DLG_dir - $dlg_val($avp(contact))\n");
             append_hf("P-hint: $DLG_dir\r\n");
             if (is_method("BYE")) {
                 if($dlg_val(MediaProfileID)) {

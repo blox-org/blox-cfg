@@ -61,6 +61,14 @@ route[LAN2WAN] {
     };
 
     t_on_reply("LAN2WAN");
+    t_on_failure("LAN2WAN");
+
+    $avp(contact) = $DLG_dir + "-contact";
+
+    if($dlg_val($avp(contact))) {
+        xlog("L_INFO","Send Request to $avp(contact) => $dlg_val($avp(contact))\n");
+        $du = $dlg_val($avp(contact)) ;
+    }
 
     if (!t_relay()) {
         xdbg("relay error $mb\n");
@@ -75,15 +83,24 @@ onreply_route[LAN2WAN] {
     xdbg("Got Response $rs/ $fu/$ru/$si/$ci/$avp(rcv)\n");
     if (status =~ "(183)|2[0-9][0-9]") {
         if (has_body("application/sdp")) {
+            $var(transcoding) = 0 ;
             if(nat_uac_test("3")) {
                 rtpengine_answer("force external internal replace-origin replace-session-connection");
             } else { 
                 rtpengine_answer("force external internal trust-address replace-origin replace-session-connection");
             }
         };
-
-        # Is this a transaction behind a NAT and we did not
-        # know at time of request processing?
+        if(is_method("INVITE")) {
+            if(!nat_uac_test("3")) { #/* If Not behind NAT take contact from updated 200 OK */
+                if($DLG_dir == "downstream") { #/* Set 200 OK Contact */
+                    $avp(contact) = "upstream-contact";
+                }
+                if($DLG_dir == "upstream")   { #/* Set 200 OK Contact */
+                    $avp(contact) = "downstream-contact";
+                }
+                $dlg_val($avp(contact)) = $ct.fields(uri) ;
+            }
+        }
     } 
 
     if (nat_uac_test("1")) {

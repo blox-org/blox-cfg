@@ -443,6 +443,13 @@ route[MTS_LAN2WAN] {
     t_on_reply("MTS_LAN2WAN");
     t_on_failure("MTS_LAN2WAN");
 
+    $avp(contact) = $DLG_dir + "-contact";
+
+    if($dlg_val($avp(contact))) {
+        xlog("L_INFO","Send Request to $avp(contact) => $dlg_val($avp(contact))\n");
+        $du = $dlg_val($avp(contact)) ;
+    }
+
     if (!t_relay()) {
         xdbg("relay error $mb\n");
         sl_reply_error();
@@ -913,9 +920,18 @@ onreply_route[MTS_LAN2WAN] {
             } else {
                 xlog("L_WARN", "+++++++++++++++transcoding: feature disabled for this profile++++++++++\n");
             }
+            if(is_method("INVITE")) {
+                if(!nat_uac_test("3")) { #/* If Not behind NAT take contact from updated 200 OK */
+                    if($DLG_dir == "downstream") { #/* Set 200 OK Contact */
+                        $avp(contact) = "upstream-contact";
+                    }
+                    if($DLG_dir == "upstream")   { #/* Set 200 OK Contact */
+                        $avp(contact) = "downstream-contact";
+                    }
+                    $dlg_val($avp(contact)) = $ct.fields(uri) ;
+                }
+            }
         };
-        # Is this a transaction behind a NAT and we did not
-        # know at time of request processing?
     }
 
     if (nat_uac_test("1")) {
