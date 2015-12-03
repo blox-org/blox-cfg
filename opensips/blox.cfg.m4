@@ -64,13 +64,13 @@ route {
 
     $avp(SIPProfile) = "sip:" + $Ri + ":" + $Rp + ";transport=" + $pr;
     
-    xdbg("Getting Profile for $avp(SIPProfile)\n");
+    xdbg("BLOX_DBG: Getting Profile for $avp(SIPProfile)\n");
     if(cache_fetch("local","LAN:$avp(SIPProfile)",$avp(LAN))) { #/* Try loading from cache */
-        xdbg("Got Profile info from cache LAN:$avp(SIPProfile) $avp(WAN)\n");
+        xdbg("BLOX_DBG: Got Profile info from cache LAN:$avp(SIPProfile) $avp(WAN)\n");
         $avp(LANIP) = $(avp(SIPProfile){uri.host});
         $avp(LANPORT) = $(avp(SIPProfile){uri.port});
     } else if(cache_fetch("local","WAN:$avp(SIPProfile)",$avp(WAN))) { #/* Try loading from cache */
-        xdbg("Got Profile info from cache WAN:$avp(SIPProfile) $avp(WAN)\n");
+        xdbg("BLOX_DBG: Got Profile info from cache WAN:$avp(SIPProfile) $avp(WAN)\n");
         $avp(WANIP) = $(avp(SIPProfile){uri.host});
         $avp(WANPORT) = $(avp(SIPProfile){uri.port});
     } else if(avp_db_load("$avp(SIPProfile)","$avp(LAN)/blox_profile_config")) { #/* Try loading from db */
@@ -91,10 +91,10 @@ route {
         exit;
     }
 
-    xdbg("Got ($pr:$Ri:$Rp) $avp(SIPProfile): Index:$avp(LAN):$avp(WAN):");
+    xdbg("BLOX_DBG: Got ($pr:$Ri:$Rp) $avp(SIPProfile): Index:$avp(LAN):$avp(WAN):");
 
     if (is_method("OPTIONS") || is_method("SUBSCRIBE")) {
-    	xdbg("Not support OPTIONS/SUBSCRIBE\n");
+    	xdbg("BLOX_DBG: Not support OPTIONS/SUBSCRIBE\n");
         append_hf("Allow: INVITE, ACK, REFER, NOTIFY, CANCEL, BYE, REGISTER" );
         sl_send_reply("405", "Method Not Allowed");
         exit;
@@ -112,7 +112,7 @@ route {
     # subsequent messages withing a dialog should take the
     # path determined by record-routing
     if (loose_route()) {
-        xdbg("PRE-ROUTING SIP Method $rm received from $fu $si $sp to $ru ($avp(rcv))\n");
+        xdbg("BLOX_DBG: PRE-ROUTING SIP Method $rm received from $fu $si $sp to $ru ($avp(rcv))\n");
         # mark routing logic in request
         append_hf("P-hint: rr-enforced\r\n");
         if (is_method("BYE|CANCEL")) {
@@ -136,8 +136,7 @@ route {
 
     if (has_totag() && (uri == myself)  && is_method("INVITE|ACK|BYE|UPDATE|REFER|NOTIFY")) {
          if(match_dialog()) {
-            $avp(contact) = $DLG_dir + "-contact";
-            xdbg("In-Dialog topology hiding request - $DLG_dir - $dlg_val($avp(contact))\n");
+            xdbg("BLOX_DBG: In-Dialog tophide - $dlg_val(ucontact) : $dlg_val(dcontact) - $DLG_dir\n");
             append_hf("P-hint: $DLG_dir\r\n");
             if (is_method("BYE")) {
                 if($dlg_val(MediaProfileID)) {
@@ -155,7 +154,6 @@ route {
                     route(ROUTE_BYE);
                 }
             };
-            xdbg("ROUTING SIP Method $rm received from $fu $si $sp to $ru ($avp(rcv))\n");
             if($avp(LAN)) {
                 route(LAN2WAN);
             } else {
@@ -203,7 +201,7 @@ failure_route[missed_call] {
 }
 
 failure_route[UAC_AUTH_FAIL] {
-    xdbg("In failure_route UAC_AUTH_FAIL");
+    xdbg("BLOX_DBG: In failure_route UAC_AUTH_FAIL");
         
     if (t_check_status("40[17]")) {
         # have we already tried to authenticate?
@@ -214,7 +212,7 @@ failure_route[UAC_AUTH_FAIL] {
         if(uac_auth()) {
             $avp(uuid) = "cseq-" + $ft ;
             setflag(88);
-            xdbg("Return code is $retcode");
+            xdbg("BLOX_DBG: Return code is $retcode");
             if(!cache_fetch("local","$avp(uuid)",$avp(CSEQ_OFFSET))) {
                 $avp(CSEQ_OFFSET) = 1;
             }
@@ -227,11 +225,11 @@ failure_route[UAC_AUTH_FAIL] {
             $avp(uuid) = "auth-" + $ft ;
             cache_store("local","$avp(uuid)","$avp(auth)");
 
-            xdbg("Got Challenged $var(c): $avp(CSEQ_OFFSET)\n");
+            xdbg("BLOX_DBG: Got Challenged $var(c): $avp(CSEQ_OFFSET)\n");
             t_on_failure("UAC_AUTH_FAIL");
             append_branch();
 
-            xdbg("failure_route the cseq offset for $mb\n") ;
+            xdbg("BLOX_DBG: failure_route the cseq offset for $mb\n") ;
             #t_relay();
         } else {
             xlog("L_INFO", "uac_auth failed\n") ;

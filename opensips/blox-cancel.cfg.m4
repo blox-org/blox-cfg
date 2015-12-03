@@ -20,7 +20,7 @@
 
 route[ROUTE_CANCEL] {
     if (method == "CANCEL") {
-        xdbg("SIP Method $rm received from $fu $si $sp to $ru\n");
+        xdbg("BLOX_DBG: SIP Method $rm received from $fu $si $sp to $ru\n");
 
         if($dlg_val(MediaProfileID)) {
             $avp(MediaProfileID) = $dlg_val(MediaProfileID) ;

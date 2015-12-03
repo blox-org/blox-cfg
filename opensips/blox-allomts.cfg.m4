@@ -25,7 +25,7 @@ route[DELETE_ALLOMTS_RESOURCE] {
         $json(res) := $avp($avp(resource));
         $var(idx) = $json(res/VT-Index) ;
         if($var(idx) != null) {
-            xdbg("VT Index: $var(idx)\n");
+            xdbg("BLOX_DBG: VT Index: $var(idx)\n");
             $var(resource) = "{ \"VT-Index\": " + $var(idx) + " }" ;
             $var(url) = "gMTSSRV" + "/delete?resource=" + $var(resource);
         }
@@ -33,17 +33,17 @@ route[DELETE_ALLOMTS_RESOURCE] {
         $var(idx) = null; #below fail to replace value to null, init here must
         $var(idx) = $json(res/CPP-Index) ;
         if($var(idx) != null) {        
-            xdbg("CPP Index: $var(idx)\n");
+            xdbg("BLOX_DBG: CPP Index: $var(idx)\n");
             $var(idx) = $json(res/CPP-Index) ;
             $var(resource) = "{ \"CPP-Index\": " + $var(idx) + " }" ;
             $var(url) = "gMTSSRV" + "/stoppassthrough?resource=" + $var(resource);
         }
 
-        xdbg("Route DELETE_ALLOMTS_RESOURCE $avp(resource) -> $avp($avp(resource)) : Connecting $var(url)\n");
+        xlog("L_INFO","Route DELETE_ALLOMTS_RESOURCE $avp(resource) -> $avp($avp(resource)) : Connecting $var(url)\n");
         if(!rest_post("$var(url)", "$fU", "text/plain", "$var(body)", "$var(ct)", "$var(rcode)")) {
-            xdbg("######################Unable to contact transcoding server $ru from $si : $sp" );
+            xdbg("BLOX_DBG: ######################Unable to contact transcoding server $ru from $si : $sp" );
         };
-        xdbg("##############Got Response $var(body)\n");
+        xdbg("BLOX_DBG: ##############Got Response $var(body)\n");
         avp_db_delete("$hdr(call-id)","$avp($avp(resource))");
     }
 }
@@ -58,7 +58,7 @@ route[CONNECT_ALLOMTS_RESOURCE] {
         xlog("L_WARN", "didnt find $avp(resource1)\n");
     }
 
-    xdbg("Got $var(resource1)\n");
+    xdbg("BLOX_DBG: Got $var(resource1)\n");
 
     $avp(resource2) = "resource" + "-" + $tt ;
     if(avp_db_load("$hdr(call-id)","$avp($avp(resource2))")) {
@@ -69,16 +69,16 @@ route[CONNECT_ALLOMTS_RESOURCE] {
         xlog("L_WARN", "didnt find $avp(resource2)\n");
     }
 
-    xdbg("Got $var(resource2)\n");
+    xdbg("BLOX_DBG: Got $var(resource2)\n");
 
     $var(url) = "gMTSSRV" + "/connect?resourceA=" + $var(resource1) + "&resourceB=" + $var(resource2);
 
-    xdbg("Connecting $var(url)\n");
+    xlog("L_INFO","Connecting $var(url)\n");
     if(!rest_post("$var(url)", "$fU", "text/plain", "$var(body)", "$var(ct)", "$var(rcode)")) {
         xlog("L_WARN", "######################Unable to contact transcoding server $ru from $si : $sp" );
     };
 
-    xdbg("##############Got Response $var(body)\n");
+    xdbg("BLOX_DBG: ##############Got Response $var(body)\n");
 }
 
 route[DISCONNECT_ALLOMTS_RESOURCE] {
@@ -91,7 +91,7 @@ route[DISCONNECT_ALLOMTS_RESOURCE] {
         xlog("L_WARN", "didnt find $avp(resource1)\n");
     }
 
-    xdbg("Got $var(resource1)\n");
+    xdbg("BLOX_DBG: Got $var(resource1)\n");
 
     $avp(resource2) = "resource" + "-" + $tt ;
     if(avp_db_load("$hdr(call-id)","$avp($avp(resource2))")) {
@@ -102,14 +102,14 @@ route[DISCONNECT_ALLOMTS_RESOURCE] {
         xlog("L_WARN", "didnt find $avp(resource2)\n");
     }
 
-    xdbg("Got $var(resource2)\n");
+    xdbg("BLOX_DBG: Got $var(resource2)\n");
 
     $var(url) = "gMTSSRV" + "/disconnect?resourceA=" + $var(resource1) + "&resourceB=" + $var(resource2);
 
-    xdbg("Connecting $var(url)\n");
+    xlog("L_INFO","Connecting $var(url)\n");
     if(!rest_post("$var(url)", "$fU", "text/plain", "$var(body)", "$var(ct)", "$var(rcode)")) {
         xlog("L_WARN", "######################Unable to contact transcoding server $ru from $si : $sp" );
     };
 
-    xdbg("##############Got Response $var(body)\n");
+    xdbg("BLOX_DBG: ##############Got Response $var(body)\n");
 }

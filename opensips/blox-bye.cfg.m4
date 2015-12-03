@@ -23,10 +23,10 @@ route[ROUTE_BYE] {
         if($avp(LAN)) {
             $avp(uuid) = "PBX:" + $avp(LAN) ;
             if(cache_fetch("local","$avp(uuid)",$avp(PBX))) {
-                xdbg("Loaded from cache $avp(uuid): $avp(PBX)\n");
+                xdbg("BLOX_DBG: Loaded from cache $avp(uuid): $avp(PBX)\n");
             } else if (avp_db_load("$avp(uuid)","$avp(PBX)/blox_config")) {
                 cache_store("local","$avp(uuid)","$avp(PBX)");
-                xdbg("Stored in cache $avp(uuid): $avp(PBX)\n");
+                xdbg("BLOX_DBG: Stored in cache $avp(uuid): $avp(PBX)\n");
             } else {
                 xlog("L_WARN", "SIP Profile for $si:$sp access denied\n");
                 sl_send_reply("603", "Declined");
@@ -37,10 +37,10 @@ route[ROUTE_BYE] {
                 $avp(WAN) = $(avp(PBX){uri.param,WAN});
 
                 if(cache_fetch("local","$avp(WAN)",$avp(WANProfile))) {
-                    xdbg("Loaded from cache $avp(WAN): $avp(WANProfile)\n");
+                    xdbg("BLOX_DBG: Loaded from cache $avp(WAN): $avp(WANProfile)\n");
                 } else if (avp_db_load("$avp(WAN)","$avp(WANProfile)/blox_profile_config")) {
                     cache_store("local","$avp(WAN)","$avp(WANProfile)");
-                    xdbg("Stored in cache $avp(WAN): $avp(WANProfile)\n");
+                    xdbg("BLOX_DBG: Stored in cache $avp(WAN): $avp(WANProfile)\n");
                 } else {
                     $avp(WANProfile) = null;
                     xlog("L_INFO", "Drop MESSAGE $ru from $si : $sp\n" );
@@ -59,7 +59,7 @@ route[ROUTE_BYE] {
 
                 #search for aor mapped to pbx wan profile
                 $var(aor) = "sip:" + $tU + "@" + $avp(WANIP) + ":" + $avp(WANPORT) ;
-                xdbg("Looking for $var(aor) in locationpbx\n");
+                xdbg("BLOX_DBG: Looking for $var(aor) in locationpbx\n");
 
                 # /* Last Check for Roaming Extension */
                 if (!lookup("locationpbx","m", "$var(aor)")) { ; #/* Find RE Registered to US */
@@ -67,7 +67,6 @@ route[ROUTE_BYE] {
                         case -1:
                         case -3:
                             t_newtran();
-                            t_on_failure("WAN2LAN");
                             t_reply("404", "Not Found");
                             exit;
                         case -2:

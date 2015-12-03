@@ -30,7 +30,7 @@ route[OUTBOUND_CALL_ACCESS_CONTROL] {
     if(!isflagset(OUTBOUND_CALL_ACCESS_CONTROL)) {
         if($var(channels) > 0) {
             get_profile_size("outbound", "$avp(cac_uuid)", "$var(calls)");
-            xdbg("Call control: user '$avp(cac_uuid)' currently has '$var(calls)' of '$var(channels)' active calls before this one\n");
+            xdbg("BLOX_DBG: Call control: user '$avp(cac_uuid)' currently has '$var(calls)' of '$var(channels)' active calls before this one\n");
             if($var(calls) == null || ($var(calls) < $var(channels))) {
                 xlog("L_INFO", "Call control: user '$avp(cac_uuid)' currently has '$var(calls)' of '$var(channels)' active calls before this one\n");
                 $var(setprofile) = 1;
