@@ -926,16 +926,22 @@ onreply_route[MTS_WAN2LAN] {
         };
 
         if(is_method("INVITE")) {
-            if(!nat_uac_test("33")) { #If Contact Private IP and same as source IP Address
-                if(is_ip_rfc1918("$si")) { #Source is Priviate IP will take updated different Contact
-                    if($DLG_dir == "downstream") { #/* Set 200 OK Contact */
-                        $dlg_val(ucontact) = $ct.fields(uri) ;
-                    } else {
-                        $dlg_val(dcontact) = $ct.fields(uri) ;
+            xdbg("BLOX_DBG::: $ct == $si\n");
+            if(nat_uac_test("1")) { #If Contact Private IP
+                xdbg("BLOX_DBG::: $ct is Private\n");
+                if(nat_uac_test("96")) { #If Contact not same as source IP Address
+                    xdbg("BLOX_DBG::: $ct not as $si:$sp\n");
+                    if(is_ip_rfc1918("$si")) { #Source is Priviate IP will take updated different Contact
+                        xdbg("BLOX_DBG::: $si is Private\n");
+                        if($DLG_dir == "downstream") { #/* Set 200 OK Contact */
+                            $dlg_val(ucontact) = $ct.fields(uri) ;
+                        } else {
+                            $dlg_val(dcontact) = $ct.fields(uri) ;
+                        }
+                        xlog("L_INFO","BLOX_DBG::: $ct != $si Response to contact different source $DLG_dir -> $dlg_val(ucontact) -> $dlg_val(dcontact)\n");
+                    } else { #/* If Not behind NAT take contact from updated 200 OK */
+                        xlog("L_INFO","BLOX_DBG:: $ct is Behind $si - NAT\n");
                     }
-                    xlog("L_INFO","$ct != $si Response to contact different source $DLG_dir -> $dlg_val(ucontact) -> $dlg_val(dcontact)\n");
-                } else { #/* If Not behind NAT take contact from updated 200 OK */
-                    xlog("L_INFO","$ct is Behind $si - NAT\n");
                 }
             }
         }
