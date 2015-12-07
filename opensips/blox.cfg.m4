@@ -45,6 +45,8 @@ route[ALLOMTSLOAD] {
 route {
     xlog("L_INFO", "Received $Ri:$Rp Got $rm $fu/$ru/$si:$sp/$du/$retcode\n" );
 
+    force_rport();
+
     # initial sanity checks
     if (pcre_match_group("$ua", "0")) { #Group: 0 is blacklist
         xlog("L_INFO", "Dropping SIP scanner $ua\n");
