@@ -1,0 +1,54 @@
+#!/bin/bash
+
+# chkconfig: 2 55 2
+
+start_blox() {
+	/usr/local/ngx-blox/sbin/nginx 1>>/usr/local/ngx-blox/logs/nginx-blox.startup 2>&1 
+}
+
+stop_blox() {
+	if [ -f /usr/local/ngx-blox/logs/nginx.pid ]
+	then
+		kill $(cat /usr/local/ngx-blox/logs/nginx.pid)
+	fi
+}
+
+restart_blox() {
+	stop_blox
+	start_blox
+}
+
+status_blox() {
+	if [ -f /usr/local/ngx-blox/logs/nginx.pid ]
+	then
+		PID=$(cat /usr/local/ngx-blox/logs/nginx.pid)
+	fi
+	if [ -n "$PID" ]
+	then
+		echo -e "\e[1;32mngx-blox Server Running ... $PID\e[0m"
+	else
+		echo -e "\e[1;31mngx-blox Server Not Running ... \e[0m"
+	fi	
+}
+
+
+usage() {
+  echo "usage: $0 [start|stop|restart|status]" >&2;
+}
+
+case "$1" in
+start)
+      start_blox;;
+stop)
+      stop_blox;
+      ;;
+restart)
+      restart_blox;
+      ;;
+status)
+      status_blox;
+      ;;
+*)
+     usage;
+     ;;
+esac
