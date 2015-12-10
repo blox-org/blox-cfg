@@ -31,7 +31,7 @@ route[WAN2LAN] {
             cache_store("local","$avp(MediaProfileID)","$avp(MediaProfile)");
             xdbg("BLOX_DBG: Stored in cache $avp(MediaProfileID): $avp(MediaProfile)\n");
         } else {
-            xlog("L_INFO", "No profile configured for $avp(MediaProfileID): $avp(MediaProfile)\n");
+            xlog("L_INFO", "BLOX_DBG::: No profile configured for $avp(MediaProfileID): $avp(MediaProfile)\n");
             sl_send_reply("500","Internal Server error");
             exit;
         }
@@ -48,7 +48,7 @@ route[WAN2LAN] {
             rtpengine_delete();
         }
 
-        if(nat_uac_test("40")) {
+        if(is_ip_rfc1918("$si") && nat_uac_test("40")) {
             rtpengine_offer("force external internal trust-address replace-origin replace-session-connection");
         } else {
             rtpengine_offer("force external internal replace-origin replace-session-connection");
@@ -67,7 +67,7 @@ route[WAN2LAN] {
         $du = $dlg_val(ucontact) ;
     }
 
-    xlog("L_INFO","ROUTING SIP Method $rm received from $fu $si $sp to $ru $avp(contact) : $du \n");
+    xlog("L_INFO", "BLOX_DBG::: ROUTING SIP Method $rm received from $fu $si $sp to $ru $avp(contact) : $du \n");
 
     if (!t_relay()) {
         xlog("L_ERR", "WAN_2_LAN Relay error $mb\n");
@@ -90,38 +90,37 @@ onreply_route[WAN2LAN] {
     if (status =~ "(183)|2[0-9][0-9]") {
         if (has_body("application/sdp")) {
             $var(transcoding) = 0 ;
-            if(nat_uac_test("40")) { #SDP with Private IP and Source IP & Contact IP Same
+            if(is_ip_rfc1918("$si") && nat_uac_test("40")) {
                 rtpengine_answer("force internal external trust-address replace-origin replace-session-connection");
             } else {
                 rtpengine_answer("force internal external replace-origin replace-session-connection");
             }
         };
 
-
         if(is_method("INVITE")) {
-            xdbg("BLOX_DBG::: $ct == $si\n");
-            if(nat_uac_test("1")) { #If Contact Private IP
-                xdbg("BLOX_DBG::: $ct is Private\n");
-                if(nat_uac_test("96")) { #If Contact not same as source IP Address
-                    xdbg("BLOX_DBG::: $ct not as $si:$sp\n");
-                    if(is_ip_rfc1918("$si")) { #Source is Priviate IP will take updated different Contact
-                        xdbg("BLOX_DBG::: $si is Private\n");
-                        if($DLG_dir == "downstream") { #/* Set 200 OK Contact */
-                            $dlg_val(ucontact) = $ct.fields(uri) ;
-                        } else {
-                            $dlg_val(dcontact) = $ct.fields(uri) ;
-                        }
-                        xlog("L_INFO","BLOX_DBG::: $ct != $si Response to contact different source $DLG_dir -> $dlg_val(ucontact) -> $dlg_val(dcontact)\n");
-                    } else { #/* If Not behind NAT take contact from updated 200 OK */
-                        xlog("L_INFO","BLOX_DBG:: $ct is Behind $si - NAT\n");
+            if(nat_uac_test("96")) { # /* If Contact not same as source IP Address */
+                if(is_ip_rfc1918("$si") && nat_uac_test("2")) { # /* Set Source IP, Source is Priviate IP and received!=via */
+                    $var(ctparams) = $ct.fields(params) ;
+                    xlog("L_INFO", "BLOX_DBG::: Set Source IP, Source is Priviate IP and received!=via  $si:$sp;$var(ctparams)\n");
+                    if($DLG_dir == "downstream") {
+                        $dlg_val(ucontact) = "sip:" + $si + ":" + $sp + ";transport=" + $proto ;
+                    } else {
+                        $dlg_val(dcontact) = "sip:" + $si + ":" + $sp + ";transport=" + $proto ;
+                    }
+                } else { # /* Set 200 OK Contact */
+                    xlog("L_INFO", "BLOX_DBG::: Set 200 OK Contact ct.fields(uri)\n");
+                    if($DLG_dir == "downstream") {
+                        $dlg_val(ucontact) = $ct.fields(uri) ;
+                    } else {
+                        $dlg_val(dcontact) = $ct.fields(uri) ;
                     }
                 }
+                xlog("L_INFO", "BLOX_DBG::: $ct != $si Response to contact different source $DLG_dir -> $dlg_val(ucontact) -> $dlg_val(dcontact) <-\n");
             }
         }
-
     } 
 
-    if (nat_uac_test("1")) {
+    if (nat_uac_test("3")) {
         fix_nated_contact();
     };
 }

@@ -307,7 +307,7 @@ route[MTS_WAN2LAN] {
             }
 
             $var(url) =  "gMTSSRV" + "/reservemediaports?uniqueid="+$var(uid);
-            xlog("L_INFO","Route: transcoding request : $var(url)\n");
+            xlog("L_INFO", "BLOX_DBG::: Route: transcoding request : $var(url)\n");
             rest_get("$var(url)","$var(body)");
             if($var(body) == null) {
                 sl_send_reply("500","Server error");
@@ -316,7 +316,7 @@ route[MTS_WAN2LAN] {
 
             $json(res) := $var(body) ;
             $var(newaddr) = $avp(DstMediaIP) + ":" + $json(res/local_rtp_port) ;
-            xlog("L_INFO","Route: transcoding reserverd............. :$var(body):$var(newaddr):\n");
+            xlog("L_INFO", "BLOX_DBG::: Route: transcoding reserverd............. :$var(body):$var(newaddr):\n");
 
             $var(tDstMediaPort) = $(var(newaddr){s.select,1,:}) ;
 
@@ -446,7 +446,7 @@ route[MTS_WAN2LAN] {
         $du = $dlg_val(ucontact) ;
     }
 
-    xlog("L_INFO","ROUTING SIP Method $rm received from $fu $si $sp to $ru $avp(contact) : $du \n");
+    xlog("L_INFO", "BLOX_DBG::: ROUTING SIP Method $rm received from $fu $si $sp to $ru $avp(contact) : $du \n");
 
     if (!t_relay()) {
         xlog("L_ERR", "WAN_2_LAN Relay error $mb\n");
@@ -755,7 +755,7 @@ onreply_route[MTS_WAN2LAN] {
                             $var(url) =  "gMTSSRV" + "/create?remote_ip=" + $avp(rSrcMediaIP) + "&codec=" + $(avp(rSrcCodec)[$var(rSrcCodecIdx)]) + "&local_rtp_port=" + $avp(SrcMediaPort) + "&remote_rtp_port=" + $avp(rSrcMediaPort) + "&rcname=sbc@allo.com&rtp_nostrict=true" +"&uniqueid="+$var(uid);
                         }
                     }
-                    xlog("L_INFO","Connecting $var(url)\n");
+                    xlog("L_INFO", "BLOX_DBG::: Connecting $var(url)\n");
                     rest_get("$var(url)","$var(body)");
                     $avp($avp(resource)) = $var(body);
                     $json(resource1) := $var(body) ;
@@ -767,7 +767,7 @@ onreply_route[MTS_WAN2LAN] {
                     if($var(idx1) >= 0) {
                         avp_db_store("$hdr(call-id)","$avp($avp(resource))");
                     }
-                    xlog("L_INFO","Got Response $avp(resource) -> $avp($avp(resource)): $(avp(rSrcCodec)[$var(rSrcCodecIdx)]):$avp(rSrcMediaPort)<==>$avp(SrcMediaPort)\n");
+                    xlog("L_INFO", "BLOX_DBG::: Got Response $avp(resource) -> $avp($avp(resource)): $(avp(rSrcCodec)[$var(rSrcCodecIdx)]):$avp(rSrcMediaPort)<==>$avp(SrcMediaPort)\n");
 
                     $avp(resource) = "resource" + "-" + $tt ;
                     route(DELETE_ALLOMTS_RESOURCE); #Delete previous session, if any
@@ -792,7 +792,7 @@ onreply_route[MTS_WAN2LAN] {
                             $var(url) =  "gMTSSRV" + "/create?remote_ip=" + $avp(rDstMediaIP) + "&codec=" + $var(codec) + "&remote_rtp_port=" + $avp(rDstMediaPort) + "&rcname=sbc@allo.com&local_rtp_port=" + $avp(DstMediaPort) + "&rtp_nostrict=true" +"&uniqueid="+$var(uid);
                         }
                     }
-                    xlog("L_INFO","Connecting $var(url)\n");
+                    xlog("L_INFO", "BLOX_DBG::: Connecting $var(url)\n");
                     rest_get("$var(url)","$var(body)");
                     $avp($avp(resource)) = $var(body);
                     $json(resource2) := $var(body) ;
@@ -806,7 +806,7 @@ onreply_route[MTS_WAN2LAN] {
                     if($var(idx2) >= 0) {
                         avp_db_store("$hdr(call-id)","$avp($avp(resource))");
                     }
-                    xlog("L_INFO","Got Response $avp(resource) -> $avp($avp(resource)): $var(rDstMediaIP):$avp(mport)<==>$avp(DstMediaPort)\n");
+                    xlog("L_INFO", "BLOX_DBG::: Got Response $avp(resource) -> $avp($avp(resource)): $var(rDstMediaIP):$avp(mport)<==>$avp(DstMediaPort)\n");
                     if($avp(rSrcCodec)) {
                         $var(rSrcCodecid) = $avp($(avp(rSrcCodec)[$var(rSrcCodecIdx)])) ;
                         if($avp($var(rSrcCodecid))) {
@@ -925,29 +925,31 @@ onreply_route[MTS_WAN2LAN] {
             }
         };
 
+
         if(is_method("INVITE")) {
-            xdbg("BLOX_DBG::: $ct == $si\n");
-            if(nat_uac_test("1")) { #If Contact Private IP
-                xdbg("BLOX_DBG::: $ct is Private\n");
-                if(nat_uac_test("96")) { #If Contact not same as source IP Address
-                    xdbg("BLOX_DBG::: $ct not as $si:$sp\n");
-                    if(is_ip_rfc1918("$si")) { #Source is Priviate IP will take updated different Contact
-                        xdbg("BLOX_DBG::: $si is Private\n");
-                        if($DLG_dir == "downstream") { #/* Set 200 OK Contact */
-                            $dlg_val(ucontact) = $ct.fields(uri) ;
-                        } else {
-                            $dlg_val(dcontact) = $ct.fields(uri) ;
-                        }
-                        xlog("L_INFO","BLOX_DBG::: $ct != $si Response to contact different source $DLG_dir -> $dlg_val(ucontact) -> $dlg_val(dcontact)\n");
-                    } else { #/* If Not behind NAT take contact from updated 200 OK */
-                        xlog("L_INFO","BLOX_DBG:: $ct is Behind $si - NAT\n");
+            if(nat_uac_test("96")) { # /* If Contact not same as source IP Address */
+                if(is_ip_rfc1918("$si") && nat_uac_test("2")) { # /* Set Source IP, Source is Priviate IP and received!=via */
+                    $var(ctparams) = $ct.fields(params) ;
+                    xlog("L_INFO", "BLOX_DBG::: Set Source IP, Source is Priviate IP and received!=via  $si:$sp;$var(ctparams)\n");
+                    if($DLG_dir == "downstream") {
+                        $dlg_val(ucontact) = "sip:" + $si + ":" + $sp + ";transport=" + $proto ;
+                    } else {
+                        $dlg_val(dcontact) = "sip:" + $si + ":" + $sp + ";transport=" + $proto ;
+                    }
+                } else { # /* Set 200 OK Contact */
+                    xlog("L_INFO", "BLOX_DBG::: Set 200 OK Contact ct.fields(uri)\n");
+                    if($DLG_dir == "downstream") {
+                        $dlg_val(ucontact) = $ct.fields(uri) ;
+                    } else {
+                        $dlg_val(dcontact) = $ct.fields(uri) ;
                     }
                 }
+                xlog("L_INFO", "BLOX_DBG::: $ct != $si Response to contact different source $DLG_dir -> $dlg_val(ucontact) -> $dlg_val(dcontact) <-\n");
             }
         }
     }
 
-    if (nat_uac_test("1")) {
+    if (nat_uac_test("3")) {
         fix_nated_contact();
     };
 }
@@ -961,7 +963,7 @@ failure_route[MTS_WAN2LAN] {
             $var(uid) = $avp(uid);
 
             $var(url) =  "gMTSSRV" + "/unreservemediaports?local_rtp_port=" + $avp(DstMediaPort) +"&uniqueid="+$var(uid);
-            xlog("L_INFO","Route: transcoding request : $var(url)\n");
+            xlog("L_INFO", "BLOX_DBG::: Route: transcoding request : $var(url)\n");
             rest_get("$var(url)","$var(body)");
         }
     }

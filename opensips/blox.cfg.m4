@@ -43,13 +43,13 @@ route[ALLOMTSLOAD] {
 
 # main routing logic
 route {
-    xlog("L_INFO", "Received $Ri:$Rp Got $rm $fu/$ru/$si:$sp/$du/$retcode\n" );
+    xlog("L_INFO", "BLOX_DBG::: Received $Ri:$Rp Got $rm $fu/$ru/$si:$sp/$du/$retcode\n" );
 
     force_rport();
 
     # initial sanity checks
     if (pcre_match_group("$ua", "0")) { #Group: 0 is blacklist
-        xlog("L_INFO", "Dropping SIP scanner $ua\n");
+        xlog("L_INFO", "BLOX_DBG::: Dropping SIP scanner $ua\n");
         exit;
     }
 
@@ -88,7 +88,7 @@ route {
     }
 
     if(!($avp(LAN) || $avp(WAN))) {
-        xlog("L_INFO", "Unknown SIP Profile $avp(SIPProfile) ==> $avp(LAN) $avp(WAN)\n");
+        xlog("L_INFO", "BLOX_DBG::: Unknown SIP Profile $avp(SIPProfile) ==> $avp(LAN) $avp(WAN)\n");
         sl_send_reply("603", "Declined");
         exit;
     }
@@ -123,7 +123,7 @@ route {
                 if($avp(setid)) {
                     rtpengine_delete();
                 }
-                xlog("L_INFO", "Mediaprofile stopping the $avp(MediaProfileID)\n");
+                xlog("L_INFO", "BLOX_DBG::: Mediaprofile stopping the $avp(MediaProfileID)\n");
             }
             $avp(resource) = "resource" + "-" + $ft ;
             route(DELETE_ALLOMTS_RESOURCE);
@@ -146,7 +146,7 @@ route {
                     if($avp(setid)) {
                         rtpengine_delete();
                     }
-                    xlog("L_INFO", "Mediaprofile stopping the $avp(MediaProfileID)\n");
+                    xlog("L_INFO", "BLOX_DBG::: Mediaprofile stopping the $avp(MediaProfileID)\n");
                 }
                 $avp(resource) = "resource" + "-" + $ft ;
                 route(DELETE_ALLOMTS_RESOURCE);
@@ -179,13 +179,13 @@ route {
     }
 
     if ( method == "ACK" ) { #already dialog handled, this should be dropped
-        xlog("L_INFO", "Dropping SIP Method $rm received from $fu $si $sp to $ru ($avp(rcv))\n"); /* Dont know what to do */
+        xlog("L_INFO", "BLOX_DBG::: Dropping SIP Method $rm received from $fu $si $sp to $ru ($avp(rcv))\n"); /* Dont know what to do */
     	t_check_trans();  # stops the retransmission
     	exit;
     }
 
     #drop();
-    #xlog("L_INFO", "Dropping SIP Method $rm received from $fu $si $sp to $ru ($avp(rcv))\n"); /* Dont know what to do */
+    #xlog("L_INFO", "BLOX_DBG::: Dropping SIP Method $rm received from $fu $si $sp to $ru ($avp(rcv))\n"); /* Dont know what to do */
     #exit;
 }
 
@@ -234,7 +234,7 @@ failure_route[UAC_AUTH_FAIL] {
             xdbg("BLOX_DBG: failure_route the cseq offset for $mb\n") ;
             #t_relay();
         } else {
-            xlog("L_INFO", "uac_auth failed\n") ;
+            xlog("L_INFO", "BLOX_DBG::: uac_auth failed\n") ;
         }
     }
 }

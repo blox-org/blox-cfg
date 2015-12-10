@@ -182,7 +182,7 @@ route[ROUTE_INVITE] {
                         setflag(487); /* Send response 487 if GW not available */
                         route(OUTBOUND_CALL_ACCESS_CONTROL);
                         if(!isflagset(OUTBOUND_CALL_ACCESS_CONTROL)) {
-                            xlog("L_INFO", "Dropping SIP Method $rm received from $fu $si $sp to $ru ($avp(rcv))\n");
+                            xlog("L_INFO", "BLOX_DBG::: Dropping SIP Method $rm received from $fu $si $sp to $ru ($avp(rcv))\n");
                             drop();
                             exit;
                         }
@@ -253,7 +253,7 @@ route[ROUTE_INVITE] {
                         xdbg("BLOX_DBG: Routing $var(from) $var(to) $ru to $du from $si : $sp via $fs\n" );
                         route(LAN2WAN);
                     } else {
-                        xlog("L_INFO", "Failed to route to $avp(GWID) $avp(TRUNK) from $si : $sp\n" );
+                        xlog("L_INFO", "BLOX_DBG::: Failed to route to $avp(GWID) $avp(TRUNK) from $si : $sp\n" );
                     }
                     exit;
                 }
@@ -315,7 +315,7 @@ route[ROUTE_INVITE] {
                         xdbg("BLOX_DBG: Stored in cache $avp(WAN): $avp(WANProfile)\n");
                     } else {
                         $avp(WANProfile) = null;
-                        xlog("L_INFO", "Drop MESSAGE $ru from $si : $sp\n" );
+                        xlog("L_INFO", "BLOX_DBG::: Drop MESSAGE $ru from $si : $sp\n" );
                         drop(); # /* Default 5060 open to accept packets from WAN side, but we don't process it */
                         exit;
                     }
@@ -378,7 +378,7 @@ route[ROUTE_INVITE] {
                     }
                     uac_replace_to("$var(to)");
                     uac_replace_from("$var(from)");
-                    xlog("L_INFO","Found PBX Requesting $ru -> $var(to)/$du -> $var(from)" );
+                    xlog("L_INFO", "BLOX_DBG::: Found PBX Requesting $ru -> $var(to)/$du -> $var(from)" );
 
                     route(LAN2WAN);
                     exit;
@@ -437,7 +437,7 @@ route[ROUTE_INVITE] {
                     xdbg("BLOX_DBG: Stored in cache $avp(WAN): $avp(WANProfile)\n");
                 } else {
                     $avp(WANProfile) = null;
-                    xlog("L_INFO", "Drop MESSAGE $ru from $si : $sp\n" );
+                    xlog("L_INFO", "BLOX_DBG::: Drop MESSAGE $ru from $si : $sp\n" );
                     drop(); # /* Default 5060 open to accept packets from WAN side, but we don't process it */
                     exit;
                 }
@@ -462,7 +462,7 @@ route[ROUTE_INVITE] {
                         xdbg("BLOX_DBG: Stored in cache $avp(LAN): $avp(LANProfile)\n");
                     } else {
                         $avp(LANProfile) = null;
-                        xlog("L_INFO", "Drop MESSAGE $ru from $si : $sp\n" );
+                        xlog("L_INFO", "BLOX_DBG::: Drop MESSAGE $ru from $si : $sp\n" );
                         drop(); # /* Default 5060 open to accept packets from LAN side, but we don't process it */
                         exit;
                     }
@@ -584,7 +584,7 @@ route[ROUTE_INVITE] {
                     #}
 
                     if($var(PBXIPAUTH) && pcre_match_group("$si","$var(PBXIPAUTH)")) {
-                            xlog("L_INFO","$si:$sp ($ua) Autheticated Via IPAuth $avp(PBX): Group:$var(PBXIPAUTH)\n");
+                            xlog("L_INFO", "BLOX_DBG::: $si:$sp ($ua) Autheticated Via IPAuth $avp(PBX): Group:$var(PBXIPAUTH)\n");
                     } else  {
                         if(cache_fetch("local","locationpbx:$fU:$avp(WANSOCKET):contact", $avp(contact)) \
                             && cache_fetch("local","locationpbx:$fU:$avp(WANSOCKET):received", $avp(received))) {
@@ -598,7 +598,7 @@ route[ROUTE_INVITE] {
                             cache_store("local","locationpbx:$fU:$avp(WANSOCKET):contact","$avp(contact)", $var(expires));
                             cache_store("local","locationpbx:$fU:$avp(WANSOCKET):received","$avp(received)", $var(expires));
                         } else {
-                                xlog("L_INFO", "No Registration found try Re-Registering\n");
+                                xlog("L_INFO", "BLOX_DBG::: No Registration found try Re-Registering\n");
                                 t_newtran();
                                 t_on_failure("LAN2WAN");
                                 t_reply("404", "Not Found");
@@ -616,7 +616,7 @@ route[ROUTE_INVITE] {
                                 cache_store("local","locationpbx:$fU:$avp(WANSOCKET):contact","$avp(contact)", $var(expires));
                                 cache_store("local","locationpbx:$fU:$avp(WANSOCKET):received","$avp(received)", $var(expires));
                             } else {
-                                xlog("L_INFO", "No Registration found try Re-Registering\n");
+                                xlog("L_INFO", "BLOX_DBG::: No Registration found try Re-Registering\n");
                                 t_newtran();
                                 t_on_failure("LAN2WAN");
                                 t_reply("404", "Not Found");
@@ -646,7 +646,7 @@ route[ROUTE_INVITE] {
                         xdbg("BLOX_DBG: Stored in cache $avp(LAN): $avp(LANProfile)\n");
                     } else {
                         $avp(LANProfile) = null;
-                        xlog("L_INFO", "Drop MESSAGE $ru from $si : $sp\n" );
+                        xlog("L_INFO", "BLOX_DBG::: Drop MESSAGE $ru from $si : $sp\n" );
                         drop(); # /* Default 5060 open to accept packets from LAN side, but we don't process it */
                         exit;
                     }
@@ -666,8 +666,14 @@ route[ROUTE_INVITE] {
                         $ru = "sip:" + $rU + "@" + $var(PBXIP) + ":" + $var(PBXPORT) ;
                     }
 
+
                     if(!has_totag()) {
-                        create_dialog("PpB");
+                        $var(dlgFLAG) = "PpB" ;
+                        if(nat_uac_test("3")) { #If Contact Private IP and Source not matching Via
+                            fix_nated_contact() ;
+                            $var(dlgFLAG) = "pB" ; # /*FIXME: Not pinging NAT source*/
+                        }
+                        create_dialog("$var(dlgFLAG)");
                         $dlg_val(MediaProfileID) = $(avp(PBX){uri.param,MEDIA});
                         $dlg_val(from) = $fu ;
                         $dlg_val(request) = $ru ;
@@ -675,6 +681,7 @@ route[ROUTE_INVITE] {
                         $dlg_val(dchannel) = $du ;
                         $dlg_val(direction) = "inbound";
                         topology_hiding("CR");
+                        add_rcv_param();
                         setflag(ACC_FLAG_CDR_FLAG);
                         setflag(ACC_FLAG_LOG_FLAG);
                         setflag(ACC_FLAG_DB_FLAG);
@@ -685,13 +692,30 @@ route[ROUTE_INVITE] {
 #import_file "blox-humbug-invite.cfg"
  
                     }
+
+                    $var(to)   = $tu ;
+                    $var(from) = $fu ;
+                    $var(fproto) = $(var(from){uri.param,transport}) ;
+                    $var(tproto) = $(var(to){uri.param,transport}) ;
+                    if($var(tproto)==""){$var(tproto)=null;}
+                    if($var(fproto)==""){$var(fproto)=null;}
+
+                    if($var(tproto) == null) {
+                        $var(to) = $var(to) + ";transport=" + $avp(LANPROTO) ;
+                        uac_replace_to("$var(to)");
+                    }
+                    if($var(fproto) == null) {
+                        $var(from) = $var(from) + ";transport=" + $avp(LANPROTO) ;
+                        uac_replace_from("$var(from)");
+                    }
+
                     t_on_failure("WAN2LAN");
                     route(WAN2LAN);
                     exit;
                 }
             }
 
-            xlog("L_INFO", "Dropping SIP Method $rm received from $fu $si $sp to $ru ($avp(rcv))\n"); /* Dont know what to do */
+            xlog("L_INFO", "BLOX_DBG::: Dropping SIP Method $rm received from $fu $si $sp to $ru ($avp(rcv))\n"); /* Dont know what to do */
             drop();
             exit;
         }

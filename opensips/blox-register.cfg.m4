@@ -107,10 +107,10 @@ route[ROUTE_REGISTER] {
                     
                     if($avp(LANDOMAIN)) {
                         $ru = "sip:" + $avp(LANDOMAIN) + ":" + $var(PBXPORT) ;
-                    	$var(reguri) = "sip:" + $tU + "@" + $avp(LANDOMAIN) + ":" + $var(PBXPORT) + ";" + "transport=" + $avp(LANPROTO) ;
+                        $var(reguri) = "sip:" + $tU + "@" + $avp(LANDOMAIN) + ":" + $var(PBXPORT) + ";" + "transport=" + $avp(LANPROTO) ;
                     } else {
                         $ru = "sip:" + $var(PBXIP) + ":" + $var(PBXPORT) ;
-                    	$var(reguri) = "sip:" + $tU + "@" + $var(PBXIP) + ":" + $var(PBXPORT) + ";" + "transport=" + $avp(LANPROTO) ;
+                        $var(reguri) = "sip:" + $tU + "@" + $var(PBXIP) + ":" + $var(PBXPORT) + ";" + "transport=" + $avp(LANPROTO) ;
                     }
 
                     $fs = $avp(LANPROTO) + ":" + $avp(LANIP) + ":" + $avp(LANPORT) ;
@@ -127,7 +127,7 @@ route[ROUTE_REGISTER] {
                     t_on_reply("WAN2LAN_REGISTER");
 
                     if (!t_relay()) {
-        		xlog("L_ERR", "REGISTER Relay error $mb\n");
+                        xlog("L_ERR", "REGISTER Relay error $mb\n");
                         sl_reply_error();
                     };
 
@@ -145,7 +145,7 @@ onreply_route[WAN2LAN_REGISTER] {
     remove_hf("User-Agent");
     insert_hf("User-Agent: USERAGENT\r\n","CSeq") ;
     if(remove_hf("Server")) { #Removed Server success, then add ours
-    	insert_hf("Server: USERAGENT\r\n","CSeq") ;
+        insert_hf("Server: USERAGENT\r\n","CSeq") ;
     }
 
     xdbg("BLOX_DBG: Got Response $rs/ $fu/$ru/$si/$ci/$avp(rcv)\n");
