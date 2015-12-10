@@ -668,12 +668,7 @@ route[ROUTE_INVITE] {
 
 
                     if(!has_totag()) {
-                        $var(dlgFLAG) = "PpB" ;
-                        if(nat_uac_test("3")) { #If Contact Private IP and Source not matching Via
-                            fix_nated_contact() ;
-                            $var(dlgFLAG) = "pB" ; # /*FIXME: Not pinging NAT source*/
-                        }
-                        create_dialog("$var(dlgFLAG)");
+                        create_dialog("PpB");
                         $dlg_val(MediaProfileID) = $(avp(PBX){uri.param,MEDIA});
                         $dlg_val(from) = $fu ;
                         $dlg_val(request) = $ru ;

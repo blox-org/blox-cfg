@@ -46,6 +46,9 @@ route {
     xlog("L_INFO", "BLOX_DBG::: Received $Ri:$Rp Got $rm $fu/$ru/$si:$sp/$du/$retcode\n" );
 
     force_rport();
+    if(nat_uac_test("3")) { #If Contact Private IP and Source not matching Via
+        fix_nated_contact() ;
+    }
 
     # initial sanity checks
     if (pcre_match_group("$ua", "0")) { #Group: 0 is blacklist
