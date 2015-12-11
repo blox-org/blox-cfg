@@ -67,6 +67,11 @@ route[WAN2LAN] {
         $du = $dlg_val(ucontact) ;
     }
 
+    $avp(NAT) = null ;
+    if(!is_ip_rfc1918("$du")) {
+        $avp(NAT) = 1 ;
+    }
+
     xlog("L_INFO", "BLOX_DBG::: ROUTING SIP Method $rm received from $fu $si $sp to $ru $avp(contact) : $du \n");
 
     if (!t_relay()) {
@@ -99,7 +104,7 @@ onreply_route[WAN2LAN] {
 
         if(is_method("INVITE")) {
             if(nat_uac_test("96")) { # /* If Contact not same as source IP Address */
-                if(!is_ip_rfc1918("$si")) {
+                if(is_ip_rfc1918("$si")) { # /* Set Source IP, Source is Priviate IP and received!=via */
                     $var(ctparams) = $ct.fields(params) ;
                     xlog("L_INFO", "BLOX_DBG::: Set Source IP, Source is Priviate IP and received!=via  $si:$sp;$var(ctparams)\n");
                     if($DLG_dir == "downstream") {
