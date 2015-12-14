@@ -104,7 +104,7 @@ onreply_route[WAN2LAN] {
 
         if(is_method("INVITE")) {
             if(nat_uac_test("96")) { # /* If Contact not same as source IP Address */
-                if(is_ip_rfc1918("$si")) { # /* Set Source IP, Source is Priviate IP and received!=via */
+                if(!is_ip_rfc1918("$si")) { # /* Set Source IP, Source is Priviate IP */
                     $var(ctparams) = $ct.fields(params) ;
                     xlog("L_INFO", "BLOX_DBG::: Set Source IP, Source is Priviate IP and received!=via  $si:$sp;$var(ctparams)\n");
                     if($DLG_dir == "downstream") {
