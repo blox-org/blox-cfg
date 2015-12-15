@@ -96,6 +96,8 @@ route[ROUTE_REGISTER] {
                     $avp(LANIP) = $(avp(LANProfile){uri.host});
                     $avp(LANPORT) = $(avp(LANProfile){uri.port});
                     $avp(LANPROTO) = $(avp(LANProfile){uri.param,transport});
+                    $avp(LANDOMAIN) = $(avp(LANProfile){uri.param,domain});
+                    if($avp(LANDOMAIN)==""){$avp(LANDOMAIN)=null;}
                     fix_nated_register(); /* will set the (not just contact) received address to put in db */
                     force_rport();
                     if(! subst("/Contact: +<sip:(.*)@(.*?)>;(.*)$/Contact: <sip:\1@$avp(LANIP):$avp(LANPORT)>;\3/")) {
