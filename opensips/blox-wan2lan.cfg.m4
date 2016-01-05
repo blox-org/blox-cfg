@@ -26,12 +26,12 @@ route[WAN2LAN] {
 
     if (has_body("application/sdp")) {
         if(cache_fetch("local","$avp(MediaProfileID)",$avp(MediaProfile))) {
-            xdbg("BLOX_DBG: Loaded from cache $avp(MediaProfileID): $avp(MediaProfile)\n");
+            xdbg("BLOX_DBG: blox-wan2lan.cfg: Loaded from cache $avp(MediaProfileID): $avp(MediaProfile)\n");
         } else if (avp_db_load("$avp(MediaProfileID)","$avp(MediaProfile)/blox_profile_config")) {
             cache_store("local","$avp(MediaProfileID)","$avp(MediaProfile)");
-            xdbg("BLOX_DBG: Stored in cache $avp(MediaProfileID): $avp(MediaProfile)\n");
+            xdbg("BLOX_DBG: blox-wan2lan.cfg: Stored in cache $avp(MediaProfileID): $avp(MediaProfile)\n");
         } else {
-            xlog("L_INFO", "BLOX_DBG::: No profile configured for $avp(MediaProfileID): $avp(MediaProfile)\n");
+            xlog("L_INFO", "BLOX_DBG::: blox-wan2lan.cfg: No profile configured for $avp(MediaProfileID): $avp(MediaProfile)\n");
             sl_send_reply("500","Internal Server error");
             exit;
         }
@@ -48,7 +48,7 @@ route[WAN2LAN] {
             rtpengine_delete();
         }
 
-        if(is_ip_rfc1918("$si") && nat_uac_test("40")) {
+        if(is_ip_rfc1918("$si") && $var(nat40)) {
             rtpengine_offer("force external internal trust-address replace-origin replace-session-connection");
         } else {
             rtpengine_offer("force external internal replace-origin replace-session-connection");
@@ -58,24 +58,44 @@ route[WAN2LAN] {
     t_on_reply("WAN2LAN");
     t_on_failure("WAN2LAN");
 
-    $avp(contact) = $DLG_dir + "-contact";
-
-    if($DLG_dir == "downstream" && $dlg_val(dcontact)) {
-        $du = $dlg_val(dcontact) ;
-    }
-    if($DLG_dir == "upstream" && $dlg_val(ucontact)) {
-        $du = $dlg_val(ucontact) ;
-    }
-
-    $avp(NAT) = null ;
-    if(!is_ip_rfc1918("$du")) {
-        $avp(NAT) = 1 ;
+    if(has_totag()) { #Within dialog
+        if($DLG_dir == "downstream" && $dlg_val(dcontact)) {
+            $du = $dlg_val(dcontact) ;
+        }
+        if($DLG_dir == "upstream" && $dlg_val(ucontact)) {
+            $du = $dlg_val(ucontact) ;
+        }
     }
 
-    xlog("L_INFO", "BLOX_DBG::: ROUTING SIP Method $rm received from $fu $si $sp to $ru $avp(contact) : $du \n");
+    if(($Ri == $si)) {
+        if($du != null && $du != "") {
+            $var(du) = $du ; #orginal
+            $var(duuri) = "sip:" + $(var(du){uri.host}) + $(var(du){uri.port}) ;
+            $var(did) = $(var(du){uri.param,did}) ;
+            if($var(did) == null || $var(did) == "") { 
+                $var(did) = "" ;
+            } else {
+                $var(did) = ";did=" + $var(did) ;
+            }
+
+            subst("/Contact: +<sip:(.*)@(.*);did=(.*)>(.*)$/Contact: <$var(duuri)$var(did)>\4/");
+        }
+    }
+
+    if(has_totag()) { #Within dialog
+        if($du != null && $du != "") {
+            $ru = $du ;
+        }
+    }
+
+    xlog("L_INFO", "BLOX_DBG::: blox-lan2wan.cfg: ROUTING $rm - dir: $DLG_dir: from: $fu src:$si:$sp to ru:$ru : down: $avp(dcontact) up:$avp(ucontact) -> dst: $du \n");
+
+    if(nat_uac_test("3")) {
+        fix_nated_contact();
+    }
 
     if (!t_relay()) {
-        xlog("L_ERR", "WAN_2_LAN Relay error $mb\n");
+        xlog("L_ERR", "BLOX_DBG::: blox-wan2lan.cfg: Relay error $mb\n");
         sl_reply_error();
     };
 
@@ -84,13 +104,12 @@ route[WAN2LAN] {
 
 #Used for WAN PROFILE
 onreply_route[WAN2LAN] {
+    xlog("L_INFO","BLOX_DBG::: blox-wan2lan.cfg: Got Response code:$rs from:$fu ru:$ru src:$si:$sp callid:$ci rcv:$Ri:$Rp\n");
     remove_hf("User-Agent");
     insert_hf("User-Agent: USERAGENT\r\n","CSeq") ;
     if(remove_hf("Server")) { #Removed Server success, then add ours
         insert_hf("Server: USERAGENT\r\n","CSeq") ;
     }
-
-    xdbg("BLOX_DBG::: Got Response $rs/ $fu/$ru/$si/$ci/$avp(rcv)\n");
 
     if (status =~ "(183)|2[0-9][0-9]") {
         if (has_body("application/sdp")) {
@@ -106,24 +125,29 @@ onreply_route[WAN2LAN] {
             if(nat_uac_test("96")) { # /* If Contact not same as source IP Address */
                 if(!is_ip_rfc1918("$si")) { # /* Set Source IP, Source is Priviate IP */
                     $var(ctparams) = $ct.fields(params) ;
-                    xlog("L_INFO", "BLOX_DBG::: Set Source IP, Source is Priviate IP and received!=via  $si:$sp;$var(ctparams)\n");
+                    xdbg("BLOX_DBG::: blox-wan2lan.cfg: $DLG_dir | Set Source IP, Source is Priviate IP and received!=via  $si:$sp;$var(ctparams)\n");
                     if($DLG_dir == "downstream") {
                         $dlg_val(ucontact) = "sip:" + $si + ":" + $sp + ";transport=" + $proto ;
                     } else {
                         $dlg_val(dcontact) = "sip:" + $si + ":" + $sp + ";transport=" + $proto ;
                     }
                 } else { # /* Set 200 OK Contact */
-                    xlog("L_INFO", "BLOX_DBG::: Set 200 OK Contact ct.fields(uri)\n");
+                    $var(cturi) = $ct.fields(uri) ;
+                    $var(cthost) = $(var(cturi){uri.host}) ;
+                    $dlg_val(rcv) = "sip:" + $si + ":" + $sp + ";transport=" + $proto ;
+                    xdbg("BLOX_DBG::: blox-wan2lan.cfg: $ct ==> $var(cthost) <==> $Ri : $dlg_val(loop)\n");
+                    xdbg("BLOX_DBG::: blox-wan2lan.cfg: $DLG_dir | Set Source IP, Source is Priviate IP and received!=via  $si:$sp;$var(ctparams)\n");
+                    xdbg("BLOX_DBG::: blox-wan2lan.cfg: Set 200 OK Contact $ct.fields(uri)\n");
                     if($DLG_dir == "downstream") {
                         $dlg_val(ucontact) = $ct.fields(uri) ;
                     } else {
                         $dlg_val(dcontact) = $ct.fields(uri) ;
                     }
                 }
-                xlog("L_INFO", "BLOX_DBG::: $ct != $si Response to contact different source $DLG_dir -> $dlg_val(ucontact) -> $dlg_val(dcontact) <-\n");
+                xlog("L_INFO", "BLOX_DBG::: blox-wan2lan.cfg: $ct != $si Response to contact different source $DLG_dir -> $dlg_val(ucontact) -> $dlg_val(dcontact) <-\n");
             }
         }
-    } 
+    }
 
     if (nat_uac_test("3")) {
         fix_nated_contact();
@@ -137,5 +161,5 @@ failure_route[WAN2LAN] {
         route(DELETE_ALLOMTS_RESOURCE);
         exit;
     }
-    xlog("L_WARN", "Failed $rs\n");
+    xlog("L_WARN", "BLOX_DBG::: blox-wan2lan.cfg: Failed $rs\n");
 }

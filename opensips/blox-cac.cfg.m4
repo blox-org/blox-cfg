@@ -32,10 +32,10 @@ route[OUTBOUND_CALL_ACCESS_CONTROL] {
             get_profile_size("outbound", "$avp(cac_uuid)", "$var(calls)");
             xdbg("BLOX_DBG: Call control: user '$avp(cac_uuid)' currently has '$var(calls)' of '$var(channels)' active calls before this one\n");
             if($var(calls) == null || ($var(calls) < $var(channels))) {
-                xlog("L_INFO", "Call control: user '$avp(cac_uuid)' currently has '$var(calls)' of '$var(channels)' active calls before this one\n");
+                xlog("L_INFO", "BLOX_DBG: blox-cac.cfg: Call control: user '$avp(cac_uuid)' currently has '$var(calls)' of '$var(channels)' active calls before this one\n");
                 $var(setprofile) = 1;
             } else {
-                xlog("L_WARN", "Call control: user channel limit exceeded [$var(calls)/$var(channels)]\n");
+                xlog("L_WARN", "BLOX_DBG: blox-cac.cfg: Call control: user channel limit exceeded [$var(calls)/$var(channels)]\n");
                 if(isflagset(487)) {
                     append_to_reply("X-Reason: Trunk channel limit exceeded\r\n");
                     sl_send_reply("487", "Request Terminated");
@@ -64,10 +64,10 @@ route[INBOUND_CALL_ACCESS_CONTROL] {
         if(($var(channels) && ($var(channels) > 0))) {
             get_profile_size("inbound", "$avp(cac_uuid)", "$var(calls)");
             if($var(calls) < $var(channels)) {
-                xlog("L_INFO", "Call control: user '$avp(cac_uuid)' currently has '$var(calls)' of '$var(channels)' active calls before this one\n");
+                xlog("L_INFO", "BLOX_DBG: blox-cac.cfg: Call control: user '$avp(cac_uuid)' currently has '$var(calls)' of '$var(channels)' active calls before this one\n");
                 $var(setprofile) = 1;
             } else {
-                xlog("L_WARN", "Call control: user channel limit exceeded [$var(calls)/$var(channels)]\n");
+                xlog("L_WARN", "BLOX_DBG: blox-cac.cfg: Call control: user channel limit exceeded [$var(calls)/$var(channels)]\n");
                 if(isflagset(487)) {
                     append_to_reply("X-Reason: Trunk channel limit exceeded\r\n");
                     sl_send_reply("487", "Request Terminated");

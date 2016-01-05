@@ -28,12 +28,12 @@ route[ROUTE_CANCEL] {
 
         if($avp(setid)) {
             rtpengine_delete();
-            xlog("L_INFO", "Mediaprofile stopping the $avp(MediaProfileID)\n");
+            xlog("L_INFO", "BLOX_DBG: blox-cancel.cfg: Mediaprofile stopping the $avp(MediaProfileID)\n");
         }
 
         if($avp(DstMediaPort)) {
             $var(url) =  "http://127.0.0.1:8000" + "/unreservemediaports?local_rtp_port=" + $avp(DstMediaPort) ;
-            xlog("L_INFO","Route: transcoding request : $var(url)\n");
+            xlog("L_INFO","BLOX_DBG: blox-cancel.cfg: Route: transcoding request : $var(url)\n");
             rest_get("$var(url)","$var(body)");
         }
 

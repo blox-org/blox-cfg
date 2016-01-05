@@ -53,4 +53,5 @@ define(`ACC_FLAG_FAILED_TRANSACTION',`9')
 define(`SRTP_DISABLE',`"0"')
 define(`SRTP_OPTIONAL',`"1"')
 define(`SRTP_COMPULSORY',`"2"')
+define(`BLOX_CALLID_PREFIX',`"BloX"')
 divert(0)dnl

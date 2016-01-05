@@ -28,7 +28,7 @@ route[ROUTE_BYE] {
                 cache_store("local","$avp(uuid)","$avp(PBX)");
                 xdbg("BLOX_DBG: Stored in cache $avp(uuid): $avp(PBX)\n");
             } else {
-                xlog("L_WARN", "SIP Profile for $si:$sp access denied\n");
+                xlog("L_WARN", "BLOX_DBG: blox-bye.cfg: SIP Profile for $si:$sp access denied\n");
                 sl_send_reply("603", "Declined");
                 exit;
             }
@@ -43,7 +43,7 @@ route[ROUTE_BYE] {
                     xdbg("BLOX_DBG: Stored in cache $avp(WAN): $avp(WANProfile)\n");
                 } else {
                     $avp(WANProfile) = null;
-                    xlog("L_INFO", "Drop MESSAGE $ru from $si : $sp\n" );
+                    xlog("L_INFO", "BLOX_DBG: blox-bye.cfg: Drop MESSAGE $ru from $si : $sp\n" );
                     drop(); # /* Default 5060 open to accept packets from WAN side, but we don't process it */
                     exit;
                 }
@@ -80,7 +80,7 @@ route[ROUTE_BYE] {
                     route(ENUM,$var(ENUMTYPE),$var(ENUMSX),$var(ENUMSE));
                 }
 
-                xlog("L_INFO","Found PBX Requesting $ru -> $var(to)/$du -> $var(from)" );
+                xlog("L_INFO","BLOX_DBG: blox-bye.cfg: Found PBX Requesting $ru -> $var(to)/$du -> $var(from)" );
             }
         }
     }

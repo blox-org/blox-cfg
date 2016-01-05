@@ -21,22 +21,22 @@
 route[ROUTE_INVITE] {
     if(method == "INVITE") {
         if($si == $avp(LANIP) || $si == $avp(WANIP)) { #Source IP Matching LAN or WAN IP
-            xdbg("BLOX_DBG: Skipping INVITE generated locally by the server\n" );
+            xdbg("BLOX_DBG: blox-invite.cfg: Skipping INVITE generated locally by the server\n" );
             drop();
             exit;
         }
 
         if($avp(LAN)) { #/* PBX to SBC */
             $avp(TRUNK) = null;
-            xdbg("BLOX_DBG: Got from $Ri LAN\n");
+            xdbg("BLOX_DBG: blox-invite.cfg: Got from $Ri LAN\n");
             $avp(uuid) = "LCR:" + $avp(LAN) ;
 
             if(cache_fetch("local","$avp(uuid)",$avp(LCR))) {
-                xdbg("BLOX_DBG: Loaded from cache $avp(uuid): $avp(LCR)\n");
+                xdbg("BLOX_DBG: blox-invite.cfg: Loaded from cache $avp(uuid): $avp(LCR)\n");
             } else if (avp_db_load("$avp(uuid)","$avp(LCR)/blox_config")) {
                 #NO Cache for LCR Right now
                 #cache_store("local","$avp(uuid)","$avp(LCR)");
-                #xdbg("BLOX_DBG: Stored in cache $avp(uuid): $avp(LCR)\n");
+                #xdbg("BLOX_DBG: blox-invite.cfg: Stored in cache $avp(uuid): $avp(LCR)\n");
             } else {
                 $avp(LCR) = null;
             }
@@ -45,10 +45,10 @@ route[ROUTE_INVITE] {
                 $var(i) = 0; 
                 $var(loop) = 1;
                 while($var(loop) && $(avp(LCR)[$var(i)])) {
-                    xdbg("BLOX_DBG: Got from LAN LCR Matching $(avp(LCR)[$var(i)])\n");
+                    xdbg("BLOX_DBG: blox-invite.cfg: Got from LAN LCR Matching $(avp(LCR)[$var(i)])\n");
                     $var(LCR) = $(avp(LCR)[$var(i)]);
                     $var(src) = $si + ":" + $sp ;
-                    xdbg("BLOX_DBG: Got from LAN LCR Matching $var(src) == $(var(LCR){param.value,PBX})\n");
+                    xdbg("BLOX_DBG: blox-invite.cfg: Got from LAN LCR Matching $var(src) == $(var(LCR){param.value,PBX})\n");
                     if($var(src) == $(var(LCR){param.value,PBX})) {
                         $var(g) = $(var(LCR){param.value,Group});
                         $avp(g) = $(var(g){s.int});
@@ -58,24 +58,24 @@ route[ROUTE_INVITE] {
                 }
 
                 if($var(loop) != null) {
-                    xlog("L_NOTICE", "LCR: SIP Profile access denied for $si:$sp \n");
+                    xlog("L_NOTICE", "BLOX_DBG::: blox-invite.cfg: LCR: SIP Profile access denied for $si:$sp \n");
                     sl_send_reply("603", "Declined");
                     exit;
                 }
                 
                 $var(oru) = $ru ;
 
-                xdbg("BLOX_DBG: Group: $var(g)\n"); #Dont print directly without substr
+                xdbg("BLOX_DBG: blox-invite.cfg: Group: $var(g)\n"); #Dont print directly without substr
                 if (do_routing("$avp(g)",,,,"$var(gw_attributes)")) { #/* Goes to configured route */
                     $avp(cac_uuid) = $var(gw_attributes) ; 
                     route(OUTBOUND_CALL_ACCESS_CONTROL);
                     while (!isflagset(OUTBOUND_CALL_ACCESS_CONTROL)) {
                         if(use_next_gw(,"$var(gw_attributes)")) {
-                            xlog("L_NOTICE", "LCR: Next GW found, PBX $si:$sp $var(gw_attributes)\n");
+                            xlog("L_NOTICE", "BLOX_DBG::: blox-invite.cfg: LCR: Next GW found, PBX $si:$sp $var(gw_attributes)\n");
                             $avp(cac_uuid) = $var(gw_attributes) ; 
                             route(OUTBOUND_CALL_ACCESS_CONTROL);
                         } else {
-                            xlog("L_WARN", "No Next GW found for LCR, PBX $si:$sp $var(gw_attributes)\n");
+                            xlog("L_WARN", "BLOX_DBG::: blox-invite.cfg: No Next GW found for LCR, PBX $si:$sp $var(gw_attributes)\n");
                             send_reply("503", "No Rules matching the URI");
                             exit;
                         }
@@ -84,15 +84,15 @@ route[ROUTE_INVITE] {
 
                     $avp(LAN) = $(var(gw_attributes){uri.param,LAN});
                     if($avp(LAN)) {
-                        xdbg("BLOX_DBG: Group: $avp(LAN)\n"); #Dont print directly without substr
+                        xdbg("BLOX_DBG: blox-invite.cfg: Group: $avp(LAN)\n"); #Dont print directly without substr
                         if(cache_fetch("local","$avp(LAN)",$avp(LANProfile))) {
-                            xdbg("BLOX_DBG: Loaded from cache $avp(LAN): $avp(LANProfile)\n");
+                            xdbg("BLOX_DBG: blox-invite.cfg: Loaded from cache $avp(LAN): $avp(LANProfile)\n");
                         } else if (avp_db_load("$avp(LAN)","$avp(LANProfile)/blox_profile_config")) {
                             cache_store("local","$avp(LAN)","$avp(LANProfile)");
-                            xdbg("BLOX_DBG: Stored in cache $avp(LAN): $avp(LANProfile)\n");
+                            xdbg("BLOX_DBG: blox-invite.cfg: Stored in cache $avp(LAN): $avp(LANProfile)\n");
                         } else {
                             $avp(LANProfile) = null;
-                            xdbg("BLOX_DBG: Drop MESSAGE $ru from $si : $sp\n" );
+                            xdbg("BLOX_DBG: blox-invite.cfg: Drop MESSAGE $ru from $si : $sp\n" );
                             drop(); # /* Default 5060 open to accept packets from LAN side, but we don't process it */
                             exit;
                         }
@@ -105,10 +105,10 @@ route[ROUTE_INVITE] {
                         sl_send_reply("302","LCR Redirect");
                         exit;
                     } else {
-                        xlog("L_NOTICE", "LCR: No LAN: $var(g)\n"); #Dont print directly without substr
+                        xlog("L_NOTICE", "BLOX_DBG::: blox-invite.cfg: LCR: No LAN: $var(g)\n"); #Dont print directly without substr
                     }
                 } else {
-                        xlog("L_NOTICE", "LCR: No Next GW found for LCR, PBX $si:$sp $var(gw_attributes)\n");
+                        xlog("L_NOTICE", "BLOX_DBG::: blox-invite.cfg: LCR: No Next GW found for LCR, PBX $si:$sp $var(gw_attributes)\n");
                         send_reply("503", "No Rules matching the URI");
                         exit;
                 }
@@ -117,17 +117,17 @@ route[ROUTE_INVITE] {
             if(!$avp(TRUNK)) { #If not already set by LCR
                 $avp(uuid) = "TRUNK:" + $avp(LAN) ;
                 if(cache_fetch("local","$avp(uuid)",$avp(TRUNK))) {
-                    xdbg("BLOX_DBG: Loaded from cache $avp(uuid): $avp(TRUNK)\n");
+                    xdbg("BLOX_DBG: blox-invite.cfg: Loaded from cache $avp(uuid): $avp(TRUNK)\n");
                 } else if (avp_db_load("$avp(uuid)","$avp(TRUNK)/blox_config")) {
                     cache_store("local","$avp(uuid)","$avp(TRUNK)");
-                    xdbg("BLOX_DBG: Stored in cache $avp(uuid): $avp(TRUNK)\n");
+                    xdbg("BLOX_DBG: blox-invite.cfg: Stored in cache $avp(uuid): $avp(TRUNK)\n");
                 } else {
                     $avp(TRUNK) = null;
                 }
             }
 
             if($avp(TRUNK)) {
-                xdbg("BLOX_DBG: Routing Forwarded PBX MESSAGE $avp(TRUNK)\n");
+                xdbg("BLOX_DBG: blox-invite.cfg: Routing Forwarded PBX MESSAGE $avp(TRUNK)\n");
 
                 $var(cfgparam) = "cfgparam" ;
                 $avp($var(cfgparam)) = $avp(TRUNK);
@@ -165,24 +165,24 @@ route[ROUTE_INVITE] {
 
                 if($avp(WAN)) {
                     if(cache_fetch("local","$avp(WAN)",$avp(WANProfile))) {
-                        xdbg("BLOX_DBG: Loaded from cache $avp(WAN): $avp(WANProfile)\n");
+                        xdbg("BLOX_DBG: blox-invite.cfg: Loaded from cache $avp(WAN): $avp(WANProfile)\n");
                     } else if (avp_db_load("$avp(WAN)","$avp(WANProfile)/blox_profile_config")) {
                         cache_store("local","$avp(WAN)","$avp(WANProfile)");
-                        xdbg("BLOX_DBG: Stored in cache $avp(WAN): $avp(WANProfile)\n");
+                        xdbg("BLOX_DBG: blox-invite.cfg: Stored in cache $avp(WAN): $avp(WANProfile)\n");
                     } else {
                         $avp(WANProfile) = null;
-                        xdbg("BLOX_DBG: Drop MESSAGE $ru from $si : $sp\n" );
+                        xdbg("BLOX_DBG: blox-invite.cfg: Drop MESSAGE $ru from $si : $sp\n" );
                         drop(); # /* Default 5060 open to accept packets from WAN side, but we don't process it */
                         exit;
                     }
 
                     if(!has_totag()) {
-                        xdbg("BLOX_DBG: $avp(TRUNK)/$var(TRUNKUSER)/ $var(TRUNKIP)/$var(TRUNKPORT)/$avp(SIPProfile)\n");
+                        xdbg("BLOX_DBG: blox-invite.cfg: $avp(TRUNK)/$var(TRUNKUSER)/ $var(TRUNKIP)/$var(TRUNKPORT)/$avp(SIPProfile)\n");
                         $avp(cac_uuid) = $avp(TRUNK) ; 
                         setflag(487); /* Send response 487 if GW not available */
                         route(OUTBOUND_CALL_ACCESS_CONTROL);
                         if(!isflagset(OUTBOUND_CALL_ACCESS_CONTROL)) {
-                            xlog("L_INFO", "BLOX_DBG::: Dropping SIP Method $rm received from $fu $si $sp to $ru ($avp(rcv))\n");
+                            xlog("L_INFO", "BLOX_DBG::: blox-invite.cfg: Dropping SIP Method $rm received from $fu $si $sp to $ru ($avp(rcv))\n");
                             drop();
                             exit;
                         }
@@ -194,8 +194,12 @@ route[ROUTE_INVITE] {
                         if($avp(SIPHM)) {
                                 route(SIP_HEADER_MANIPULATE,$avp(SIPHM));
                         } 
-                        topology_hiding("C");
-                        xdbg("BLOX_DBG: Storing the cseq offset for $ft\n") ;
+                        if(pcre_match("$ci","^BLOX_CALLID_PREFIX")) { /* Already tophide applied */
+                            topology_hiding();
+                        } else {
+                            topology_hiding("C");
+                        }
+                        xdbg("BLOX_DBG: blox-invite.cfg: Storing the cseq offset for $ft\n") ;
                         if($(hdr(Diversion))) {
                             $dlg_val(dchannel) = $avp(TRUNK) + ";Diversion=" + $(hdr(Diversion)) ;
                         } else {
@@ -205,18 +209,18 @@ route[ROUTE_INVITE] {
                         setflag(ACC_FLAG_LOG_FLAG);
                         setflag(ACC_FLAG_DB_FLAG);
                         setflag(ACC_FLAG_FAILED_TRANSACTION);
-                        append_hf("P-hint: tophide applied\r\n"); 
+                            append_hf("P-hint: TopHide-Applied\r\n"); 
                     };
                     if( route_to_gw("$avp(GWID)") ) {
                         if(!has_totag()) { #Set From/To Execute inital time
                             if(cache_fetch("local","$avp(WAN)",$avp(WANProfile))) {
-                                xdbg("BLOX_DBG: Loaded from cache $avp(WAN): $avp(WANProfile)\n");
+                                xdbg("BLOX_DBG: blox-invite.cfg: Loaded from cache $avp(WAN): $avp(WANProfile)\n");
                             } else if (avp_db_load("$avp(WAN)","$avp(WANProfile)/blox_profile_config")) {
                                 cache_store("local","$avp(WAN)","$avp(WANProfile)");
-                                xdbg("BLOX_DBG: Stored in cache $avp(WAN): $avp(WANProfile)\n");
+                                xdbg("BLOX_DBG: blox-invite.cfg: Stored in cache $avp(WAN): $avp(WANProfile)\n");
                             } else {
                                 $avp(WANProfile) = null;
-                                xlog("L_WARN", "No WAN profile Drop MESSAGE $ru from $si : $sp\n" );
+                                xlog("L_WARN", "BLOX_DBG::: blox-invite.cfg: No WAN profile Drop MESSAGE $ru from $si : $sp\n" );
                                 drop(); # /* Default 5060 open to accept packets from WAN side, but we don't process it */
                                 exit;
                             }
@@ -236,7 +240,7 @@ route[ROUTE_INVITE] {
                                 uac_replace_to("$var(to)");
                                 uac_replace_from("$var(from)");
                             } else {
-                                xlog("L_ERROR", "No WAN Profile, Leaking through To/From Header\n");
+                                xlog("L_ERROR", "BLOX_DBG::: blox-invite.cfg: No WAN Profile, Leaking through To/From Header\n");
                             }
                             set_dlg_flag("DLG_FLAG_LAN2WAN") ;
                         }
@@ -250,32 +254,32 @@ route[ROUTE_INVITE] {
                             $ru = "sip:" + $tU + "@" + $var(TRUNKDOMAIN) ;
                         }
                         t_on_failure("LAN2WAN");
-                        xdbg("BLOX_DBG: Routing $var(from) $var(to) $ru to $du from $si : $sp via $fs\n" );
+                        xdbg("BLOX_DBG: blox-invite.cfg: Routing $var(from) $var(to) $ru to $du from $si : $sp via $fs\n" );
                         route(LAN2WAN);
                     } else {
-                        xlog("L_INFO", "BLOX_DBG::: Failed to route to $avp(GWID) $avp(TRUNK) from $si : $sp\n" );
+                        xlog("L_INFO", "BLOX_DBG::: blox-invite.cfg: Failed to route to $avp(GWID) $avp(TRUNK) from $si : $sp\n" );
                     }
                     exit;
                 }
 
-                xdbg("BLOX_DBG: SIP Profile for $si:$sp access denied\n");
+                xdbg("BLOX_DBG: blox-invite.cfg: SIP Profile for $si:$sp access denied\n");
                 sl_send_reply("603", "Declined");
                 exit;
             } else {
                 $avp(uuid) = "PBX:" + $avp(LAN) ;
                 if(cache_fetch("local","$avp(uuid)",$avp(PBX))) {
-                    xdbg("BLOX_DBG: Loaded from cache $avp(uuid): $avp(PBX)\n");
+                    xdbg("BLOX_DBG: blox-invite.cfg: Loaded from cache $avp(uuid): $avp(PBX)\n");
                 } else if (avp_db_load("$avp(uuid)","$avp(PBX)/blox_config")) {
                     cache_store("local","$avp(uuid)","$avp(PBX)");
-                    xdbg("BLOX_DBG: Stored in cache $avp(uuid): $avp(PBX)\n");
+                    xdbg("BLOX_DBG: blox-invite.cfg: Stored in cache $avp(uuid): $avp(PBX)\n");
                 } else {
-                    xlog("L_WARN", "SIP Profile for $si:$sp access denied\n");
+                    xlog("L_WARN", "BLOX_DBG::: blox-invite.cfg: SIP Profile for $si:$sp access denied\n");
                     sl_send_reply("603", "Declined");
                     exit;
                 }
 
                 if($avp(PBX)) {
-                    xdbg("BLOX_DBG: Got route $Ri RE\n");
+                    xdbg("BLOX_DBG: blox-invite.cfg: Got route $Ri RE\n");
 
                     $var(cfgparam) = "cfgparam" ;
                     $avp($var(cfgparam)) = $avp(PBX);
@@ -309,13 +313,13 @@ route[ROUTE_INVITE] {
                     route(OUTBOUND_CALL_ACCESS_CONTROL);
 
                     if(cache_fetch("local","$avp(WAN)",$avp(WANProfile))) {
-                        xdbg("BLOX_DBG: Loaded from cache $avp(WAN): $avp(WANProfile)\n");
+                        xdbg("BLOX_DBG: blox-invite.cfg: Loaded from cache $avp(WAN): $avp(WANProfile)\n");
                     } else if (avp_db_load("$avp(WAN)","$avp(WANProfile)/blox_profile_config")) {
                         cache_store("local","$avp(WAN)","$avp(WANProfile)");
-                        xdbg("BLOX_DBG: Stored in cache $avp(WAN): $avp(WANProfile)\n");
+                        xdbg("BLOX_DBG: blox-invite.cfg: Stored in cache $avp(WAN): $avp(WANProfile)\n");
                     } else {
                         $avp(WANProfile) = null;
-                        xlog("L_INFO", "BLOX_DBG::: Drop MESSAGE $ru from $si : $sp\n" );
+                        xlog("L_INFO", "BLOX_DBG::: blox-invite.cfg: Drop MESSAGE $ru from $si : $sp\n" );
                         drop(); # /* Default 5060 open to accept packets from WAN side, but we don't process it */
                         exit;
                     }
@@ -330,7 +334,7 @@ route[ROUTE_INVITE] {
 
                     #search for aor mapped to pbx wan profile
                     $var(aor) = "sip:" + $tU + "@" + $avp(WANIP) + ":" + $avp(WANPORT) ;
-                    xdbg("BLOX_DBG: Looking for $var(aor) in locationpbx\n");
+                    xdbg("BLOX_DBG: blox-invite.cfg: Looking for $var(aor) in locationpbx\n");
 
                     # /* Last Check for Roaming Extension */
                     if (!lookup("locationpbx","m", "$var(aor)")) { ; #/* Find RE Registered to US */
@@ -356,14 +360,44 @@ route[ROUTE_INVITE] {
                         $dlg_val(channel) = "sip:" + $si + ":" + $sp;
                         $dlg_val(dchannel) = $du ;
                         $dlg_val(direction) = "outbound";
-                        topology_hiding("C");
+                        if(pcre_match("$ci","^BLOX_CALLID_PREFIX")) { /* Already tophide applied */
+                            topology_hiding();
+                        } else {
+                            topology_hiding("C");
+                        }
                         setflag(ACC_FLAG_CDR_FLAG);
                         setflag(ACC_FLAG_LOG_FLAG);
                         setflag(ACC_FLAG_DB_FLAG);
                         setflag(ACC_FLAG_FAILED_TRANSACTION);
-                        append_hf("P-hint: tophide applied\r\n"); 
+                            append_hf("P-hint: TopHide-Applied\r\n"); 
                         set_dlg_flag("DLG_FLAG_LAN2WAN") ;
                     };
+
+                    if($var(nat96)) { # /* If Contact not same as source IP Address */
+                        if(!is_ip_rfc1918("$si")) { # /* Set Source IP, Source is Priviate IP */
+                            if(!has_totag()) {
+                                $dlg_val(ucontact) = "sip:" + $si + ":" + $sp + ";transport=" + $proto ;
+                            } else if($DLG_dir == "downstream") {
+                                $dlg_val(dcontact) = "sip:" + $si + ":" + $sp + ";transport=" + $proto ;
+                            } else {
+                                $dlg_val(ucontact) = "sip:" + $si + ":" + $sp + ";transport=" + $proto ;
+                            }
+                        } else { # /* Set INVITE Contact */
+                            $var(cthost) = $(var(cturi){uri.host}) ;
+                            $dlg_val(rcv) = "sip:" + $si + ":" + $sp + ";transport=" + $proto ;
+                            xlog("L_INFO", "BLOX_DBG::: blox-invite.cfg: $var(ct) ==> $var(cthost) <==> $Ri : $dlg_val(loop)\n");
+                            xlog("L_INFO", "BLOX_DBG::: blox-invite.cfg: $DLG_dir | Set Source IP, Source is Priviate IP and received!=via  $si:$sp;$var(ctparams)\n");
+                            xlog("L_INFO", "BLOX_DBG::: blox-invite.cfg: Set INVITE Contact $var(cturi)\n");
+                            if(!has_totag()) {
+                                $dlg_val(ucontact) = $var(cturi);
+                            } else if($DLG_dir == "downstream") {
+                                $dlg_val(dcontact) = $var(cturi);
+                            } else {
+                                $dlg_val(ucontact) = $var(cturi);
+                            } 
+                        }
+                        xlog("L_INFO", "BLOX_DBG::: blox-invite.cfg: $var(cturi) != $si Request dir: $DLG_dir -> up: $dlg_val(ucontact) -> down: $dlg_val(dcontact) <-\n");
+                    }
 
                     if($var(ENUMSE) != null && $var(ENUMSX) != null) {
                         route(ENUM,$var(ENUMTYPE),$var(ENUMSX),$var(ENUMSE));
@@ -378,26 +412,26 @@ route[ROUTE_INVITE] {
                     }
                     uac_replace_to("$var(to)");
                     uac_replace_from("$var(from)");
-                    xlog("L_INFO", "BLOX_DBG::: Found PBX Requesting $ru -> $var(to)/$du -> $var(from)" );
+                    xlog("L_INFO", "BLOX_DBG::: blox-invite.cfg: Found PBX Requesting $ru -> $var(to)/$du -> $var(from)" );
 
                     route(LAN2WAN);
                     exit;
                 }
             }
         } else if ($avp(WAN)) { #WAN
-            xdbg("BLOX_DBG: Got from $Ri WAN\n");
+            xdbg("BLOX_DBG: blox-invite.cfg: Got from $Ri WAN\n");
             $avp(uuid) = "TRUNK:" + $avp(WAN) ;
             if(cache_fetch("local","$avp(uuid)",$avp(TRUNK))) {
-                xdbg("BLOX_DBG: Loaded from cache $avp(uuid): $avp(TRUNK)\n");
+                xdbg("BLOX_DBG: blox-invite.cfg: Loaded from cache $avp(uuid): $avp(TRUNK)\n");
             } else if (avp_db_load("$avp(uuid)","$avp(TRUNK)/blox_config")) {
                 cache_store("local","$avp(uuid)","$avp(TRUNK)");
-                xdbg("BLOX_DBG: Stored in cache $avp(uuid): $avp(TRUNK)\n");
+                xdbg("BLOX_DBG: blox-invite.cfg: Stored in cache $avp(uuid): $avp(TRUNK)\n");
             } else {
                 $avp(TRUNK) = null;
             }
 
             if($avp(TRUNK)) {
-                xdbg("BLOX_DBG: Got from $Ri TRUNK $avp(TRUNK)\n");
+                xdbg("BLOX_DBG: blox-invite.cfg: Got from $Ri TRUNK $avp(TRUNK)\n");
                 $var(cfgparam) = "cfgparam" ;
                 $avp($var(cfgparam)) = $avp(TRUNK);
                 avp_db_store("$hdr(call-id)","$avp($var(cfgparam))");
@@ -431,13 +465,13 @@ route[ROUTE_INVITE] {
                 }
 
                 if(cache_fetch("local","$avp(WAN)",$avp(WANProfile))) {
-                    xdbg("BLOX_DBG: Loaded from cache $avp(WAN): $avp(WANProfile)\n");
+                    xdbg("BLOX_DBG: blox-invite.cfg: Loaded from cache $avp(WAN): $avp(WANProfile)\n");
                 } else if (avp_db_load("$avp(WAN)","$avp(WANProfile)/blox_profile_config")) {
                     cache_store("local","$avp(WAN)","$avp(WANProfile)");
-                    xdbg("BLOX_DBG: Stored in cache $avp(WAN): $avp(WANProfile)\n");
+                    xdbg("BLOX_DBG: blox-invite.cfg: Stored in cache $avp(WAN): $avp(WANProfile)\n");
                 } else {
                     $avp(WANProfile) = null;
-                    xlog("L_INFO", "BLOX_DBG::: Drop MESSAGE $ru from $si : $sp\n" );
+                    xlog("L_INFO", "BLOX_DBG::: blox-invite.cfg: Drop MESSAGE $ru from $si : $sp\n" );
                     drop(); # /* Default 5060 open to accept packets from WAN side, but we don't process it */
                     exit;
                 }
@@ -456,13 +490,13 @@ route[ROUTE_INVITE] {
 
                 if($avp(INBNDURI)) {
                     if(cache_fetch("local","$avp(LAN)",$avp(LANProfile))) {
-                        xdbg("BLOX_DBG: Loaded from cache $avp(LAN): $avp(LANProfile)\n");
+                        xdbg("BLOX_DBG: blox-invite.cfg: Loaded from cache $avp(LAN): $avp(LANProfile)\n");
                     } else if (avp_db_load("$avp(LAN)","$avp(LANProfile)/blox_profile_config")) {
                         cache_store("local","$avp(LAN)","$avp(LANProfile)");
-                        xdbg("BLOX_DBG: Stored in cache $avp(LAN): $avp(LANProfile)\n");
+                        xdbg("BLOX_DBG: blox-invite.cfg: Stored in cache $avp(LAN): $avp(LANProfile)\n");
                     } else {
                         $avp(LANProfile) = null;
-                        xlog("L_INFO", "BLOX_DBG::: Drop MESSAGE $ru from $si : $sp\n" );
+                        xlog("L_INFO", "BLOX_DBG::: blox-invite.cfg: Drop MESSAGE $ru from $si : $sp\n" );
                         drop(); # /* Default 5060 open to accept packets from LAN side, but we don't process it */
                         exit;
                     }
@@ -475,7 +509,7 @@ route[ROUTE_INVITE] {
                     $du = $avp(INBNDURI) + ';transport=' + $avp(LANPROTO) ;
                 } else {
                     if (!lookup("locationtrunk","m")) { ; /* Find PBX Registered to US */
-                        xdbg("BLOX_DBG: Error no registration to SBC for TRUNK $avp(TRUNK)\n");
+                        xdbg("BLOX_DBG: blox-invite.cfg: Error no registration to SBC for TRUNK $avp(TRUNK)\n");
                         switch ($retcode) {
                             case -1:
                             case -3:
@@ -490,7 +524,7 @@ route[ROUTE_INVITE] {
                         }
                     }
                 }
-                xdbg("BLOX_DBG: Found to route $fs $ru $du TRUNK\n");
+                xdbg("BLOX_DBG: blox-invite.cfg: Found to route $fs $ru $du TRUNK\n");
 
                 $avp(cac_uuid) = $avp(TRUNK) ; 
                 setflag(487); /* Send 487 reply with route INBOUND_CALL_ACCESS_CONTROL, if failed */
@@ -503,13 +537,14 @@ route[ROUTE_INVITE] {
                     $dlg_val(channel) = "sip:" + $si + ":" + $sp;
                     $dlg_val(dchannel) = $du;
                     $dlg_val(direction) = "inbound";
-                    topology_hiding("C");
+                    /* Call-ID not required for WAN to LAN */
+                    topology_hiding();
                     setflag(ACC_FLAG_CDR_FLAG);
                     setflag(ACC_FLAG_LOG_FLAG);
                     setflag(ACC_FLAG_DB_FLAG);
                     setflag(ACC_FLAG_FAILED_TRANSACTION);
-                    append_hf("P-hint: tophide applied\r\n"); 
                     set_dlg_flag("DLG_FLAG_WAN2LAN") ;
+                    append_hf("P-hint: TopHide-Applied\r\n"); 
                 };
 
                 if($var(TRUNKDOMAIN)) {
@@ -525,15 +560,15 @@ route[ROUTE_INVITE] {
             
             $avp(uuid) = "PBX:" + $avp(WAN) ;
             if(cache_fetch("local","$avp(uuid)",$avp(PBX))) {
-                xdbg("BLOX_DBG: Loaded from cache $avp(uuid): $avp(PBX)\n");
+                xdbg("BLOX_DBG: blox-invite.cfg: Loaded from cache $avp(uuid): $avp(PBX)\n");
             } else if (avp_db_load("$avp(uuid)","$avp(PBX)/blox_config")) {
                 cache_store("local","$avp(uuid)","$avp(PBX)");
-                xdbg("BLOX_DBG: Stored in cache $avp(uuid): $avp(PBX)\n");
+                xdbg("BLOX_DBG: blox-invite.cfg: Stored in cache $avp(uuid): $avp(PBX)\n");
             } else {
                 $avp(PBX) = null;
             }
             if($avp(PBX)) {
-                xdbg("BLOX_DBG: Got from $Ri RE $avp(PBX)\n");
+                xdbg("BLOX_DBG: blox-invite.cfg: Got from $Ri RE $avp(PBX)\n");
                 $var(cfgparam) = "cfgparam" ;
                 $avp($var(cfgparam)) = $avp(PBX);
                 avp_db_store("$hdr(call-id)","$avp($var(cfgparam))");
@@ -562,10 +597,10 @@ route[ROUTE_INVITE] {
 
                 if($avp(LAN)) {
                     if(cache_fetch("local","$avp(WAN)",$avp(WANProfile))) {
-                        xdbg("BLOX_DBG: Loaded from cache $avp(WAN): $avp(WANProfile)\n");
+                        xdbg("BLOX_DBG: blox-invite.cfg: Loaded from cache $avp(WAN): $avp(WANProfile)\n");
                     } else if (avp_db_load("$avp(WAN)","$avp(WANProfile)/blox_profile_config")) {
                         cache_store("local","$avp(WAN)","$avp(WANProfile)");
-                        xdbg("BLOX_DBG: Stored in cache $avp(WAN): $avp(WANProfile)\n");
+                        xdbg("BLOX_DBG: blox-invite.cfg: Stored in cache $avp(WAN): $avp(WANProfile)\n");
                     }
 
                     $avp(WANADVIP) = $(avp(WANProfile){uri.param,advip});
@@ -584,13 +619,13 @@ route[ROUTE_INVITE] {
                     #}
 
                     if($var(PBXIPAUTH) && pcre_match_group("$si","$var(PBXIPAUTH)")) {
-                            xlog("L_INFO", "BLOX_DBG::: $si:$sp ($ua) Autheticated Via IPAuth $avp(PBX): Group:$var(PBXIPAUTH)\n");
+                            xlog("L_INFO", "BLOX_DBG::: blox-invite.cfg: $si:$sp ($ua) Autheticated Via IPAuth $avp(PBX): Group:$var(PBXIPAUTH)\n");
                     } else  {
                         if(cache_fetch("local","locationpbx:$fU:$avp(WANSOCKET):contact", $avp(contact)) \
                             && cache_fetch("local","locationpbx:$fU:$avp(WANSOCKET):received", $avp(received))) {
-                            xdbg("BLOX_DBG: locationpbx:$fU:$avp(WANSOCKET):contact => locationpbx:$fU:$avp(WANSOCKET):received => $avp(contact);$avp(received)") ;
+                            xdbg("BLOX_DBG: blox-invite.cfg: locationpbx:$fU:$avp(WANSOCKET):contact => locationpbx:$fU:$avp(WANSOCKET):received => $avp(contact);$avp(received)") ;
                         } else if(avp_db_query("SELECT contact, received, TIMESTAMP(expires) FROM locationpbx WHERE username = '$fU' AND socket = '$avp(WANSOCKET)' ORDER BY last_modified DESC LIMIT 1", "$avp(contact);$avp(received);$avp(expires)")) {
-                            xdbg("BLOX_DBG: SELECT contact, received, TIMESTAMP(expires)-NOW() FROM locationpbx WHERE username = '$fU' AND socket = '$avp(WANSOCKET)' ORDER BY last_modified LIMIT 1, $avp(contact);$avp(received);$avp(expires)") ;
+                            xdbg("BLOX_DBG: blox-invite.cfg: SELECT contact, received, TIMESTAMP(expires)-NOW() FROM locationpbx WHERE username = '$fU' AND socket = '$avp(WANSOCKET)' ORDER BY last_modified LIMIT 1, $avp(contact);$avp(received);$avp(expires)") ;
                             $var(expires) = ($avp(expires) - $Ts) * 1000;
                             #if($avp(RECHKONLYIP)) { # /* Match only IP address in registrar not IP:PORT or PROTO */
                             #    $avp(received) = $(avp(received){s.select,1,:}) ;
@@ -598,7 +633,7 @@ route[ROUTE_INVITE] {
                             cache_store("local","locationpbx:$fU:$avp(WANSOCKET):contact","$avp(contact)", $var(expires));
                             cache_store("local","locationpbx:$fU:$avp(WANSOCKET):received","$avp(received)", $var(expires));
                         } else {
-                                xlog("L_INFO", "BLOX_DBG::: No Registration found try Re-Registering\n");
+                                xlog("L_INFO", "BLOX_DBG::: blox-invite.cfg: No Registration found try Re-Registering\n");
                                 t_newtran();
                                 t_on_failure("LAN2WAN");
                                 t_reply("404", "Not Found");
@@ -606,9 +641,9 @@ route[ROUTE_INVITE] {
                         }
 
                         if(!($avp(RESOCKET) == $avp(received))) { #We might be checking old cache, fix it now
-                            xdbg("BLOX_DBG: Not maching re-check DB $avp(RESOCKET) != $avp(received)\n");
+                            xdbg("BLOX_DBG: blox-invite.cfg: Not maching re-check DB $avp(RESOCKET) != $avp(received)\n");
                             if(avp_db_query("SELECT contact, received, TIMESTAMP(expires) FROM locationpbx WHERE username = '$fU' AND socket = '$avp(WANSOCKET)' ORDER BY last_modified LIMIT 1", "$avp(contact);$avp(received);$avp(expires)")) {
-                                xdbg("BLOX_DBG: SELECT contact, received, TIMESTAMP(expires)-NOW() FROM locationpbx WHERE username = '$fU' AND socket = '$avp(WANSOCKET)' ORDER BY last_modified LIMIT 1, $avp(contact);$avp(received);$avp(expires)") ;
+                                xdbg("BLOX_DBG: blox-invite.cfg: SELECT contact, received, TIMESTAMP(expires)-NOW() FROM locationpbx WHERE username = '$fU' AND socket = '$avp(WANSOCKET)' ORDER BY last_modified LIMIT 1, $avp(contact);$avp(received);$avp(expires)") ;
                                 $var(expires) = ($avp(expires) - $Ts) * 1000;
                                 #if($avp(RECHKONLYIP)) { # /* Match only IP address in registrar not IP:PORT or PROTO */
                                 #    $avp(received) = $(avp(received){s.select,1,:}) ;
@@ -616,7 +651,7 @@ route[ROUTE_INVITE] {
                                 cache_store("local","locationpbx:$fU:$avp(WANSOCKET):contact","$avp(contact)", $var(expires));
                                 cache_store("local","locationpbx:$fU:$avp(WANSOCKET):received","$avp(received)", $var(expires));
                             } else {
-                                xlog("L_INFO", "BLOX_DBG::: No Registration found try Re-Registering\n");
+                                xlog("L_INFO", "BLOX_DBG::: blox-invite.cfg: No Registration found try Re-Registering\n");
                                 t_newtran();
                                 t_on_failure("LAN2WAN");
                                 t_reply("404", "Not Found");
@@ -631,7 +666,7 @@ route[ROUTE_INVITE] {
                         }
                 
                         if(!($avp(RESOCKET) == $avp(received))) {
-                            xdbg("BLOX_DBG: Not maching $avp(RESOCKET) != $avp(received)\n");
+                            xdbg("BLOX_DBG: blox-invite.cfg: Not maching $avp(RESOCKET) != $avp(received)\n");
                             t_newtran();
                             t_on_failure("LAN2WAN");
                             t_reply("404", "Not Found");
@@ -640,13 +675,13 @@ route[ROUTE_INVITE] {
                     }
 
                     if(cache_fetch("local","$avp(LAN)",$avp(LANProfile))) {
-                        xdbg("BLOX_DBG: Loaded from cache $avp(LAN): $avp(LANProfile)\n");
+                        xdbg("BLOX_DBG: blox-invite.cfg: Loaded from cache $avp(LAN): $avp(LANProfile)\n");
                     } else if (avp_db_load("$avp(LAN)","$avp(LANProfile)/blox_profile_config")) {
                         cache_store("local","$avp(LAN)","$avp(LANProfile)");
-                        xdbg("BLOX_DBG: Stored in cache $avp(LAN): $avp(LANProfile)\n");
+                        xdbg("BLOX_DBG: blox-invite.cfg: Stored in cache $avp(LAN): $avp(LANProfile)\n");
                     } else {
                         $avp(LANProfile) = null;
-                        xlog("L_INFO", "BLOX_DBG::: Drop MESSAGE $ru from $si : $sp\n" );
+                        xlog("L_INFO", "BLOX_DBG::: blox-invite.cfg: Drop MESSAGE $ru from $si : $sp\n" );
                         drop(); # /* Default 5060 open to accept packets from LAN side, but we don't process it */
                         exit;
                     }
@@ -662,11 +697,18 @@ route[ROUTE_INVITE] {
                     $du = $avp(PBX) + "transport=" + $avp(LANPROTO)  ;
                     if($avp(LANDOMAIN)) {
                         $ru = "sip:" + $rU + "@" + $avp(LANDOMAIN) ;
+                        $var(Tto)   = "sip:" + $tU + "@" + $avp(LANDOMAIN) ;
+                        $var(Tfrom) = "sip:" + $fU + "@" + $avp(LANDOMAIN) ;
                     } else {
                         $ru = "sip:" + $rU + "@" + $var(PBXIP) + ":" + $var(PBXPORT) ;
+                        $var(Tto)   = "sip:" + $tU + "@" + $var(PBXIP) + ":" + $var(PBXPORT);
+                        $var(Tfrom) = "sip:" + $fU + "@" + $var(PBXIP) + ":" + $var(PBXPORT);
                     }
 
 
+                    $var(to)   = $tu ;
+                    $var(from) = $fu ;
+                    xdbg("BLOX_DBG::: blox-invite.cfg: Update from $var(Tto) << $var(to) : $var(Tfrom) << $var(from)\n");
                     if(!has_totag()) {
                         create_dialog("PpB");
                         $dlg_val(MediaProfileID) = $(avp(PBX){uri.param,MEDIA});
@@ -675,26 +717,27 @@ route[ROUTE_INVITE] {
                         $dlg_val(channel) = "sip:" + $si + ":" + $sp;
                         $dlg_val(dchannel) = $du ;
                         $dlg_val(direction) = "inbound";
-                        topology_hiding("CR");
+
+                        /* Call-ID not required for WAN to LAN */
+                        topology_hiding(); #flags remove: CR: C - CallID, R - Refer-To
                         add_rcv_param();
                         setflag(ACC_FLAG_CDR_FLAG);
                         setflag(ACC_FLAG_LOG_FLAG);
                         setflag(ACC_FLAG_DB_FLAG);
                         setflag(ACC_FLAG_FAILED_TRANSACTION);
-                        append_hf("P-hint: tophide applied\r\n"); 
                         set_dlg_flag("DLG_FLAG_WAN2LAN") ;
+                        append_hf("P-hint: TopHide-Applied\r\n"); 
 
 #import_file "blox-humbug-invite.cfg"
  
                     }
 
-                    $var(to)   = $tu ;
-                    $var(from) = $fu ;
                     $var(fproto) = $(var(from){uri.param,transport}) ;
                     $var(tproto) = $(var(to){uri.param,transport}) ;
                     if($var(tproto)==""){$var(tproto)=null;}
                     if($var(fproto)==""){$var(fproto)=null;}
 
+                    xlog("L_INFO", "BLOX_DBG::: blox-invite.cfg: Update from $var(Tto) << $var(to) : $var(Tfrom) << $var(from)\n");
                     if($var(tproto) == null) {
                         $var(to) = $var(to) + ";transport=" + $avp(LANPROTO) ;
                         uac_replace_to("$var(to)");
@@ -710,7 +753,7 @@ route[ROUTE_INVITE] {
                 }
             }
 
-            xlog("L_INFO", "BLOX_DBG::: Dropping SIP Method $rm received from $fu $si $sp to $ru ($avp(rcv))\n"); /* Dont know what to do */
+            xlog("L_INFO", "BLOX_DBG::: blox-invite.cfg: Dropping SIP Method $rm received from $fu $si $sp to $ru ($avp(rcv))\n"); /* Dont know what to do */
             drop();
             exit;
         }
