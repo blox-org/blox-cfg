@@ -2,7 +2,7 @@
 #
 # rtpengine		Startup script for NGCP rtpengine
 #
-# chkconfig: 345 84 16
+# chkconfig: 345 55 35
 # description: NGCP rtpengine
 #
 # processname: rtpengine
@@ -12,6 +12,8 @@
 ### BEGIN INIT INFO
 # Provides: rtpengine
 # Required-Start: $local_fs $network
+# Default-Start:     3 4 5
+# Default-Stop:      0 1 2 6
 # Short-Description: NGCP rtpengine
 # Description: NGCP rtpengine 
 ### END INIT INFO
