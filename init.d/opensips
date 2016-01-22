@@ -56,11 +56,12 @@ setup_opensips() {
     if [ -n "$ubuntu" ]
     then
     	update-rc.d mysql defaults
+    	/etc/init.d/mysql start
     else
     	/sbin/chkconfig mysqld --add
     	/sbin/chkconfig --level 345 mysqld on
+    	/etc/init.d/mysqld start
     fi
-    /etc/init.d/mysqld start
     source /usr/local/etc/opensips/opensipsctlrc
 
     OPENSIPS_DBVER=$(mysql -u $DBRWUSER --password=$DBRWPW -e "show databases" | grep "^opensips_" | head -1 | sed 's/^opensips_//')
