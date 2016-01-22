@@ -2,6 +2,17 @@
 
 # chkconfig: 345 65 35
 
+### BEGIN INIT INFO
+# Provides: opensips
+# Required-Start:
+# Required-Stop:
+# Default-Start:     3 4 5
+# Default-Stop:      0 1 2 6
+# Short-Description: Blox Opensips proxy
+# Description: Blox Opensips proxy
+### END INIT INFO
+
+
 export PATH=$PATH:/usr/local/sbin/
 
 export STARTOPTIONS="-m512 -M32"
@@ -32,8 +43,14 @@ status_opensips() {
 }
 
 setup_opensips() {
-    /sbin/chkconfig mysqld --add
-    /sbin/chkconfig --level 345 mysqld on
+    ubuntu=$(python -mplatform | grep -i ubuntu)
+    if [ -n "$ubuntu" ]
+    then
+    	update-rc.d mysql defaults
+    else
+    	/sbin/chkconfig mysqld --add
+    	/sbin/chkconfig --level 345 mysqld on
+    fi
     /etc/init.d/mysqld start
     source /usr/local/etc/opensips/opensipsctlrc
 
