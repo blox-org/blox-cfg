@@ -43,21 +43,17 @@ route[ALLOMTSLOAD] {
 
 # main routing logic
 route {
-    xlog("L_INFO", "BLOX_DBG::: Received $Ri:$Rp Got $rm $fu/$ru/$si:$sp/$du/$retcode\n" );
-
-    force_rport();
-    if(nat_uac_test("3")) { #If Contact Private IP and Source not matching Via
-        fix_nated_contact() ;
-    }
+    xlog("L_INFO", "BLOX_DBG::: blox.cfg: contact: $ct : callid: $ci src: $si:$sp ==> rcv: $Ri:$Rp\n");
+    xlog("L_INFO", "BLOX_DBG::: blox.cfg: Got $rm req:$ru from:$fu to:$tu dst:$du\n" );
 
     # initial sanity checks
     if (pcre_match_group("$ua", "0")) { #Group: 0 is blacklist
-        xlog("L_INFO", "BLOX_DBG::: Dropping SIP scanner $ua\n");
+        xlog("L_INFO", "BLOX_DBG::: blox.cfg: Dropping SIP scanner $ua\n");
         exit;
     }
 
     if (msg:len >= MAX_SIP_MSG_LENGTH ) {
-        xlog("L_ERR", "Too BIG $rm $ml: $fu/$ru/$si/$du/$retcode\n" );
+        xlog("L_ERR", "BLOX_DBG: blox.cfg: Too BIG $rm $ml: $fu/$ru/$si/$du/$retcode\n" );
         sl_send_reply("513", "Message too big");
         exit;
     };
@@ -69,13 +65,13 @@ route {
 
     $avp(SIPProfile) = "sip:" + $Ri + ":" + $Rp + ";transport=" + $pr;
     
-    xdbg("BLOX_DBG: Getting Profile for $avp(SIPProfile)\n");
+    xdbg("BLOX_DBG: blox.cfg: Getting Profile for $avp(SIPProfile)\n");
     if(cache_fetch("local","LAN:$avp(SIPProfile)",$avp(LAN))) { #/* Try loading from cache */
-        xdbg("BLOX_DBG: Got Profile info from cache LAN:$avp(SIPProfile) $avp(WAN)\n");
+        xdbg("BLOX_DBG: blox.cfg: Got Profile info from cache LAN:$avp(SIPProfile) $avp(WAN)\n");
         $avp(LANIP) = $(avp(SIPProfile){uri.host});
         $avp(LANPORT) = $(avp(SIPProfile){uri.port});
     } else if(cache_fetch("local","WAN:$avp(SIPProfile)",$avp(WAN))) { #/* Try loading from cache */
-        xdbg("BLOX_DBG: Got Profile info from cache WAN:$avp(SIPProfile) $avp(WAN)\n");
+        xdbg("BLOX_DBG: blox.cfg: Got Profile info from cache WAN:$avp(SIPProfile) $avp(WAN)\n");
         $avp(WANIP) = $(avp(SIPProfile){uri.host});
         $avp(WANPORT) = $(avp(SIPProfile){uri.port});
     } else if(avp_db_load("$avp(SIPProfile)","$avp(LAN)/blox_profile_config")) { #/* Try loading from db */
@@ -91,15 +87,38 @@ route {
     }
 
     if(!($avp(LAN) || $avp(WAN))) {
-        xlog("L_INFO", "BLOX_DBG::: Unknown SIP Profile $avp(SIPProfile) ==> $avp(LAN) $avp(WAN)\n");
+        xlog("L_INFO", "BLOX_DBG::: blox.cfg: Unknown SIP Profile $avp(SIPProfile) ==> $avp(LAN) $avp(WAN)\n");
         sl_send_reply("603", "Declined");
         exit;
     }
 
-    xdbg("BLOX_DBG: Got ($pr:$Ri:$Rp) $avp(SIPProfile): Index:$avp(LAN):$avp(WAN):");
+    $var(nat96) = null;
+    $var(nat40) = null;
+    $var(nat3)  = null;
+    if(nat_uac_test("96")) {
+        $var(nat96) = 96 ;
+    }
+    if(nat_uac_test("40")) {
+        $var(nat40) = 40 ;
+    }
+    if(nat_uac_test("3")) {
+        $var(nat3)  = 3 ;
+    }
+
+    if($avp(WAN)) { # /* Fix NAT On WAN Request */
+        if($var(nat3)) {
+            $var(ct) = $ct ; # /* Original contact */
+            $var(cturi) = $ct.fields(uri) ; # /* Original contact */
+            fix_nated_contact(); # /* Contact header manipuation further should be avoided */
+        }
+    }
+
+    force_rport();
+
+    xdbg("BLOX_DBG: blox.cfg: Got ($pr:$Ri:$Rp) $avp(SIPProfile): Index:$avp(LAN):$avp(WAN):");
 
     if (is_method("OPTIONS") || is_method("SUBSCRIBE")) {
-    	xdbg("BLOX_DBG: Not support OPTIONS/SUBSCRIBE\n");
+    	xdbg("BLOX_DBG: blox.cfg: Not support OPTIONS/SUBSCRIBE\n");
         append_hf("Allow: INVITE, ACK, REFER, NOTIFY, CANCEL, BYE, REGISTER" );
         sl_send_reply("405", "Method Not Allowed");
         exit;
@@ -117,7 +136,7 @@ route {
     # subsequent messages withing a dialog should take the
     # path determined by record-routing
     if (loose_route()) {
-        xdbg("BLOX_DBG: PRE-ROUTING SIP Method $rm received from $fu $si $sp to $ru ($avp(rcv))\n");
+        xdbg("BLOX_DBG: blox.cfg: PRE-ROUTING SIP Method $rm received from $fu $si $sp to $ru ($avp(rcv))\n");
         # mark routing logic in request
         append_hf("P-hint: rr-enforced\r\n");
         if (is_method("BYE|CANCEL")) {
@@ -126,7 +145,7 @@ route {
                 if($avp(setid)) {
                     rtpengine_delete();
                 }
-                xlog("L_INFO", "BLOX_DBG::: Mediaprofile stopping the $avp(MediaProfileID)\n");
+                xlog("L_INFO", "BLOX_DBG::: blox.cfg: Mediaprofile stopping the $avp(MediaProfileID)\n");
             }
             $avp(resource) = "resource" + "-" + $ft ;
             route(DELETE_ALLOMTS_RESOURCE);
@@ -140,24 +159,22 @@ route {
     };
 
     if (has_totag() && (uri == myself)  && is_method("INVITE|ACK|BYE|UPDATE|REFER|NOTIFY")) {
+         xdbg("BLOX_DBG: blox.cfg: MATCHING DIALOG\n");
          if(match_dialog()) {
-            xdbg("BLOX_DBG: In-Dialog tophide - $dlg_val(ucontact) : $dlg_val(dcontact) - $DLG_dir\n");
-            append_hf("P-hint: $DLG_dir\r\n");
+            xdbg("BLOX_DBG: blox.cfg: MATCHED DIALOG\n");
+            xdbg("BLOX_DBG: blox.cfg: In-Dialog tophide dir: $DLG_dir - up: $dlg_val(ucontact) down: $dlg_val(dcontact) \n");
             if (is_method("BYE")) {
                 if($dlg_val(MediaProfileID)) {
                     $avp(MediaProfileID) = $dlg_val(MediaProfileID) ;
                     if($avp(setid)) {
                         rtpengine_delete();
                     }
-                    xlog("L_INFO", "BLOX_DBG::: Mediaprofile stopping the $avp(MediaProfileID)\n");
+                    xlog("L_INFO", "BLOX_DBG::: blox.cfg: Mediaprofile stopping the $avp(MediaProfileID)\n");
                 }
                 $avp(resource) = "resource" + "-" + $ft ;
                 route(DELETE_ALLOMTS_RESOURCE);
                 $avp(resource) = "resource" + "-" + $tt ;
                 route(DELETE_ALLOMTS_RESOURCE);
-                if(method == "BYE") {
-                    route(ROUTE_BYE);
-                }
             };
             if($avp(LAN)) {
                 route(LAN2WAN);
@@ -182,13 +199,13 @@ route {
     }
 
     if ( method == "ACK" ) { #already dialog handled, this should be dropped
-        xlog("L_INFO", "BLOX_DBG::: Dropping SIP Method $rm received from $fu $si $sp to $ru ($avp(rcv))\n"); /* Dont know what to do */
-    	t_check_trans();  # stops the retransmission
-    	exit;
+        xlog("L_INFO", "BLOX_DBG::: blox.cfg: Dropping SIP Method $rm received from $fu $si $sp to $ru ($avp(rcv))\n"); /* Dont know what to do */
+        t_check_trans();  # stops the retransmission
+        exit;
     }
 
     #drop();
-    #xlog("L_INFO", "BLOX_DBG::: Dropping SIP Method $rm received from $fu $si $sp to $ru ($avp(rcv))\n"); /* Dont know what to do */
+    #xlog("L_INFO", "BLOX_DBG::: blox.cfg: Dropping SIP Method $rm received from $fu $si $sp to $ru ($avp(rcv))\n"); /* Dont know what to do */
     #exit;
 }
 
@@ -206,7 +223,7 @@ failure_route[missed_call] {
 }
 
 failure_route[UAC_AUTH_FAIL] {
-    xdbg("BLOX_DBG: In failure_route UAC_AUTH_FAIL");
+    xdbg("BLOX_DBG: blox.cfg: In failure_route UAC_AUTH_FAIL");
         
     if (t_check_status("40[17]")) {
         # have we already tried to authenticate?
@@ -217,7 +234,7 @@ failure_route[UAC_AUTH_FAIL] {
         if(uac_auth()) {
             $avp(uuid) = "cseq-" + $ft ;
             setflag(88);
-            xdbg("BLOX_DBG: Return code is $retcode");
+            xdbg("BLOX_DBG: blox.cfg: Return code is $retcode");
             if(!cache_fetch("local","$avp(uuid)",$avp(CSEQ_OFFSET))) {
                 $avp(CSEQ_OFFSET) = 1;
             }
@@ -230,14 +247,14 @@ failure_route[UAC_AUTH_FAIL] {
             $avp(uuid) = "auth-" + $ft ;
             cache_store("local","$avp(uuid)","$avp(auth)");
 
-            xdbg("BLOX_DBG: Got Challenged $var(c): $avp(CSEQ_OFFSET)\n");
+            xdbg("BLOX_DBG: blox.cfg: Got Challenged $var(c): $avp(CSEQ_OFFSET)\n");
             t_on_failure("UAC_AUTH_FAIL");
             append_branch();
 
-            xdbg("BLOX_DBG: failure_route the cseq offset for $mb\n") ;
+            xdbg("BLOX_DBG: blox.cfg: failure_route the cseq offset for $mb\n") ;
             #t_relay();
         } else {
-            xlog("L_INFO", "BLOX_DBG::: uac_auth failed\n") ;
+            xlog("L_INFO", "BLOX_DBG::: blox.cfg: uac_auth failed\n") ;
         }
     }
 }
@@ -249,6 +266,7 @@ include_file "blox-register.cfg"
 include_file "blox-invite.cfg"
 include_file "blox-cancel.cfg"
 include_file "blox-bye.cfg"
+include_file "blox-ack.cfg"
 ###########################################################################################
 # ----------- SBC Feature routers ------------------------
 include_file "blox-lcr.cfg"

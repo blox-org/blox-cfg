@@ -19,6 +19,6 @@
 
 
 route[LCR_MATCH] {
-  xlog("L_NOTICE", "Match Found: LCR DIRECT PBX -> SBC\n");
+  xlog("L_NOTICE", "BLOX_DBG::: blox-lcr.cfg: Match Found: LCR DIRECT PBX -> SBC\n");
 }
 

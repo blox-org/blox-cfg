@@ -43,7 +43,7 @@ route[ROUTE_REGISTER] {
                     xdbg("BLOX_DBG: Stored in cache $avp(LAN): $avp(LANProfile)\n");
                 } else {
                     $avp(LANProfile) = null;
-                    xlog("L_INFO", "Drop MESSAGE $ru from $si : $sp\n" );
+                    xlog("L_INFO", "BLOX_DBG::: blox-register.cfg: Drop MESSAGE $ru from $si : $sp\n" );
                     drop(); # /* Default 5060 open to accept packets from LAN side, but we don't process it */
                     exit;
                 }
@@ -59,7 +59,7 @@ route[ROUTE_REGISTER] {
                           proxy_challenge("$avp(DOMAIN)", "0");
                           exit;
                     };
-                    xlog("L_INFO", "SIP Method $rm received from $fu $si $sp to $ru ($avp(rcv))\n");
+                    xlog("L_INFO", "BLOX_DBG::: blox-register.cfg: SIP Method $rm received from $fu $si $sp to $ru ($avp(rcv))\n");
                     save("locationtrunk");
                     exit;
                 };
@@ -73,7 +73,7 @@ route[ROUTE_REGISTER] {
                     xdbg("BLOX_DBG: Stored in cache $avp(uuid): $avp(PBX)\n");
                 } else {
                     $avp(PBX) = null;
-                    xlog("L_INFO", "Drop MESSAGE $ru from $si : $sp\n" );
+                    xlog("L_INFO", "BLOX_DBG::: blox-register.cfg: Drop MESSAGE $ru from $si : $sp\n" );
                     drop(); # /* Default 5060 open to accept packets from LAN side, but we don't process it */
                     exit;
                 }
@@ -87,7 +87,7 @@ route[ROUTE_REGISTER] {
                         xdbg("BLOX_DBG: Stored in cache $avp(LAN): $avp(LANProfile)\n");
                     } else {
                         $avp(LANProfile) = null;
-                        xlog("L_INFO", "Drop MESSAGE $ru from $si : $sp\n" );
+                        xlog("L_INFO", "BLOX_DBG::: blox-register.cfg: Drop MESSAGE $ru from $si : $sp\n" );
                         drop(); # /* Default 5060 open to accept packets from LAN side, but we don't process it */
                         exit;
                     }
@@ -96,6 +96,8 @@ route[ROUTE_REGISTER] {
                     $avp(LANIP) = $(avp(LANProfile){uri.host});
                     $avp(LANPORT) = $(avp(LANProfile){uri.port});
                     $avp(LANPROTO) = $(avp(LANProfile){uri.param,transport});
+                    $avp(LANDOMAIN) = $(avp(LANProfile){uri.param,domain});
+                    if($avp(LANDOMAIN)==""){$avp(LANDOMAIN)=null;}
                     fix_nated_register(); /* will set the (not just contact) received address to put in db */
                     force_rport();
                     if(! subst("/Contact: +<sip:(.*)@(.*?)>;(.*)$/Contact: <sip:\1@$avp(LANIP):$avp(LANPORT)>;\3/")) {
@@ -115,9 +117,11 @@ route[ROUTE_REGISTER] {
 
                     $fs = $avp(LANPROTO) + ":" + $avp(LANIP) + ":" + $avp(LANPORT) ;
                     $du = $avp(PBX) + ";transport=" + $avp(LANPROTO)  ;
-                    xlog("Sending to $avp(LANIP) : $avp(LANPORT) : $fs :  $var(reguri)\n");
+                    xlog("BLOX_DBG::: blox-register.cfg: Sending to $avp(LANIP) : $avp(LANPORT) : $fs :  $var(reguri)\n");
                     uac_replace_from("$var(reguri)");
                     uac_replace_to("$var(reguri)");
+                    remove_hf("Route"); #Not accepted for REGISTER
+                    add_path_received();
 
                     xdbg("BLOX_DBG: SIP Method $rm forwarding to $du\n");
                     if(client_nat_test("3")) {
@@ -127,7 +131,7 @@ route[ROUTE_REGISTER] {
                     t_on_reply("WAN2LAN_REGISTER");
 
                     if (!t_relay()) {
-                        xlog("L_ERR", "REGISTER Relay error $mb\n");
+                        xlog("L_ERR", "BLOX_DBG::: blox-register.cfg: REGISTER Relay error $mb\n");
                         sl_reply_error();
                     };
 
@@ -135,7 +139,7 @@ route[ROUTE_REGISTER] {
                 }
             }
         }
-        xlog("L_INFO", "REGISTER Unprocessed, Dropping SIP Method $rm received from $fu $si $sp to $ru ($avp(rcv))\n"); #/* Don't know what to do */
+        xlog("L_INFO", "BLOX_DBG::: blox-register.cfg: REGISTER Unprocessed, Dropping SIP Method $rm received from $fu $si $sp to $ru ($avp(rcv))\n"); #/* Don't know what to do */
         drop();
         exit;
     };
@@ -156,7 +160,7 @@ onreply_route[WAN2LAN_REGISTER] {
             $avp(regattr) = $pr + ":" + $si + ":" + $sp ;
             $var(aor) = "sip:" + $tU + "@" + $avp(WANIP) + ":" + $avp(WANPORT) ;
             if(!save("locationpbx","rp1fc1", "$var(aor)")) {
-                xlog("L_ERROR", "Error saving the location\n");
+                xlog("L_ERROR", "BLOX_DBG::: blox-register.cfg: Error saving the location\n");
             };
 
             if($avp(WANADVIP)) { # Roaming user: replace it with advIP:Port

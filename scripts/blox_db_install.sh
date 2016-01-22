@@ -25,7 +25,7 @@ NEW_VERSION=$2
 
 if [ -n "$OLD_VERSION" -a -n "$NEW_VERSION" ] #Migration
 then
-	if [ "$OLD_VERSION" == "$NEW_VERSION" ]
+	if [ "$OLD_VERSION" = "$NEW_VERSION" ]
 	then
 		BLOX_TABLES="locationpbx locationtrunk blox_config blox_profile_config  blox_codec"
 		OPENSIPS_TABLES="usr_preferences acc subscriber registrant dr_gateways"
@@ -46,7 +46,7 @@ else
 	yes | PW=cemsbc /usr/local/sbin/opensipsdbctl create opensips_$NEW_VERSION
 fi
 
-if [ -n "$OLD_VERSION" -a -n "$NEW_VERSION" -a "$OLD_VERSION" == "$NEW_VERSION" ]
+if [ -n "$OLD_VERSION" -a -n "$NEW_VERSION" -a "$OLD_VERSION" = "$NEW_VERSION" ]
 then
 	CREATE_SQL="/etc/blox/sql/blox.migrate.sql /etc/blox/sql/opensips.migrate.sql"
 else

@@ -35,7 +35,7 @@ modparam("dialog", "db_mode", 1)
 modparam("dialog","profiles_with_value","outbound; inbound")
 #modparam("dialog", "dlg_match_mode", 0)
 modparam("dialog","th_callid_passwd","ThisIsABigSecret")
-modparam("dialog","th_callid_prefix","SBC")
+modparam("dialog","th_callid_prefix","BLOX_CALLID_PREFIX")
 modparam("dialog", "default_timeout", 3600)
 modparam("dialog", "ping_interval", NAT_KEEPALIVE_INTERVAL)
 

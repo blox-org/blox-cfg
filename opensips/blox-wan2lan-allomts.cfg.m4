@@ -20,7 +20,6 @@
 
 #Used for WAN Profiles
 route[MTS_WAN2LAN] {
-    xdbg("BLOX_DBG: ------------------ WAN_2_LAN -----------------------\n");
     if($dlg_val(MediaProfileID)) {
         $avp(MediaProfileID) = $dlg_val(MediaProfileID);
     }
@@ -29,21 +28,21 @@ route[MTS_WAN2LAN] {
         if(!cache_fetch("local","allomtscodec",$var(codec))) {
             route(ALLOMTSLOAD);
             if(!cache_fetch("local","allomtscodec",$var(codec))) {
-                    xlog("L_ERR","Fatal: No allomts codec configured\n");
+                    xlog("L_ERR","BLOX_DBG::: blox-wan2lan-allomts.cfg: Fatal: No allomts codec configured\n");
                     drop(); # /* Drop request only route */
                     exit ;
             }
         }
         $json(jCodec) := $var(codec) ;
-        xdbg("BLOX_DBG: ------------------ $json(jCodec)-----------------------\n");
+        xdbg("BLOX_DBG: blox-wan2lan-allomts.cfg: ------------------ $json(jCodec)-----------------------\n");
 
         if(cache_fetch("local","$avp(MediaProfileID)",$avp(MediaProfile))) {
-            xdbg("BLOX_DBG: Loaded from cache $avp(MediaProfileID): $avp(MediaProfile)\n");
+            xdbg("BLOX_DBG: blox-wan2lan-allomts.cfg: Loaded from cache $avp(MediaProfileID): $avp(MediaProfile)\n");
         } else if (avp_db_load("$avp(MediaProfileID)","$avp(MediaProfile)/blox_profile_config")) {
             cache_store("local","$avp(MediaProfileID)","$avp(MediaProfile)");
-            xdbg("BLOX_DBG: Stored in cache $avp(MediaProfileID): $avp(MediaProfile)\n");
+            xdbg("BLOX_DBG: blox-wan2lan-allomts.cfg: Stored in cache $avp(MediaProfileID): $avp(MediaProfile)\n");
         } else {
-            xlog("L_ERR", "No profile configured for $avp(MediaProfileID): $avp(MediaProfile)\n");
+            xlog("L_ERR", "BLOX_DBG::: blox-wan2lan-allomts.cfg: No profile configured for $avp(MediaProfileID): $avp(MediaProfile)\n");
             sl_send_reply("500","Internal Media Error");
             exit;
         }
@@ -77,10 +76,10 @@ route[MTS_WAN2LAN] {
         if($avp(MediaTranscoding) == "1") {
             $avp(AUDIOCodec) = "MEDIA:" + $avp(MediaProfileID) ;
             if(cache_fetch("local","$avp(AUDIOCodec)",$avp(AUDIOCodec))) {
-                xdbg("BLOX_DBG: Loaded from cache $avp(AUDIOCodec): $avp(AUDIOCodec)\n");
+                xdbg("BLOX_DBG: blox-wan2lan-allomts.cfg: Loaded from cache $avp(AUDIOCodec): $avp(AUDIOCodec)\n");
             } else if (avp_db_load("$avp(AUDIOCodec)","$avp(AUDIOCodec)/blox_config")) {
                 cache_store("local","$avp(AUDIOCodec)","$avp(AUDIOCodec)");
-                xdbg("BLOX_DBG: Stored in cache $avp(AUDIOCodec): $avp(AUDIOCodec)\n");
+                xdbg("BLOX_DBG: blox-wan2lan-allomts.cfg: Stored in cache $avp(AUDIOCodec): $avp(AUDIOCodec)\n");
             }
 
             $var(oline) = $(rb{sdp.line,o});
@@ -94,7 +93,7 @@ route[MTS_WAN2LAN] {
             $var(mline) = $(rb{sdp.line,m,$var(sdpidx)});
             while($var(mline) != null && $var(mline) != "" && $var(sdpidx) < 3) { #COMMENT: Max 3 Media line will be processed 
                 if(($avp(SrcSRTP) == SRTP_DISABLE) && ($(var(mline){s.select,2, }) == "RTP/SAVP")) {
-                    xdbg("BLOX_DBG:: Ingoring mline $var(mline) SRTP Disabled\n");
+                    xdbg("BLOX_DBG:: blox-wan2lan-allomts.cfg: Ingoring mline $var(mline) SRTP Disabled\n");
                 } else {
                     $var(media) = $(var(mline){s.select,0, });
                     $var(media) = $(var(media){s.select,1,=});
@@ -102,7 +101,7 @@ route[MTS_WAN2LAN] {
                     $var(mtype) = $(var(mline){s.select,2, });
                     $var(t38) = $(var(mline){s.select,3, });
 
-                    xlog("L_WARN","Processing :$var(mport):$var(media):$var(t38): $var(mt38):$var(mvideo):$var(audio)\n");
+                    xdbg("BLOX_DBG::: Processing :$var(mport):$var(media):$var(t38): $var(mt38):$var(mvideo):$var(audio)\n");
     
                     if($var(mtype) == "udptl" && $var(t38) == "t38" && $var(mt38) == null) {
                         $avp(SrcUdptl) = 1;
@@ -118,7 +117,7 @@ route[MTS_WAN2LAN] {
                             } else {
                                 $avp(rSrcT38Param) = $var(aline) ;
                             }
-                            xdbg("BLOX_DBG: ------------------ $var(rSrcT38Param) ------------\n");
+                            xdbg("BLOX_DBG: blox-wan2lan-allomts.cfg: ------------------ $var(rSrcT38Param) ------------\n");
                             $var(i) = $var(i) + 1;
                             $var(aline) = $(rb{sdp.line,a,$var(i)});
                         }
@@ -126,7 +125,7 @@ route[MTS_WAN2LAN] {
                         $avp(rSrcT38MediaPort) = $var(mport);
                     } else if($var(media) == "video" && $var(mvideo) == null) {
                         $var(mvideo) = 1;
-                        xlog("L_WARN","Ignoring media: $var(mline) video not supported\n") ;
+                        xlog("L_WARN","BLOX_DBG::: blox-wan2lan-allomts.cfg: Ignoring media: $var(mline) video not supported\n") ;
                     } else if($var(media) == "audio" && $var(maudio) == null) { #/* Parse SRTP Param*/
                         $avp(srcaudiomline) = $var(mline) ;
                         $var(maudio) = 1 ;
@@ -154,18 +153,18 @@ route[MTS_WAN2LAN] {
                                     avp_insert("$avp(DstSRTPParam)","$var(rSrcSRTPParam)","10");
                                     avp_insert("$avp(rSrcSRTPSDP)","$var(aline)","10");
                                 }
-                                xdbg("BLOX_DBG: --$json(rSrcSRTPParam)---\n");
+                                xdbg("BLOX_DBG: blox-wan2lan-allomts.cfg: --$json(rSrcSRTPParam)---\n");
                             }
                             $var(i) = $var(i) + 1;
                             $var(aline) = $(rb{sdp.line,a,$var(i)});
                         }
                         $avp(rSrcMediaPort) = $var(mport);
                     } else {
-                        xlog("L_WARN","Ignoring media: $var(mline) unknown not supported\n") ;
+                        xlog("L_WARN","BLOX_DBG::: blox-wan2lan-allomts.cfg: Ignoring media: $var(mline) unknown not supported\n") ;
                     }
     
                     if($var(maudio) == null && $var(mt38) == null) {
-                        xlog("L_WARN","NOT ACCEPTABL HERE Support Fax or Audio\n");
+                        xlog("L_WARN","BLOX_DBG::: blox-wan2lan-allomts.cfg: NOT ACCEPTABL HERE Support Fax or Audio\n");
                         sl_send_reply("488","Not Acceptable Here");
                         exit;
                     }
@@ -176,21 +175,21 @@ route[MTS_WAN2LAN] {
             }
             
             if($var(mt38) && $avp(rSrcSRTPParam)) { #T38 with SRTP not supported
-                xlog("L_WARN","NOT ACCEPTABL HERE $avp(rSrcSRTPParam) <===> $avp(SrcMavp)\n");
+                xlog("L_WARN","BLOX_DBG::: blox-wan2lan-allomts.cfg: NOT ACCEPTABL HERE $avp(rSrcSRTPParam) <===> $avp(SrcMavp)\n");
                 sl_send_reply("488","Not Acceptable Here");
                 exit;
             }
 
             #SRTP Disabled mtype should have RTP/AVP and RTP/SAVP not processed above
             if(($avp(SrcSRTP) == SRTP_DISABLE) && ($var(mtype) != "RTP/AVP")) { 
-                xlog("L_WARN","NOT ACCEPTABL HERE $avp(rSrcSRTPParam) <===> $avp(SrcMavp)\n");
+                xlog("L_WARN","BLOX_DBG::: blox-wan2lan-allomts.cfg: NOT ACCEPTABL HERE $avp(rSrcSRTPParam) <===> $avp(SrcMavp)\n");
                 sl_send_reply("488","Not Acceptable Here");
                 exit;
             }
         
             #If SRTP_COMPULSORY there should be atleast one rSrcSRTPParam
             if($avp(SrcSRTP) == SRTP_COMPULSORY && (!$avp(rSrcSRTPParam))) {
-                xlog("L_WARN","NOT ACCEPTABL HERE $avp(rSrcSRTPParam) <===> $avp(SrcMavp) <===> $avp(DstSRTP)\n");
+                xlog("L_WARN","BLOX_DBG::: blox-wan2lan-allomts.cfg: NOT ACCEPTABL HERE $avp(rSrcSRTPParam) <===> $avp(SrcMavp) <===> $avp(DstSRTP)\n");
                 sl_send_reply("488","Not Acceptable Here");
                 exit;
             }
@@ -217,32 +216,32 @@ route[MTS_WAN2LAN] {
             $avp(rSrcCodec) = null;
             $json(jCodecList) := "{}" ; #jCodecList used for hash manipulation to avoid codec duplication added to rSrcCodec[]
             while($var(mcodec)) {
-                xdbg("BLOX_DBG: ------------------$var(mcodec)-----------------------\n");
+                xdbg("BLOX_DBG: blox-wan2lan-allomts.cfg: ------------------$var(mcodec)-----------------------\n");
                 if($avp($var(mcodec))) {
                     $var(codec) = $avp($var(mcodec)) ;
-                    xdbg("BLOX_DBG: Adding >>>>>>------------------$var(codec)-----------------------\n");
-                    xdbg("BLOX_DBG: Got codec $var(mcodec) $var(codec)\n");
+                    xdbg("BLOX_DBG: blox-wan2lan-allomts.cfg: Adding >>>>>>------------------$var(codec)-----------------------\n");
+                    xdbg("BLOX_DBG: blox-wan2lan-allomts.cfg: Got codec $var(mcodec) $var(codec)\n");
                     avp_insert("$avp(rSrcCodec)","$var(codec)","100");
                     $json(jCodecList/$var(codec)) = $json(jCodec/$var(codec)) ;
                 }
                 $var(i) = $var(i) + 1;
                 $var(mcodec) = $(avp(srcaudiomline){s.select,$var(i), });
             }
-            xdbg("BLOX_DBG: Remote Src codec list $(avp(rSrcCodec)[0]) $(avp(rSrcCodec)[1])\n");
+            xdbg("BLOX_DBG: blox-wan2lan-allomts.cfg: Remote Src codec list $(avp(rSrcCodec)[0]) $(avp(rSrcCodec)[1])\n");
 
-            xdbg("BLOX_DBG: ------------------$json(jCodecList)-----------------------\n");
+            xdbg("BLOX_DBG: blox-wan2lan-allomts.cfg: ------------------$json(jCodecList)-----------------------\n");
 
             $var(i) = 0;
             $var(mcodec) = $(avp(AUDIOCodec){s.select,$var(i),;});
             $var(mcodec) = $(var(mcodec){s.select,0,:}) ;
             $avp(rSrcTransCodec) = null;
             while($var(mcodec)) {
-                xdbg("BLOX_DBG: ------------------$var(mcodec)-----------------------\n");
+                xdbg("BLOX_DBG: blox-wan2lan-allomts.cfg: ------------------$var(mcodec)-----------------------\n");
                 if($avp($var(mcodec))) {
                     $var(codec) = $(avp($var(mcodec)){s.select,0,:}) ;
-                    xdbg("BLOX_DBG: Got codec $var(mcodec) $var(codec)\n");
+                    xdbg("BLOX_DBG: blox-wan2lan-allomts.cfg: Got codec $var(mcodec) $var(codec)\n");
                     if($json(jCodecList/$var(codec)) == null) {
-                        xdbg("BLOX_DBG: Adding >>>>>>------------------$var(codec)-----------------------\n");
+                        xdbg("BLOX_DBG: blox-wan2lan-allomts.cfg: Adding >>>>>>------------------$var(codec)-----------------------\n");
                         avp_insert("$avp(rSrcTransCodec)","$var(codec)","100");
                         $json(jCodecList/$var(codec)) = $json(jCodec/$var(codec)) ;
                     }
@@ -296,7 +295,7 @@ route[MTS_WAN2LAN] {
                 }
             }
 
-            xdbg("BLOX_DBG: ------------------$var(rtpmaps):$var(codecids)-----------------------\n");
+            xdbg("BLOX_DBG: blox-wan2lan-allomts.cfg: ------------------$var(rtpmaps):$var(codecids)-----------------------\n");
 
             #Lets reserve the get Media port and reserve it
             $avp(uid) = $hdr(call-id);
@@ -307,7 +306,7 @@ route[MTS_WAN2LAN] {
             }
 
             $var(url) =  "gMTSSRV" + "/reservemediaports?uniqueid="+$var(uid);
-            xlog("L_INFO", "BLOX_DBG::: Route: transcoding request : $var(url)\n");
+            xlog("L_INFO", "BLOX_DBG::: blox-wan2lan-allomts.cfg: Route: transcoding request : $var(url)\n");
             rest_get("$var(url)","$var(body)");
             if($var(body) == null) {
                 sl_send_reply("500","Server error");
@@ -316,28 +315,28 @@ route[MTS_WAN2LAN] {
 
             $json(res) := $var(body) ;
             $var(newaddr) = $avp(DstMediaIP) + ":" + $json(res/local_rtp_port) ;
-            xlog("L_INFO", "BLOX_DBG::: Route: transcoding reserverd............. :$var(body):$var(newaddr):\n");
+            xlog("L_INFO", "BLOX_DBG::: blox-wan2lan-allomts.cfg: Route: transcoding reserverd............. :$var(body):$var(newaddr):\n");
 
             $var(tDstMediaPort) = $(var(newaddr){s.select,1,:}) ;
 
             $avp(DstMediaPort) = $(var(tDstMediaPort){s.int}) ;
             if(is_direction("upstream")) { #Direction calculated in route
-                xdbg("BLOX_DBG:: Route: upstream($DLG_dir)\n");
+                xdbg("BLOX_DBG:: blox-wan2lan-allomts.cfg: Route: upstream($DLG_dir)\n");
                 $avp(SrcMediaPort) = ($avp(DstMediaPort) - gMediaPortOffset);
             } else {
-                xdbg("BLOX_DBG:: Route: downstream($DLG_dir)\n");
+                xdbg("BLOX_DBG:: blox-wan2lan-allomts.cfg: Route: downstream($DLG_dir)\n");
                 $avp(SrcMediaPort) = ($avp(DstMediaPort) + gMediaPortOffset);
             }
             $avp(DstT38MediaPort) = ($avp(DstMediaPort) + gT38MediaPortOffset);
             $avp(SrcT38MediaPort) = ($avp(SrcMediaPort) + gT38MediaPortOffset);
 
-            if( nat_uac_test("40")) {
+            if($var(nat40)) {
                 $avp(rSrcMediaIP) = $si ;
             } else {
                 $avp(rSrcMediaIP) = $(var(cline){s.select,2, });
             }
 
-            xdbg("BLOX_DBG:: ------------------ $avp(rSrcMediaIP):$avp(rSrcMediaPort):$avp(rSrcCodec) -------- :$avp(SrcMediaPort):$avp(DstMediaPort):\n");
+            xdbg("BLOX_DBG:: blox-wan2lan-allomts.cfg: ------------------ $avp(rSrcMediaIP):$avp(rSrcMediaPort):$avp(rSrcCodec) -------- :$avp(SrcMediaPort):$avp(DstMediaPort):\n");
 
             if($avp(SrcT38)) {
                 if(!$avp(T38Param)) {
@@ -346,20 +345,20 @@ route[MTS_WAN2LAN] {
                         $var(param) = $(avp($var(cfgparam))) ;
                         $avp(T38Param) = $(var(param){uri.param,T38Param}) ;
                     } else {
-                        xlog("L_ERR", "WAN_2_LAN Loading cfgparam\n");
+                        xlog("L_ERR", "BLOX_DBG::: blox-wan2lan-allomts.cfg: Loading cfgparam\n");
                     }
                 }
                 if($(avp(T38Param){s.int}) > 0) {
                     $avp(T38Param:1) = "MEDIA:" + $avp(MediaProfileID) ;
                     if(cache_fetch("local","$avp(T38Param:1)",$avp(T38Param:1))) {
-                        xdbg("BLOX_DBG: Loaded from cache $avp(T38Param:1): $avp(T38Param:1)\n");
+                        xdbg("BLOX_DBG: blox-wan2lan-allomts.cfg: Loaded from cache $avp(T38Param:1): $avp(T38Param:1)\n");
                     } else if (avp_db_load("$avp(T38Param:1)","$avp(T38Param:1)/blox_config")) {
                         cache_store("local","$avp(T38Param:1)","$avp(T38Param:1)");
-                        xdbg("BLOX_DBG: Stored in cache $avp(T38Param:1): $avp(T38Param:1)\n");
+                        xdbg("BLOX_DBG: blox-wan2lan-allomts.cfg: Stored in cache $avp(T38Param:1): $avp(T38Param:1)\n");
                     }
 
                     $avp(SrcT38Param) = $avp(T38Param:1) ;
-                    xdbg("BLOX_DBG: ------------------SrcT38Param: $avp(SrcT38Param)-----------------------\n");
+                    xdbg("BLOX_DBG: blox-wan2lan-allomts.cfg: ------------------SrcT38Param: $avp(SrcT38Param)-----------------------\n");
 
                     $avp(SrcT38Param) = $avp(SrcT38Param) + ";T38FaxMaxDatagram:1400" ;
                     $var(sdp) = $var(sdp) + "m=image " + $avp(DstT38MediaPort) + " udptl t38\r\n" ;
@@ -430,26 +429,59 @@ route[MTS_WAN2LAN] {
 
             add_body("$var(sdp)","application/sdp");
         } else {
-            xlog("L_WARN", "+++++++++++++++shouldn't be here: transcoding: feature disabled for this profile++++++++++\n");
+            xlog("L_WARN", "BLOX_DBG::: blox-wan2lan-allomts.cfg: shouldn't be here: transcoding: feature disabled for this profilen");
             sl_send_reply("500","Internal Media Error");
             exit ;
         }
-    };
+    }
 
     t_on_reply("MTS_WAN2LAN");
     t_on_failure("MTS_WAN2LAN");
 
-    if($DLG_dir == "downstream" && $dlg_val(dcontact)) {
-        $du = $dlg_val(dcontact) ;
-    }
-    if($DLG_dir == "upstream" && $dlg_val(ucontact)) {
-        $du = $dlg_val(ucontact) ;
+    if(has_totag()) { #Within dialog
+        if($du != null && $du != "") {
+            $ru = $du ;
+        }
     }
 
-    xlog("L_INFO", "BLOX_DBG::: ROUTING SIP Method $rm received from $fu $si $sp to $ru $avp(contact) : $du \n");
+    if(has_totag()) { #Within dialog
+        if($DLG_dir == "downstream" && $dlg_val(dcontact)) {
+            $du = $dlg_val(dcontact) ;
+        }
+        if($DLG_dir == "upstream" && $dlg_val(ucontact)) {
+            $du = $dlg_val(ucontact) ;
+        }
+    }
+
+    if(($Ri == $si)) {
+        if($du != null && $du != "") {
+            $var(du) = $du ; #orginal
+            $var(duuri) = "sip:" + $(var(du){uri.host}) + $(var(du){uri.port}) ;
+            $var(did) = $(var(du){uri.param,did}) ;
+            if($var(did) == null || $var(did) == "") { 
+                $var(did) = "" ;
+            } else {
+                $var(did) = ";did=" + $var(did) ;
+            }
+
+            subst("/Contact: +<sip:(.*)@(.*);did=(.*)>(.*)$/Contact: <$var(duuri)$var(did)>\4/");
+        }
+    }
+
+    if(has_totag()) { #Within dialog
+        if($du != null && $du != "") {
+            $ru = $du ;
+        }
+    }
+
+    xlog("L_INFO", "BLOX_DBG::: blox-lan2wan-allomts.cfg: ROUTING $rm - dir: $DLG_dir: from: $fu src:$si:$sp to ru:$ru : down: $avp(dcontact) up:$avp(ucontact) -> dst: $du \n");
+
+    if(nat_uac_test("3")) {
+        fix_nated_contact();
+    }
 
     if (!t_relay()) {
-        xlog("L_ERR", "WAN_2_LAN Relay error $mb\n");
+        xlog("L_ERR", "BLOX_DBG::: blox-wan2lan-allomts.cfg: Relay error $mb\n");
         sl_reply_error();
     };
 
@@ -458,13 +490,12 @@ route[MTS_WAN2LAN] {
 
 #Used for WAN PROFILE
 onreply_route[MTS_WAN2LAN] {
+    xlog("L_INFO","BLOX_DBG::: blox-wan2lan-allomts.cfg: Got Response code:$rs from:$fu ru:$ru src:$si:$sp callid:$ci rcv:$Ri:$Rp\n");
     remove_hf("User-Agent");
     insert_hf("User-Agent: USERAGENT\r\n","CSeq") ;
     if(remove_hf("Server")) { #Removed Server success, then add ours
         insert_hf("Server: USERAGENT\r\n","CSeq") ;
     }
-
-    xdbg("BLOX_DBG::: Got Response $rs/ $fu/$ru/$si/$ci/$avp(rcv)\n");
 
     if (status =~ "(183)|2[0-9][0-9]") {
         if (has_body("application/sdp")) {
@@ -477,7 +508,7 @@ onreply_route[MTS_WAN2LAN] {
             if(!cache_fetch("local","allomtscodec",$var(codec))) {
                 route(ALLOMTSLOAD);
                 if(!cache_fetch("local","allomtscodec",$var(codec))) {
-                    xlog("L_ERR","Fatal: No allomts codec configured\n");
+                    xlog("L_ERR","BLOX_DBG::: blox-wan2lan-allomts.cfg: Fatal: No allomts codec configured\n");
                     exit ;
                 }
             }
@@ -489,7 +520,7 @@ onreply_route[MTS_WAN2LAN] {
                 $var(cline) = $(rb{sdp.line,c});
                 $var(transcoding) = 1 ;
 
-                if( nat_uac_test("40")) {
+                if(nat_uac_test("40")) {
                     $avp(rDstMediaIP) = $si ;
                 } else {
                     $avp(rDstMediaIP) = $(var(cline){s.select,2, });
@@ -508,7 +539,7 @@ onreply_route[MTS_WAN2LAN] {
                     $var(mport) = $(var(mline){s.select,1, });
                     $var(mtype) = $(var(mline){s.select,2, });
                     $var(t38) = $(var(mline){s.select,3, });
-                    xdbg("BLOX_DBG: +++++++++++++++type ------ $var(mline) ==> : $var(t38):$var(mtype):$var(mport) ++++++++++++++\n");
+                    xdbg("BLOX_DBG: blox-wan2lan-allomts.cfg: +++++++++++++++type ------ $var(mline) ==> : $var(t38):$var(mtype):$var(mport) ++++++++++++++\n");
                     if($var(mtype) == "udptl" && $var(t38) == "t38" && $var(mt38) == null) {
                         $var(mt38) = 1 ;
                         $avp(DstUdptl) = 1;
@@ -525,7 +556,7 @@ onreply_route[MTS_WAN2LAN] {
                             } else {
                                 $avp(rDstT38Param) = $var(aline) ;
                             }
-                            xdbg("BLOX_DBG: $var(aline) <<<<< ------------------ $avp(rDstT38Param) ------------\n");
+                            xdbg("BLOX_DBG: blox-wan2lan-allomts.cfg: $var(aline) <<<<< ------------------ $avp(rDstT38Param) ------------\n");
                             $var(i) = $var(i) + 1;
                             $var(aline) = $(rb{sdp.line,a,$var(i)});
                         }
@@ -533,7 +564,7 @@ onreply_route[MTS_WAN2LAN] {
                         $avp(rDstT38MediaPort) = $var(mport);
                     } else if($var(media) == "video" && $var(mvideo) == null) {
                         $var(mvideo) = 1;
-                        xlog("L_WARN","Ignoring media: $var(mline) video not supported\n") ;
+                        xlog("L_WARN","BLOX_DBG::: blox-wan2lan-allomts.cfg: Ignoring media: $var(mline) video not supported\n") ;
                     } else if($var(media) == "audio" && $var(maudio) == null) { #/* Parse SRTP Param*/
                         $var(maudio) = 1 ;
                         $avp(dstaudiomline) = $var(mline) ;
@@ -570,9 +601,9 @@ onreply_route[MTS_WAN2LAN] {
 
                         $var(rSrcCodecIdx) = 0;
                         $var(rScodec) = $(avp(rSrcCodec)[$var(rSrcCodecIdx)]) ;
-                        xdbg("BLOX_DBG: +++++audio++++++++++$var(mcodec)>>>$var(codec)++++++++++\n");
+                        xdbg("BLOX_DBG: blox-wan2lan-allomts.cfg: +++++audio++++++++++$var(mcodec)>>>$var(codec)++++++++++\n");
                         while($var(rScodec)) {
-                            xdbg("BLOX_DBG: +++++++++++++++$var(codec) <==> $var(rScodec)++++++++++\n");
+                            xdbg("BLOX_DBG: blox-wan2lan-allomts.cfg: +++++++++++++++$var(codec) <==> $var(rScodec)++++++++++\n");
                             if($var(codec) == $var(rScodec)) {
                                 $var(transcoding) = 0;
                                 $var(rScodec) = null;
@@ -609,20 +640,20 @@ onreply_route[MTS_WAN2LAN] {
                                     avp_insert("$avp(rDstSRTPParam)","$var(rDstSRTPParam)","10");
                                     avp_insert("$avp(SrcSRTPParam)","$var(rDstSRTPParam)","10");
                                 }
-                                xdbg("BLOX_DBG: --$json(rDstSRTPParam)---\n");
+                                xdbg("BLOX_DBG: blox-wan2lan-allomts.cfg: --$json(rDstSRTPParam)---\n");
                             }
                             $var(i) = $var(i) + 1;
                             $var(aline) = $(rb{sdp.line,a,$var(i)});
                         }
                         $avp(rDstMediaPort) = $var(mport);
                     } else {
-                        xlog("L_WARN","Ignoring media: $var(mline) unknown not supported\n") ;
+                        xlog("L_WARN","BLOX_DBG::: blox-wan2lan-allomts.cfg: Ignoring media: $var(mline) unknown not supported\n") ;
                     }
                     $var(sdpidx) = $var(sdpidx) + 1 ;
                     $var(mline) = $(rb{sdp.line,m,$var(sdpidx)});
                 }
                 if(($var(mtype) == "RTP/SAVP" && $var(mport) == "0")){
-                    xlog("L_WARN","wan2lan Ignoring mport is 0 for RTP/SAVP $avp(rDstSRTPParam)  $avp(DstSRTP) $avp(SrcSRTP)   $var(mtype) $var(mport) $var(RTP/SAVP)\n") ;
+                    xlog("L_WARN","BLOX_DBG::: blox-wan2lan-allomts.cfg: Ignoring mport is 0 for RTP/SAVP $avp(rDstSRTPParam)  $avp(DstSRTP) $avp(SrcSRTP)   $var(mtype) $var(mport) $var(RTP/SAVP)\n") ;
                     #while(avp_delete("$avp(rDstSRTPParam)")) {
                     #}
                     # TODO: Replace the below line($avp(rDstSRTPParam) = "") with while loop. avp_delete will clear the 
@@ -639,7 +670,7 @@ onreply_route[MTS_WAN2LAN] {
                     strip_body(); #/* Exit here */
                 }
     
-                xdbg("BLOX_DBG::: +++++++++++++++transcoding: $var(transcoding)+++++$avp(rDstT38Param)+++++\n");
+                xdbg("BLOX_DBG::: blox-wan2lan-allomts.cfg: +++++++++++++++transcoding: $var(transcoding)+++++$avp(rDstT38Param)+++++\n");
                 if($avp(SrcT38) && $avp(DstT38)) { #Must compare the param and bitrate as well
                     $var(transcoding) = 0; 
                     $var(mport) = $(avp(t38mline){s.select,1, });
@@ -647,7 +678,7 @@ onreply_route[MTS_WAN2LAN] {
                     $var(t38) = $(avp(t38mline){s.select,3, });
                 } else {
                     if(($var(transcoding) == 0) && $avp(rSrcSRTPParam) && $avp(rDstSRTPParam)) {
-                        xdbg("BLOX_DBG: +++++++++++++++SRTP testing : $var(transcoding)+++++$avp(rDstSRTPParam)+++++\n");
+                        xdbg("BLOX_DBG: blox-wan2lan-allomts.cfg: +++++++++++++++SRTP testing : $var(transcoding)+++++$avp(rDstSRTPParam)+++++\n");
                     } else {
                         if($avp(SrcT38) || $avp(DstT38)) {
                             $var(transcoding) = 1; #/* Reset it to transcoding, if codec match set to 0 above */
@@ -683,7 +714,7 @@ onreply_route[MTS_WAN2LAN] {
                                     $var(srcmkeysalt) = $var(srcmkey) + $var(srcmsalt) ;
                                     $var(srcmkshexdec) = $(var(srcmkeysalt){s.decode.hexa}) ;
                                     $var(srcinline) = $(var(srcmkshexdec){s.encode.base64}) ;
-                                    xdbg("BLOX_DBG: $var(srcrhexenc) ==> $var(srcmkey) <<>> $var(srcmsalt) <== $var(srcmkshexdec) <== $var(srcinline) \n");    
+                                    xdbg("BLOX_DBG: blox-wan2lan-allomts.cfg: $var(srcrhexenc) ==> $var(srcmkey) <<>> $var(srcmsalt) <== $var(srcmkshexdec) <== $var(srcinline) \n");    
                                     $avp(SrcSRTPParam) = $var(suite) + ":" + $var(srcmkey) + ":" + $var(srcmsalt) ;
                                 } else {
                                     $avp(rSrcSRTPParam) = null ;
@@ -728,14 +759,14 @@ onreply_route[MTS_WAN2LAN] {
                         $var(t38) = $(avp(dstaudiomline){s.select,3, });
                     }
     
-                    xdbg("BLOX_DBG::: +++++++++++++++transcoding: $var(transcoding)+++++$var(rDstMediaPort):$var(maudio):+++++\n");
+                    xdbg("BLOX_DBG::: blox-wan2lan-allomts.cfg: +++++++++++++++transcoding: $var(transcoding)+++++$var(rDstMediaPort):$var(maudio):+++++\n");
 
                     $avp(resource) = "resource" + "-" + $ft; /* Grab media port offset from resource-$ft */
                     route(DELETE_ALLOMTS_RESOURCE); #Delete previous session, if any
 
                     #remote rtp_nostrict=true in real system
                     #no strict used in REST rtp_nostrict=true due to lan/wan emulation with single nic card 
-                    xdbg("BLOX_DBG:: ------------------ $avp(rSrcMediaIP):$avp(rSrcMediaPort):$(avp(rSrcCodec)[$var(rSrcCodecIdx)])-------- :$avp(SrcMediaPort):$avp(DstMediaPort):\n");
+                    xdbg("BLOX_DBG:: blox-wan2lan-allomts.cfg: ------------------ $avp(rSrcMediaIP):$avp(rSrcMediaPort):$(avp(rSrcCodec)[$var(rSrcCodecIdx)])-------- :$avp(SrcMediaPort):$avp(DstMediaPort):\n");
                     if($var(transcoding) == 0) { #/* No Transcoding required, PASSTHROUGH */
                         if($avp(SrcT38)) {
                             $var(url) =  "gMTSSRV" + "/makepassthrough?remote_ipA=" + $avp(rSrcMediaIP) + "&remote_portA=" + $avp(rSrcT38MediaPort) + "&remote_ipB=" + $avp(rDstMediaIP) + "&remote_portB=" + $avp(rDstT38MediaPort) + "&local_portA=" + $avp(SrcT38MediaPort) + "&local_portB=" + $avp(DstT38MediaPort) +"&uniqueid="+$var(uid);
@@ -747,7 +778,7 @@ onreply_route[MTS_WAN2LAN] {
                             if($avp(rSrcMediaPort) == null) {
                                 $avp(rSrcMediaPort) = $avp(rSrcT38MediaPort) - gT38MediaPortOffset ;
                             }
-                            xdbg("BLOX_DBG: ------------------ $avp(rSrcT38Param) ------------\n");
+                            xdbg("BLOX_DBG: blox-wan2lan-allomts.cfg: ------------------ $avp(rSrcT38Param) ------------\n");
                             $var(url) =  "gMTSSRV" + "/create?remote_ip=" + $avp(rSrcMediaIP) + "&codec=t38&local_t38_port=" + $avp(SrcT38MediaPort) + "&remote_t38_port=" + $avp(rSrcT38MediaPort) + "&local_rtp_port=" + $avp(SrcMediaPort) + "&remote_rtp_port=" + $avp(rSrcMediaPort) + "&rcname=sbc@allo.com&rtp_nostrict=true&enable_t38=yes" + "&t38_profile=1" +"&uniqueid="+$var(uid);
                         } else if($avp(SrcSRTP) != SRTP_DISABLE && $avp(rSrcSRTPParam)) {
                             $var(url) =  "gMTSSRV" + "/create?remote_ip=" + $avp(rSrcMediaIP) + "&codec=" + $(avp(rSrcCodec)[$var(rSrcCodecIdx)]) + "&local_rtp_port=" + $avp(SrcMediaPort) + "&remote_rtp_port=" + $avp(rSrcMediaPort) + "&rcname=sbc@allo.com&rtp_nostrict=true&enable_srtp=true&srtp_s_crypto=" + $json(jCrypto/$var(suite)/crypto) + "&srtp_s_auth=" + $json(jCrypto/$var(suite)/auth) + "&srtp_s_auth_size=" + $json(jCrypto/$var(suite)/auth_size) + "&srtp_s_mst_ksize=" + $json(jCrypto/$var(suite)/mst_ksize) + "&srtp_s_mst_key=" + $var(srcmkey) + "&srtp_s_mst_salt=" + $var(srcmsalt) + "&srtp_r_crypto=" + $json(jCrypto/$var(suite)/crypto) + "&srtp_r_auth=" + $json(jCrypto/$var(suite)/auth) + "&srtp_r_auth_size=" + $json(jCrypto/$var(suite)/auth_size) + "&srtp_r_mst_ksize=" + $json(jCrypto/$var(suite)/mst_ksize) + "&srtp_r_mst_key=" + $var(rsrcmkey) + "&srtp_r_mst_salt=" + $var(rsrcmsalt)+"&uniqueid="+$var(uid);
@@ -755,7 +786,7 @@ onreply_route[MTS_WAN2LAN] {
                             $var(url) =  "gMTSSRV" + "/create?remote_ip=" + $avp(rSrcMediaIP) + "&codec=" + $(avp(rSrcCodec)[$var(rSrcCodecIdx)]) + "&local_rtp_port=" + $avp(SrcMediaPort) + "&remote_rtp_port=" + $avp(rSrcMediaPort) + "&rcname=sbc@allo.com&rtp_nostrict=true" +"&uniqueid="+$var(uid);
                         }
                     }
-                    xlog("L_INFO", "BLOX_DBG::: Connecting $var(url)\n");
+                    xlog("L_INFO", "BLOX_DBG::: blox-wan2lan-allomts.cfg: Connecting $var(url)\n");
                     rest_get("$var(url)","$var(body)");
                     $avp($avp(resource)) = $var(body);
                     $json(resource1) := $var(body) ;
@@ -767,7 +798,7 @@ onreply_route[MTS_WAN2LAN] {
                     if($var(idx1) >= 0) {
                         avp_db_store("$hdr(call-id)","$avp($avp(resource))");
                     }
-                    xlog("L_INFO", "BLOX_DBG::: Got Response $avp(resource) -> $avp($avp(resource)): $(avp(rSrcCodec)[$var(rSrcCodecIdx)]):$avp(rSrcMediaPort)<==>$avp(SrcMediaPort)\n");
+                    xlog("L_INFO", "BLOX_DBG::: blox-wan2lan-allomts.cfg: Got Response $avp(resource) -> $avp($avp(resource)): $(avp(rSrcCodec)[$var(rSrcCodecIdx)]):$avp(rSrcMediaPort)<==>$avp(SrcMediaPort)\n");
 
                     $avp(resource) = "resource" + "-" + $tt ;
                     route(DELETE_ALLOMTS_RESOURCE); #Delete previous session, if any
@@ -792,7 +823,7 @@ onreply_route[MTS_WAN2LAN] {
                             $var(url) =  "gMTSSRV" + "/create?remote_ip=" + $avp(rDstMediaIP) + "&codec=" + $var(codec) + "&remote_rtp_port=" + $avp(rDstMediaPort) + "&rcname=sbc@allo.com&local_rtp_port=" + $avp(DstMediaPort) + "&rtp_nostrict=true" +"&uniqueid="+$var(uid);
                         }
                     }
-                    xlog("L_INFO", "BLOX_DBG::: Connecting $var(url)\n");
+                    xlog("L_INFO", "BLOX_DBG::: blox-wan2lan-allomts.cfg: Connecting $var(url)\n");
                     rest_get("$var(url)","$var(body)");
                     $avp($avp(resource)) = $var(body);
                     $json(resource2) := $var(body) ;
@@ -802,11 +833,11 @@ onreply_route[MTS_WAN2LAN] {
                         $var(idx2) = $json(resource2/CPP-Index) ;
                     }
 
-                    xdbg("BLOX_DBG::: Got Index ---->> $var(idx1) <==> $var(idx2) <<  $json(resource2) >> $json(resource2/CPP-Index)\n");
+                    xdbg("BLOX_DBG::: blox-wan2lan-allomts.cfg: Got Index ---->> $var(idx1) <==> $var(idx2) <<  $json(resource2) >> $json(resource2/CPP-Index)\n");
                     if($var(idx2) >= 0) {
                         avp_db_store("$hdr(call-id)","$avp($avp(resource))");
                     }
-                    xlog("L_INFO", "BLOX_DBG::: Got Response $avp(resource) -> $avp($avp(resource)): $var(rDstMediaIP):$avp(mport)<==>$avp(DstMediaPort)\n");
+                    xlog("L_INFO", "BLOX_DBG::: blox-wan2lan-allomts.cfg: Got Response $avp(resource) -> $avp($avp(resource)): $var(rDstMediaIP):$avp(mport)<==>$avp(DstMediaPort)\n");
                     if($avp(rSrcCodec)) {
                         $var(rSrcCodecid) = $avp($(avp(rSrcCodec)[$var(rSrcCodecIdx)])) ;
                         if($avp($var(rSrcCodecid))) {
@@ -818,7 +849,7 @@ onreply_route[MTS_WAN2LAN] {
 
                     $var(SDPID1) = $(var(oline){s.select,1, });
                     $var(SDPID2) = $(var(oline){s.select,2, });
-                    xdbg("BLOX_DBG: >>>>>>>>>------------------$var(oline)-->>>> $var(SDPID1) <<>> $var(SDPID2) ---------------------\n");
+                    xdbg("BLOX_DBG: blox-wan2lan-allomts.cfg: >>>>>>>>>------------------$var(oline)-->>>> $var(SDPID1) <<>> $var(SDPID2) ---------------------\n");
                     $var(sdp) = "v=0\r\n" ;
                     $var(sdp) = $var(sdp) + "o=- " + $var(SDPID1) + " " + $var(SDPID2) + " IN IP4 " + $avp(SrcMediaIP) + "\r\n";
                     $var(sdp) = $var(sdp) + $(rb{sdp.line,s}) + "\r\n" ;
@@ -839,14 +870,14 @@ onreply_route[MTS_WAN2LAN] {
                             $var(mtype) = null ;
                             $avp(T38Param:1) = "MEDIA:" + $avp(MediaProfileID) ;
                             if(cache_fetch("local","$avp(T38Param:1)",$avp(T38Param:1))) {
-                                xdbg("BLOX_DBG: Loaded from cache $avp(T38Param:1): $avp(T38Param:1)\n");
+                                xdbg("BLOX_DBG: blox-wan2lan-allomts.cfg: Loaded from cache $avp(T38Param:1): $avp(T38Param:1)\n");
                             } else if (avp_db_load("$avp(T38Param:1)","$avp(T38Param:1)/blox_config")) {
                                 cache_store("local","$avp(T38Param:1)","$avp(T38Param:1)");
-                                xdbg("BLOX_DBG: Stored in cache $avp(T38Param:1): $avp(T38Param:1)\n");
+                                xdbg("BLOX_DBG: blox-wan2lan-allomts.cfg: Stored in cache $avp(T38Param:1): $avp(T38Param:1)\n");
                             }
 
                             $avp(SrcT38Param) = $avp(T38Param:1) ;
-                            xdbg("BLOX_DBG: ------------------SrcT38Param: $avp(SrcT38Param)-----------------------\n");
+                            xdbg("BLOX_DBG: blox-wan2lan-allomts.cfg: ------------------SrcT38Param: $avp(SrcT38Param)-----------------------\n");
 
                             $avp(SrcT38Param) = $avp(SrcT38Param) + ";T38FaxMaxDatagram:1400" ;
                             $var(sdp) = $var(sdp) + "m=image " + $avp(SrcMediaPort) + " udptl t38\r\n" ;
@@ -859,7 +890,7 @@ onreply_route[MTS_WAN2LAN] {
                             }
                             #Adding support for g711 termination for fax passthrough, if T38 not supported
                             #$var(sdp) = $var(sdp) + "m=audio " + $avp(SrcMediaPort) + " RTP/AVP " + "0 8\r\n" ;
-                            xdbg("BLOX_DBG: ---------+++++++++++Adding T38 in 200 ok reply"); 
+                            xdbg("BLOX_DBG: blox-wan2lan-allomts.cfg: ---------+++++++++++Adding T38 in 200 ok reply"); 
                         } else if($avp(rSrcSRTPParam) && $avp(rDstSRTPParam)) {
                             if($avp(SrcSRTP) == SRTP_OPTIONAL || $avp(SrcSRTP) == SRTP_COMPULSORY) {
                                 $var(jCrypto)   := '{
@@ -881,13 +912,13 @@ onreply_route[MTS_WAN2LAN] {
 
                                 $var(mtype) = " RTP/SAVP " ;
                                 $var(cryptoline) = "a=crypto:1 " + $var(suite) + " inline:" + $var(rdstinline) + "\r\n" ;
-                                xdbg("BLOX_DBG: ---------+++++++++++Adding Both Side SRTP 200 ok reply $var(suite) : $var(rdstinline)"); 
+                                xdbg("BLOX_DBG: blox-wan2lan-allomts.cfg: ---------+++++++++++Adding Both Side SRTP 200 ok reply $var(suite) : $var(rdstinline)"); 
                             } else {
                                 #/* Handled in Route with 488, Error Can't come here*/
-                                xlog("L_ERR","BROKEN ROUTE\n");
+                                xlog("L_ERR","BLOX_DBG::: blox-wan2lan-allomts.cfg: BROKEN ROUTE\n");
                             }
                         } else if($avp(rSrcSRTPParam)) {
-                            xdbg("BLOX_DBG: SRTP configuration  ---->> $avp(SrcMavp) ==  <==> <<  $avp(MediaEncryption) \n");
+                            xdbg("BLOX_DBG: blox-wan2lan-allomts.cfg: SRTP configuration  ---->> $avp(SrcMavp) ==  <==> <<  $avp(MediaEncryption) \n");
   
                             if($avp(SrcSRTP) != SRTP_DISABLE) {
                                 $var(mtype) = " RTP/SAVP ";
@@ -909,7 +940,7 @@ onreply_route[MTS_WAN2LAN] {
                         }
                     }
 
-                    xdbg("BLOX_DBG: Got Index ---->> $var(idx1) <==> $var(idx2) <<  $avp(SrcMediaIP) : $avp(SrcMediaPort)\n" ) ;
+                    xdbg("BLOX_DBG: blox-wan2lan-allomts.cfg: Got Index ---->> $var(idx1) <==> $var(idx2) <<  $avp(SrcMediaIP) : $avp(SrcMediaPort)\n" ) ;
                     #transcoding failed for any reason no need to update the sdp
                     if($var(idx1) >= 0 && $var(idx2) >= 0) {
                         add_body("$var(sdp)","application/sdp");
@@ -921,30 +952,34 @@ onreply_route[MTS_WAN2LAN] {
                     }
                 }
             } else {
-                xlog("L_WARN", "+++++++++++++++transcoding: feature disabled for this profile++++++++++\n");
+                xlog("L_WARN", "BLOX_DBG::: blox-wan2lan-allomts.cfg: transcoding: feature disabled for this profile\n");
             }
         };
 
-
         if(is_method("INVITE")) {
             if(nat_uac_test("96")) { # /* If Contact not same as source IP Address */
-                if(is_ip_rfc1918("$si") && nat_uac_test("2")) { # /* Set Source IP, Source is Priviate IP and received!=via */
+                if(!is_ip_rfc1918("$si")) { # /* Set Source IP, Source is Priviate IP and received!=via */
                     $var(ctparams) = $ct.fields(params) ;
-                    xlog("L_INFO", "BLOX_DBG::: Set Source IP, Source is Priviate IP and received!=via  $si:$sp;$var(ctparams)\n");
+                    xdbg("BLOX_DBG::: blox-wan2lan-allomts.cfg: $DLG_dir | Set Source IP, Source is Priviate IP and received!=via  $si:$sp;$var(ctparams)\n");
                     if($DLG_dir == "downstream") {
                         $dlg_val(ucontact) = "sip:" + $si + ":" + $sp + ";transport=" + $proto ;
                     } else {
                         $dlg_val(dcontact) = "sip:" + $si + ":" + $sp + ";transport=" + $proto ;
                     }
                 } else { # /* Set 200 OK Contact */
-                    xlog("L_INFO", "BLOX_DBG::: Set 200 OK Contact ct.fields(uri)\n");
+                    $var(cturi) = $ct.fields(uri) ;
+                    $var(cthost) = $(var(cturi){uri.host}) ;
+                    $dlg_val(rcv) = "sip:" + $si + ":" + $sp + ";transport=" + $proto ;
+                    xdbg("BLOX_DBG::: blox-wan2lan.cfg: $ct ==> $var(cthost) <==> $Ri : $dlg_val(loop)\n");
+                    xdbg("BLOX_DBG::: blox-wan2lan.cfg: $DLG_dir | Set Source IP, Source is Priviate IP and received!=via  $si:$sp;$var(ctparams)\n");
+                    xdbg("BLOX_DBG::: blox-wan2lan.cfg: Set 200 OK Contact $ct.fields(uri)\n");
                     if($DLG_dir == "downstream") {
                         $dlg_val(ucontact) = $ct.fields(uri) ;
                     } else {
                         $dlg_val(dcontact) = $ct.fields(uri) ;
                     }
                 }
-                xlog("L_INFO", "BLOX_DBG::: $ct != $si Response to contact different source $DLG_dir -> $dlg_val(ucontact) -> $dlg_val(dcontact) <-\n");
+                xlog("L_INFO", "BLOX_DBG::: blox-wan2lan-allomts.cfg: $ct != $si Response to contact different source $DLG_dir -> $dlg_val(ucontact) -> $dlg_val(dcontact) <-\n");
             }
         }
     }
@@ -957,13 +992,13 @@ onreply_route[MTS_WAN2LAN] {
 failure_route[MTS_WAN2LAN] {
     if(is_method("INVITE")) {
         if (status =~ "488") {
-            xlog("L_WARN", "Not handled, Dropping Call\n");
+            xlog("L_WARN", "BLOX_DBG::: blox-wan2lan-allomts.cfg: Not handled, Dropping Call\n");
         }
         if($avp(DstMediaPort) != null) {
             $var(uid) = $avp(uid);
 
             $var(url) =  "gMTSSRV" + "/unreservemediaports?local_rtp_port=" + $avp(DstMediaPort) +"&uniqueid="+$var(uid);
-            xlog("L_INFO", "BLOX_DBG::: Route: transcoding request : $var(url)\n");
+            xlog("L_INFO", "BLOX_DBG::: blox-wan2lan-allomts.cfg: Route: transcoding request : $var(url)\n");
             rest_get("$var(url)","$var(body)");
         }
     }
@@ -972,5 +1007,5 @@ failure_route[MTS_WAN2LAN] {
         route(DELETE_ALLOMTS_RESOURCE);
         exit;
     }
-    xlog("Failed $rs\n");
+    xlog("L_WARN", "BLOX_DBG::: blox-wan2lan-allomts.cfg: Failed $rs\n");
 }
