@@ -18,7 +18,7 @@
 #  */
 
 
-mpath="/usr/local/lib64/opensips/modules/"
+mpath="MODULE_PATH"
 
 loadmodule "db_mysql.so"
 loadmodule "signaling.so"
