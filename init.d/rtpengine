@@ -197,8 +197,8 @@ CUR_TABLE=$TABLE
 EOF
 	fi
         echo -n $"Starting $prog: "
-        echo $DAEMON --pidfile=${pidfile} $rtpengine $OPTS
-        $DAEMON --pidfile=${pidfile} $rtpengine $OPTS
+        echo $DAEMON $rtpengine --pidfile=${pidfile} $rtpengine $OPTS
+        $DAEMON $rtpengine --pidfile=${pidfile} $rtpengine $OPTS
         RETVAL=$?
         echo
         [ $RETVAL = 0 ] && touch ${lockfile}
