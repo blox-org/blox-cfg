@@ -44,7 +44,7 @@ init_rtpengine() {
 	fi
 	
 	pidfile=${PIDFILE-/var/run/$RTPENGINE_NAME.pid}
-	lockfile=${LOCKFILE-/var/lock/subsys/$RTPENGINE_NAME}
+	lockfile=${LOCKFILE-/var/lock/$RTPENGINE_NAME}
 	if [ ! -d /var/lib/rtpengine/ ]
 	then
 		mkdir -p /var/lib/rtpengine
