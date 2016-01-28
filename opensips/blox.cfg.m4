@@ -32,6 +32,7 @@ include_file "blox-modules.cfg"
 include_file "blox-modparam.cfg"
 
 startup_route {
+    subscribe_event("E_SCRIPT_EVENT", "udp:BLOX_SUBSCRIBE_HOST:BLOX_SUBSCRIBE_PORT");
     avp_db_query("SELECT codec FROM  blox_codec","$avp(codec)");
     cache_store("local", "allomtscodec", "$avp(codec)");
 }
@@ -117,8 +118,8 @@ route {
 
     xdbg("BLOX_DBG: blox.cfg: Got ($pr:$Ri:$Rp) $avp(SIPProfile): Index:$avp(LAN):$avp(WAN):");
 
-    if (is_method("OPTIONS") || is_method("SUBSCRIBE")) {
-    	xdbg("BLOX_DBG: blox.cfg: Not support OPTIONS/SUBSCRIBE\n");
+    if (is_method("OPTIONS") ) {
+    	xdbg("BLOX_DBG: blox.cfg: Not support OPTIONS\n");
         append_hf("Allow: INVITE, ACK, REFER, NOTIFY, CANCEL, BYE, REGISTER" );
         sl_send_reply("405", "Method Not Allowed");
         exit;
@@ -183,11 +184,6 @@ route {
             }
             exit;
          };
-         if(method == "NOTIFY") { /* Only REFER-NOTIFY, Not SUBSCRIBE */
-            sl_send_reply("405", "Method Not Allowed");
-            append_hf("Allow: INVITE, ACK, REFER, CANCEL, BYE, REGISTER" );
-            exit;
-         }
     };
 
     if(method == "INVITE") {
@@ -203,6 +199,19 @@ route {
         t_check_trans();  # stops the retransmission
         exit;
     }
+
+    if(method == "NOTIFY") { /* Only REFER-NOTIFY, Not SUBSCRIBE */
+       route(ROUTE_NOTIFY);
+    }
+
+    if(method == "SUBSCRIBE") {
+        route("ROUTE_SUBSCRIBE");
+    }
+
+    if(method == "PUBLISH") {
+        route("ROUTE_PUBLISH");
+        exit;
+    };
 
     #drop();
     #xlog("L_INFO", "BLOX_DBG::: blox.cfg: Dropping SIP Method $rm received from $fu $si $sp to $ru ($avp(rcv))\n"); /* Dont know what to do */
@@ -267,6 +276,10 @@ include_file "blox-invite.cfg"
 include_file "blox-cancel.cfg"
 include_file "blox-bye.cfg"
 include_file "blox-ack.cfg"
+include_file "blox-notify.cfg"
+include_file "blox-subscribe.cfg"
+include_file "blox-publish.cfg"
+include_file "blox-userblacklist.cfg"
 ###########################################################################################
 # ----------- SBC Feature routers ------------------------
 include_file "blox-lcr.cfg"
@@ -285,5 +298,5 @@ import_file  "blox-lan2wan-allomts.cfg"
 import_file  "blox-wan2lan-allomts.cfg"
 ###########################################################################################
 # ----------- Addon Module ------------------------
-import_file  "blox-humbug.cfg"
+import_file  "blox-addon-humbug.cfg"
 ###########################################################################################
