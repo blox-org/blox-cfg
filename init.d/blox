@@ -1,15 +1,43 @@
 #!/bin/bash
 
-# chkconfig: 2 55 2
+# chkconfig: 345 64 35
+### BEGIN INIT INFO
+# Provides: blox
+# Required-Start:
+# Required-Stop:
+# Default-Start:     3 4 5
+# Default-Stop:      0 1 2 6
+# Short-Description: Blox utils 
+# Description: Blox Utils and Scripts
+### END INIT INFO
+
+
+bloxngxdir=/usr/local/ngx-blox/
+rundir=$bloxngxdir/run
+logdir=$bloxngxdir/logs
 
 start_blox() {
-	/usr/local/ngx-blox/sbin/nginx 1>>/usr/local/ngx-blox/logs/nginx-blox.startup 2>&1 
+	mkdir -p $rundir $logdir
+	/usr/local/ngx-blox/sbin/nginx 1>>$logdir/nginx-blox.startup 2>&1 
+	if [ $? -eq 0 ]; then
+		echo -e "\e[1;32mngx-blox Server Started... \e[0m"
+	else
+		echo -e "\e[1;31mngx-blox Server Failed to Start... \e[0m"
+	fi
+	nohup /usr/bin/send_notify.sh &
+	nohup /usr/bin/listen_subscribe.sh &
+		
 }
 
 stop_blox() {
-	if [ -f /usr/local/ngx-blox/logs/nginx.pid ]
+	if [ -f $rundir/nginx.pid ]
 	then
-		kill $(cat /usr/local/ngx-blox/logs/nginx.pid)
+		kill $(cat $rundir/nginx.pid)
+		if [ $? -eq 0 ]; then
+			echo -e "\e[1;32mngx-blox Server Stopped... \e[0m"
+		else
+			echo -e "\e[1;31mngx-blox Server Failed to Stop... \e[0m"
+		fi
 	fi
 }
 
@@ -19,9 +47,9 @@ restart_blox() {
 }
 
 status_blox() {
-	if [ -f /usr/local/ngx-blox/logs/nginx.pid ]
+	if [ -f $rundir/nginx.pid ]
 	then
-		PID=$(cat /usr/local/ngx-blox/logs/nginx.pid)
+		PID=$(cat $rundir/nginx.pid)
 	fi
 	if [ -n "$PID" ]
 	then

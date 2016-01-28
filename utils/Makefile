@@ -1,6 +1,24 @@
-all:
-	@echo "nothing to do"
+SYSARCH?=64
+ifeq ($(SYSARCH),32)
+SYSARCH=
+endif
+STAGEDIR=bin$(SYSARCH)
+
+EXE=inotify-recursive
+
+.PHONY:
+all: init $(EXE)
+
+.PHONY:
+init:
+	mkdir -p $(STAGEDIR)
+
+inotify-recursive: inotify-recursive.c
+	$(CC) $(CFLAGS) $< -o $(STAGEDIR)/$@
 
 install:
-	@echo "nothing to do"
-	
+	-@mkdir -p $(BASEDIR)/usr/bin 
+	cp -avr ${STAGEDIR}/* $(BASEDIR)/usr/bin
+
+clean:
+	rm -fr $(STAGEDIR)
