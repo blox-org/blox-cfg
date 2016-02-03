@@ -1,3 +1,10 @@
+--
+-- Table structure for table `blox_param_config`
+--
+
+DROP TABLE IF EXISTS `blox_param_config`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE blox_param_config ( 
  uuid char(64) PRIMARY KEY,
  LAN integer NOT NULL,
@@ -11,3 +18,4 @@ CREATE TABLE blox_param_config (
  T38Param integer NOT NULL,
  DOMAIN char(255) 
 ) ;
+/*!40101 SET character_set_client = @saved_cs_client */;
