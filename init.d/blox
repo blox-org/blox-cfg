@@ -16,6 +16,62 @@ bloxngxdir=/usr/local/ngx-blox/
 rundir=$bloxngxdir/run
 logdir=$bloxngxdir/logs
 
+export PATH=$PATH:/usr/local/sbin/
+export STARTOPTIONS="-m512 -M32"
+
+start_opensips() {
+    opensipsctl start
+}
+
+stop_opensips() {
+    opensipsctl stop
+    source /usr/local/etc/opensips/opensipsctlrc
+
+    #Remove the TLS and TCP connection state from the DB, as they become invalid, need re-registeration from SIP client
+    mysql -u $DBRWUSER --password=$DBRWPW $DBNAME -e "DELETE FROM locationtrunk      WHERE contact like '%transport=tls%';"
+    mysql -u $DBRWUSER --password=$DBRWPW $DBNAME -e "DELETE FROM locationtrunk      WHERE contact like '%transport=tcp%';"
+
+    mysql -u $DBRWUSER --password=$DBRWPW $DBNAME -e "DELETE FROM locationpbx        WHERE contact like '%transport=tls%';"
+    mysql -u $DBRWUSER --password=$DBRWPW $DBNAME -e "DELETE FROM locationpbx        WHERE contact like '%transport=tcp%';"
+
+    mysql -u $DBRWUSER --password=$DBRWPW $DBNAME -e "DELETE FROM locationpresence   WHERE contact like '%transport=tls%';"
+    mysql -u $DBRWUSER --password=$DBRWPW $DBNAME -e "DELETE FROM locationpresence   WHERE contact like '%transport=tcp%';"
+}
+
+restart_opensips() {
+    opensipsctl restart
+}
+
+status_opensips() {
+    opensipsctl fifo get_statistics rcv_requests
+    opensipsctl fifo get_statistics shmem:
+}
+
+setup_opensips() {
+    ubuntu=$(python -mplatform | grep -i ubuntu)
+    if [ -n "$ubuntu" ]
+    then
+    	update-rc.d mysql defaults
+    	/etc/init.d/mysql start
+    else
+    	/sbin/chkconfig mysqld --add
+    	/sbin/chkconfig --level 345 mysqld on
+    	/etc/init.d/mysqld start
+    fi
+    source /usr/local/etc/opensips/opensipsctlrc
+
+    OPENSIPS_DBVER=$(mysql -u $DBRWUSER --password=$DBRWPW -e "show databases" | grep "^opensips_" | head -1 | sed 's/^opensips_//')
+    if [ -n "$OPENSIPS_DBVER" ] ; then
+        BLOX_MIGRATE=$(cat /etc/.blox_migrate)
+        /usr/bin/blox_db_install.sh $OPENSIPS_DBVER $BLOX_MIGRATE
+    else
+        /usr/bin/blox_db_install.sh
+    fi
+    
+    rm /etc/.blox_setup
+    rm /etc/.blox_migrate
+}
+
 start_blox() {
 	mkdir -p $rundir $logdir
 	/usr/local/ngx-blox/sbin/nginx 1>>$logdir/nginx-blox.startup 2>&1 
@@ -66,17 +122,26 @@ usage() {
 
 case "$1" in
 start)
-      start_blox;;
+	start_blox
+	if [ -f /etc/.blox_setup ]
+	then
+	    setup_opensips;
+	fi
+	start_opensips;
+	;;
 stop)
-      stop_blox;
-      ;;
+	stop_blox;
+	stop_opensips;
+	;;
 restart)
-      restart_blox;
-      ;;
+	restart_blox;
+	restart_opensips;
+	;;
 status)
-      status_blox;
-      ;;
+	status_blox;
+	status_opensips;
+	;;
 *)
-     usage;
-     ;;
+	usage;
+	;;
 esac
