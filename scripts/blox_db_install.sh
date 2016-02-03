@@ -27,12 +27,18 @@ if [ -n "$OLD_VERSION" -a -n "$NEW_VERSION" ] #Migration
 then
 	if [ "$OLD_VERSION" = "$NEW_VERSION" ]
 	then
-		BLOX_TABLES="locationpbx locationtrunk blox_config blox_profile_config  blox_codec"
+		BLOX_TABLES="locationpbx locationtrunk locationpresence blox_config blox_profile_config \
+				blox_codec blox_subscribe blox_presence_subscriber"
 		OPENSIPS_TABLES="usr_preferences acc subscriber registrant dr_gateways"
-		mysqldump -u opensips --password="opensipsrw" opensips_$OLD_VERSION $BLOX_TABLES     > /etc/blox/sql/blox.migrate.sql
+		rm -f /etc/blox/sql/blox.migrate.sql /etc/blox/sql/opensips.migrate.sql
+		for bt in ${BLOX_TABLES}
+		do
+			mysqldump -u opensips --password="opensipsrw" opensips_$OLD_VERSION $BLOX_TABLES     >> /etc/blox/sql/blox.migrate.sql
+			if [ $? -eq 6 ]; then #If table not present create it
+				cat /etc/blox/sql/create_${bt}.sql >> /etc/blox/sql/blox.migrate.sql
+			fi
+		done
 		mysqldump -u opensips --password="opensipsrw" opensips_$OLD_VERSION $OPENSIPS_TABLES > /etc/blox/sql/opensips.migrate.sql
-		echo "INSERT INTO version VALUES ( 'locationpbx', '1009');"   >> /etc/blox/sql/blox.migrate.sql
-		echo "INSERT INTO version VALUES ( 'locationtrunk', '1009');" >> /etc/blox/sql/blox.migrate.sql
 
 		yes | PW=cemsbc /usr/local/sbin/opensipsdbctl migrate opensips_$OLD_VERSION _opensips_$NEW_VERSION
 		/usr/bin/mysql -u opensips --password="opensipsrw" -e "DROP DATABASE opensips_$OLD_VERSION"
@@ -48,9 +54,9 @@ fi
 
 if [ -n "$OLD_VERSION" -a -n "$NEW_VERSION" -a "$OLD_VERSION" = "$NEW_VERSION" ]
 then
-	CREATE_SQL="/etc/blox/sql/blox.migrate.sql /etc/blox/sql/opensips.migrate.sql"
+	CREATE_SQL="/etc/blox/sql/blox.migrate.sql /etc/blox/sql/opensips.migrate.sql /etc/blox/sql/blox_version.sql"
 else
-	CREATE_SQL="/etc/blox/sql/create_location.sql /etc/blox/sql/create_blox_config.sql /etc/blox/sql/create_blox_codec.sql /etc/blox/sql/alter_acc.sql /etc/blox/sql/alter_usr_preferences.sql"
+	CREATE_SQL="/etc/blox/sql/create_location.sql /etc/blox/sql/create_blox_config.sql /etc/blox/sql/create_blox_codec.sql /etc/blox/sql/alter_acc.sql /etc/blox/sql/alter_usr_preferences.sql /etc/blox/sql/blox_version.sql"
 fi
 
 for sql in $CREATE_SQL

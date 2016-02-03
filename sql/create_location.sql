@@ -45,5 +45,3 @@ CREATE TABLE `locationtrunk` (
   UNIQUE KEY `account_contact_idx` (`username`,`domain`,`contact`,`callid`)
 ) ENGINE=MyISAM AUTO_INCREMENT=62 DEFAULT CHARSET=latin1;
 
-INSERT INTO version VALUES ( 'locationpbx', '1009');
-INSERT INTO version VALUES ( 'locationtrunk', '1009');
