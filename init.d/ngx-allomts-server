@@ -97,7 +97,7 @@ start_allomtsserver() {
 		fi
 	done
 	mkdir -p $rundir $logdir
-	/usr/local/ngx-allomts-server/sbin/nginx 1>>$logdir/logs/nginx.startup 2>&1 
+	/usr/local/ngx-allomts-server/sbin/nginx 1>> $logdir/nginx.startup 2>&1 
 	if [ $? -eq 0 ]; then
 		echo -e "\e[1;32mAllo MTS Server Started... \e[0m"
 	else
