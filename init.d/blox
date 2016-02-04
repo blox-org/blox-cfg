@@ -19,6 +19,9 @@ logdir=$bloxngxdir/logs
 export PATH=$PATH:/usr/local/sbin/
 export STARTOPTIONS="-m512 -M32"
 
+SEND_NOTIFY_PIDFILE=/var/run/send_notify.sh.pid
+LISTEN_SUBSCRIBE_PIDFILE=/var/run/listen_subscribe.sh.pid
+
 start_opensips() {
     opensipsctl start
 }
@@ -80,8 +83,18 @@ start_blox() {
 	else
 		echo -e "\e[1;31mngx-blox Server Failed to Start... \e[0m"
 	fi
-	nohup /usr/bin/send_notify.sh &
-	nohup /usr/bin/listen_subscribe.sh &
+	nohup /usr/bin/send_notify.sh      2>&1 1>/dev/null &
+	if [ $? -eq 0 ]; then
+		echo -e "\e[1;32mNotify Server Started... \e[0m"
+	else
+		echo -e "\e[1;31mNotify Server Failed to Start... \e[0m"
+	fi
+	nohup /usr/bin/listen_subscribe.sh 2>&1 1>/dev/null &
+	if [ $? -eq 0 ]; then
+		echo -e "\e[1;32mSubscribe Server Started... \e[0m"
+	else
+		echo -e "\e[1;31mSubscribe Server Failed to Start... \e[0m"
+	fi
 		
 }
 
@@ -94,6 +107,36 @@ stop_blox() {
 		else
 			echo -e "\e[1;31mngx-blox Server Failed to Stop... \e[0m"
 		fi
+	fi
+
+	SEND_NOTIFY_PID=$(cat $SEND_NOTIFY_PIDFILE)
+	LISTEN_SUBSCRIBE_PID=$(cat $LISTEN_SUBSCRIBE_PIDFILE)
+	ret=-1
+
+	if [ -n "$SEND_NOTIFY_PIDFILE" ]; then
+	for npid in $(ps -eo pid,ppid | grep -w $SEND_NOTIFY_PID | grep -v grep | awk '{print $1}')
+	do
+		kill $npid
+		ret=$?
+	done
+	if [ $ret -eq 0 ]; then
+		echo -e "\e[1;32mNotify Server Stopped... \e[0m"
+	else
+		echo -e "\e[1;31mNotify Server Failed to Stop... \e[0m"
+	fi
+	fi
+	
+	if [ -n "$LISTEN_SUBSCRIBE_PID" ]; then
+	for spid in $(ps -eo pid,ppid | grep -w $LISTEN_SUBSCRIBE_PID | grep -v grep | awk '{print $1}')
+	do
+		kill $spid
+		ret=$?
+	done
+	if [ $ret -eq 0 ]; then
+		echo -e "\e[1;32mSubscribe Server Stopped... \e[0m"
+	else
+		echo -e "\e[1;31mSubscribe Server Failed to Stop... \e[0m"
+	fi
 	fi
 }
 
@@ -113,6 +156,22 @@ status_blox() {
 	else
 		echo -e "\e[1;31mngx-blox Server Not Running ... \e[0m"
 	fi	
+	
+	SEND_NOTIFY_PID=$(cat $SEND_NOTIFY_PIDFILE)
+	LISTEN_SUBSCRIBE_PID=$(cat $LISTEN_SUBSCRIBE_PIDFILE)
+
+	INSTANTS=$(ps -eo pid,ppid | grep -w $SEND_NOTIFY_PID | grep -v grep | wc -l)
+	if [ $INSTANTS -eq 3 ]; then
+		echo -e "\e[1;32mNotify Server Running ... $PID\e[0m"
+	else
+		echo -e "\e[1;31mNotify Server Not Running ... \e[0m"
+	fi
+	INSTANTS=$(ps -eo pid,ppid | grep -w $LISTEN_SUBSCRIBE_PID | grep -v grep | wc -l)
+	if [ $INSTANTS -eq 2 ]; then
+		echo -e "\e[1;32mSubscribe Server Running ... $PID\e[0m"
+	else
+		echo -e "\e[1;31mSubscribe Server Not Running ... \e[0m"
+	fi
 }
 
 
