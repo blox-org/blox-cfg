@@ -6,7 +6,7 @@ echo $$ > /var/run/$prog.pid
 BLOX_NOTIFY_HOST=$(sed -n '/divert/,/divert/p;' /etc/blox/blox-define-presence.m4 | awk '{print $0}; END{print "BLOX_NOTIFY_HOST"}' | m4 -)
 BLOX_NOTIFY_PORT=$(sed -n '/divert/,/divert/p;' /etc/blox/blox-define-presence.m4 | awk '{print $0}; END{print "BLOX_NOTIFY_PORT"}' | m4 -)
 
-/usr/local/sbin/inotify-recursive /var/log/blox-notify | 
+/usr/bin/inotify-recursive /var/log/blox-notify | 
 while read line;  
 do 
 if [[ $line =~ ^CREATED\ FILE ]]; then 
