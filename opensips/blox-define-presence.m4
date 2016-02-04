@@ -19,7 +19,7 @@
 
 
 divert(-1)
-define(`gNOTIFYSRV',`http://127.0.0.1:8800')
+define(`gNOTIFYSRV',`http://127.0.0.1:8800/bloxnotify')
 define(`BLOX_NOTIFY_HOST',`127.0.0.1')
 define(`BLOX_NOTIFY_PORT',`8880')
 define(`BLOX_SUBSCRIBE_HOST',`127.0.0.1')
