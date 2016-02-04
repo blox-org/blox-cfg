@@ -19,7 +19,7 @@
 
 route[ROUTE_NOTIFY] {
     if(method == "NOTIFY") {
-        if($Ri == BLOX_NOTIFY_HOST && $Rp == BLOX_NOTIFY_PORT) { #Forward NOTIFY to Remote-Contact-Header
+        if($Ri == "BLOX_NOTIFY_HOST" && $Rp == BLOX_NOTIFY_PORT) { #Forward NOTIFY to Remote-Contact-Header
             loose_route();
             $var(remote) = $hdr(Remote-Contact-Header);
             $var(socket) = $hdr(Send-Socket);

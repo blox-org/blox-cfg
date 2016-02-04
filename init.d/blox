@@ -126,6 +126,7 @@ start)
 	if [ -f /etc/.blox_setup ]
 	then
 	    setup_opensips;
+	    rm -f /etc/.blox_setup
 	fi
 	start_opensips;
 	;;

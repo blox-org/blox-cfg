@@ -31,6 +31,10 @@ else
 	exit -1
 fi
 
+bloxngxdir=/usr/local/ngx-allomts-server/
+rundir=$bloxngxdir/run
+logdir=$bloxngxdir/logs
+
 SUPPORT_PS_P=$(ps -p $$ 2>/dev/null)
 
 init_iptables() {
@@ -67,6 +71,8 @@ flush_iptables() {
 
 
 start_allomtsserver() {
+	echo "1" > /proc/sys/net/ipv4/ip_forward #Enable Forwarding
+
 	flush_iptables
 	for config in $MEDIAPROFILE_CONFIGDIR/*.init
 	do
@@ -90,7 +96,13 @@ start_allomtsserver() {
 			break ;
 		fi
 	done
-	/usr/local/ngx-allomts-server/sbin/nginx 1>>/usr/local/ngx-allomts-server/logs/nginx.startup 2>&1 
+	mkdir -p $rundir $logdir
+	/usr/local/ngx-allomts-server/sbin/nginx 1>>$logdir/logs/nginx.startup 2>&1 
+	if [ $? -eq 0 ]; then
+		echo -e "\e[1;32mAllo MTS Server Started... \e[0m"
+	else
+		echo -e "\e[1;31mAllo MTS Server Failed to Start... \e[0m"
+	fi
 }
 
 stop_allomtsserver() {
@@ -118,9 +130,9 @@ stop_allomtsserver() {
 		fi
 	done
 
-	if [ -f /usr/local/ngx-allomts-server/logs/nginx.pid ]
+	if [ -f $rundir/nginx.pid ]
 	then
-		kill $(cat /usr/local/ngx-allomts-server/logs/nginx.pid)
+		kill $(cat $rundir/nginx.pid)
 	fi
 }
 
@@ -137,9 +149,9 @@ status_allomtsserver() {
   	$IPTABLES -v -n -t filter -L MINIUPNPD
   	$IPTABLES -v -n -t filter -L ${PREFIX}FORWARD
 
-	if [ -f /usr/local/ngx-allomts-server/logs/nginx.pid ]
+	if [ -f $rundir/nginx.pid ]
 	then
-		PID=$(cat /usr/local/ngx-allomts-server/logs/nginx.pid)
+		PID=$(cat $rundir/nginx.pid)
 	fi
 	if [ -n "$PID" ]
 	then
