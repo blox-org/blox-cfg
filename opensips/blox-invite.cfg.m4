@@ -728,9 +728,10 @@ route[ROUTE_INVITE] {
                         set_dlg_flag("DLG_FLAG_WAN2LAN") ;
                         append_hf("P-hint: TopHide-Applied\r\n"); 
 
-			if(HUMBUG_ENABLED == "yes") {
-				route(HUMBUG_FRAUD_DETECTION);
-			}
+                        $var(humbug) = HUMBUG_ENABLED ;
+                        if($var(humbug) == "yes") {
+                            route(HUMBUG_FRAUD_DETECTION);
+                        }
                     }
 
                     $var(fproto) = $(var(from){uri.param,transport}) ;

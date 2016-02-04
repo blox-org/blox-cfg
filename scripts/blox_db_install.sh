@@ -55,12 +55,19 @@ fi
 
 if [ -n "$OLD_VERSION" -a -n "$NEW_VERSION" -a "$OLD_VERSION" = "$NEW_VERSION" ]
 then
-	CREATE_SQL="/etc/blox/sql/blox.migrate.sql /etc/blox/sql/opensips.migrate.sql /etc/blox/sql/blox_version.sql"
+	CREATE_SQL="/etc/blox/sql/blox.migrate.sql /etc/blox/sql/opensips.migrate.sql"
 else
-	CREATE_SQL="/etc/blox/sql/create_location.sql /etc/blox/sql/create_blox_config.sql /etc/blox/sql/create_blox_codec.sql /etc/blox/sql/alter_acc.sql /etc/blox/sql/alter_usr_preferences.sql /etc/blox/sql/blox_version.sql"
+	CREATE_SQL="/etc/blox/sql/create_location.sql /etc/blox/sql/create_blox_config.sql /etc/blox/sql/create_blox_codec.sql /etc/blox/sql/alter_acc.sql /etc/blox/sql/alter_usr_preferences.sql"
 fi
 
-for sql in $CREATE_SQL
+for sqlFile in $CREATE_SQL
 do
-	/usr/bin/mysql -u opensips opensips_$NEW_VERSION --password="opensipsrw" < $sql
+	/usr/bin/mysql -u opensips opensips_$NEW_VERSION --password="opensipsrw" < $sqlFile
+done
+
+IFS="
+"
+for sql in $(cat /etc/blox/sql/blox_version.sql)
+do
+	/usr/bin/mysql -u opensips opensips_$NEW_VERSION --password="opensipsrw" -e $sql
 done
