@@ -76,7 +76,7 @@ modparam("registrar", "tcp_persistent_flag", 7)
 
 ################## NAT ######################
 
-modparam("userblacklist|uac_registrant|dialog|usrloc|auth_db|drouting|acc|avpops", "db_url", "mysql://opensips:opensipsrw@localhost/opensips_1_11")
+modparam("userblacklist|uac_registrant|load_balancer|dialog|usrloc|auth_db|drouting|acc|avpops", "db_url", "mysql://opensips:opensipsrw@localhost/opensips_1_11")
 modparam("uac_registrant", "timer_interval", 10)
 
 
@@ -115,3 +115,7 @@ modparam("cfgutils", "shvset", "no=s:no")
 
 modparam("dialog","th_dlg_contact_uri_params","th_cthdr")
 modparam("dialog","th_dlg_contact_params","th_cthdr_param")
+
+modparam("load_balancer", "probing_interval", LB_KEEPALIVE_INTERVAL)
+modparam("load_balancer", "probing_from","LB_KEEPALIVE_FROMURI")
+modparam("load_balancer", "probing_reply_codes", "404")

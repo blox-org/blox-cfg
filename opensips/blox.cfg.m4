@@ -268,6 +268,22 @@ failure_route[UAC_AUTH_FAIL] {
     }
 }
 
+route[READ_CONFIG_EXT] {
+    $avp(uuid) = $param(1);
+    $avp(CONFIG_EXT) = null;   
+    if(avp_db_query("SELECT LBID, LBRuleID FROM blox_config_ext WHERE uuid = '$avp(uuid)'","$avp(LBID);$avp(LBRuleID)" )) {
+        if($avp(LBID) == "") { $avp(LBID) = null; }
+        if($avp(LBRuleID) == "") { $avp(LBRuleID) = null; }
+        if($avp(LBID) && $avp(LBRuleID)) {
+            $avp(CONFIG_EXT) = 'LBID=' + $avp(LBID) + ';'+ 'LBRuleID=' + $avp(LBRuleID);
+        } else {
+            xdbg(L_ERR,"DB Query wrong entry $avp(LBID):$avp(LBRuleID)\n"); 
+        }
+    } else {
+        xdbg(L_ERR,"DB Query Failed\n");
+    }
+
+}
 
 ###########################################################################################
 # ----------- SIP Method based routers ------------------------
@@ -286,6 +302,8 @@ include_file "blox-lcr.cfg"
 include_file "blox-cac.cfg"
 include_file "blox-enum.cfg"
 include_file "blox-sip-header-manipulation.cfg"
+include_file "blox-lb-switch.cfg"
+include_file "blox-lb-route.cfg"
 ###########################################################################################
 # ----------- SIP Profile based routers without MTS ------------------------
 import_file  "blox-allomts-dummy.cfg"
