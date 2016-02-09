@@ -424,6 +424,12 @@ route[ROUTE_INVITE] {
             if(cache_fetch("local","$avp(uuid)",$avp(TRUNK))) {
                 xdbg("BLOX_DBG: blox-invite.cfg: Loaded from cache $avp(uuid): $avp(TRUNK)\n");
             } else if (avp_db_load("$avp(uuid)","$avp(TRUNK)/blox_config")) {
+                $avp(CONFIG_EXT) = $(avp(TRUNK){uri.param,CONFIG_EXT});
+                if($avp(CONFIG_EXT) == "") { $avp(CONFIG_EXT) = null; }
+                route(READ_CONFIG_EXT,$avp(uuid));
+                if($avp(CONFIG_EXT)) {
+                    $avp(TRUNK) = $avp(TRUNK) + ';' + $avp(CONFIG_EXT);
+                }
                 cache_store("local","$avp(uuid)","$avp(TRUNK)");
                 xdbg("BLOX_DBG: blox-invite.cfg: Stored in cache $avp(uuid): $avp(TRUNK)\n");
             } else {
@@ -447,6 +453,8 @@ route[ROUTE_INVITE] {
                 $avp(WAN) = $(avp(TRUNK){uri.param,WAN});
                 $avp(LAN) = $(avp(TRUNK){uri.param,LAN});
                 $avp(INBNDURI) = $(avp(TRUNK){uri.param,INBNDURI});
+                $avp(LBID) = $(avp(PBX){uri.param,LBID});
+                $avp(LBRuleID) = $(avp(PBX){uri.param,LBRuleID});
 
                 if($var(TRUNKUSER)==""){$var(TRUNKUSER)=null;}
                 if($var(TRUNKIP)==""){$var(TRUNKIP)=null;}
@@ -459,6 +467,8 @@ route[ROUTE_INVITE] {
                 if($avp(WAN)==""){$avp(WAN)=null;}
                 if($avp(LAN)==""){$avp(LAN)=null;}
                 if($avp(INBNDURI)==""){$avp(INBNDURI)=null;}
+                if($avp(LBID)==""){$avp(LBID)=null;}
+                if($avp(LBRuleID)==""){$avp(LBRuleID)=null;}
 
                 if($avp(INBNDURI)){
                     $avp(INBNDURI) = 'sip:' + $(avp(INBNDURI){s.decode.hexa}) ;
@@ -551,6 +561,26 @@ route[ROUTE_INVITE] {
                     $rd = $var(TRUNKDOMAIN);
                 } else {
                     $rd = $var(TRUNKIP);
+                }
+
+                xlog("BLOX_DBG::: Checking Load Balance Configuration $avp(LBRuleID) : $avp(LBID)\n");
+
+                if($avp(LBID) && $avp(LBRuleID)) {
+                    $avp(uuid) = "LBRuleID:"+$avp(LBRuleID);
+                    if(cache_fetch("local","$avp(uuid)",$avp(LB))) {
+                        xdbg("Loaded from cache $avp(uuid): $avp(LB)\n");
+                    } else if (avp_db_load("$avp(uuid)","$avp(LB)/blox_lb_rules")) {
+                        cache_store("local","$avp(uuid)","$avp(LB)");
+                        xdbg("Stored in cache $avp(uuid): $avp(LB)\n");
+                    } else {
+                        $avp(LB) = null;
+                        xlog("L_INFO", "Drop MESSAGE $ru from $si : $sp\n" );
+                        drop();
+                        exit();        
+                    }
+                    if($avp(LB)){    
+                         route(BLOX_LB_CFG,$avp(LBID),$avp(LB));
+                    }
                 }
 
                 t_on_failure("WAN2LAN");
