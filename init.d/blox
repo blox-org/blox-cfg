@@ -121,6 +121,7 @@ stop_blox() {
 	done
 	if [ $ret -eq 0 ]; then
 		echo -e "\e[1;32mNotify Server Stopped... \e[0m"
+		rm -f $SEND_NOTIFY_PIDFILE ;
 	else
 		echo -e "\e[1;31mNotify Server Failed to Stop... \e[0m"
 	fi
@@ -134,6 +135,7 @@ stop_blox() {
 	done
 	if [ $ret -eq 0 ]; then
 		echo -e "\e[1;32mSubscribe Server Stopped... \e[0m"
+		rm -f $LISTEN_SUBSCRIBE_PIDFILE;
 	else
 		echo -e "\e[1;31mSubscribe Server Failed to Stop... \e[0m"
 	fi

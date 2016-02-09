@@ -277,10 +277,10 @@ route[READ_CONFIG_EXT] {
         if($avp(LBID) && $avp(LBRuleID)) {
             $avp(CONFIG_EXT) = 'LBID=' + $avp(LBID) + ';'+ 'LBRuleID=' + $avp(LBRuleID);
         } else {
-            xdbg(L_ERR,"DB Query wrong entry $avp(LBID):$avp(LBRuleID)\n"); 
+            xlog("L_ERR","BLOX_DBG::: DB Query wrong entry $avp(LBID):$avp(LBRuleID)\n"); 
         }
     } else {
-        xdbg(L_ERR,"DB Query Failed\n");
+        xlog("L_ERR","BLOX_DBG::: DB Query Failed\n");
     }
 
 }

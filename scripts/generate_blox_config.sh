@@ -33,8 +33,6 @@ HumbugConfig()
 	    echo "Module $MODNAME is required";
 	else
 	    echo "Module is $MODNAME not required";
-	    rm -f $OUTDIR/blox-humbug.cfg
-	    rm -f $OUTDIR/blox-humbug-invite.cfg
 	fi
 }
 
@@ -47,8 +45,8 @@ fi
 
 mkdir -p $OUTDIR
 
-IGNORE_m4=("$CONFDIR/blox-ua.m4" "$CONFDIR/blox-define.m4" "$CONFDIR/blox-define-nat.m4" "$CONFDIR/blox-humbug.m4" "$CONFDIR/blox-codec.m4" "$CONFDIR/blox-define-presence.m4")
-M4_FILES="$CONFDIR/blox-mpath.m4 $CONFDIR/blox-ua.m4 $CONFDIR/blox-define.m4 $CONFDIR/blox-define-nat.m4 $CONFDIR/blox-version.m4 $CONFDIR/blox-humbug.m4 $CONFDIR/blox-codec.m4 $CONFDIR/blox-define-presence.m4"
+IGNORE_m4=("$CONFDIR/blox-ua.m4" "$CONFDIR/blox-define.m4" "$CONFDIR/blox-define-nat.m4" "$CONFDIR/blox-addon-humbug.m4" "$CONFDIR/blox-codec.m4" "$CONFDIR/blox-define-presence.m4 $CONFDIR/blox-define-lb.m4")
+M4_FILES="$CONFDIR/blox-mpath.m4 $CONFDIR/blox-ua.m4 $CONFDIR/blox-define.m4 $CONFDIR/blox-define-nat.m4 $CONFDIR/blox-version.m4 $CONFDIR/blox-addon-humbug.m4 $CONFDIR/blox-codec.m4 $CONFDIR/blox-define-presence.m4 $CONFDIR/blox-define-lb.m4"
 
 for m4config in $(ls $CONFDIR/*.m4)
 do
