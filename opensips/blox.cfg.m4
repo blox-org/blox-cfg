@@ -22,6 +22,7 @@
 include_file "blox-glob.cfg"
 
 include_file "blox-listen.cfg"
+include_file "blox-listen-local.cfg"
 
 include_file "blox-tls.cfg"
 

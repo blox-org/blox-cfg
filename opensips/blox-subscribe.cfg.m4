@@ -41,7 +41,7 @@ route[ROUTE_SUBSCRIBE] {
                 fix_nated_register();
                 force_rport();
                 if (!proxy_authorize("$avp(WANDOMAIN)", "blox_presence_subscriber")) {
-                      proxy_challenge("$avp(DOMAIN)", "0");
+                      proxy_challenge("$avp(WANDOMAIN)", "0");
                       xlog("L_INFO", "Challenge>>>$ft >>>$avp(regattr)>>> SIP Method $rm received from $fu $si $sp to $ru ($avp(rcv))\n");
                       exit;
                 };

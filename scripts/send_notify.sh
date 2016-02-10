@@ -12,7 +12,7 @@ do
 if [[ $line =~ ^CREATED\ FILE ]]; then 
 	filename=$(echo $line | awk '{print $3}'); 
 	echo $filename; 
-	/usr/local/sbin/send_notify.py $BLOX_NOTIFY_HOST $BLOX_NOTIFY_PORT $filename; 
+	/usr/bin/send_notify.py $BLOX_NOTIFY_HOST $BLOX_NOTIFY_PORT $filename; 
 	echo "Removing the file $filename"
 	rm -f $filename
 fi 
