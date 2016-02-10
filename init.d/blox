@@ -106,13 +106,13 @@ start_blox() {
 		echo -e "\e[1;31mngx-blox Server Failed to Start... \e[0m"
 	fi
 
-	nohup /usr/bin/send_notify.sh      2>&1 1>/dev/null &
+	nohup /usr/bin/send_notify.sh      1>>/var/log/send_notify.log 2>&1 &
 	if [ $? -eq 0 ]; then
 		echo -e "\e[1;32mNotify Server Started... \e[0m"
 	else
 		echo -e "\e[1;31mNotify Server Failed to Start... \e[0m"
 	fi
-	nohup /usr/bin/listen_subscribe.sh 2>&1 1>/dev/null &
+	nohup /usr/bin/listen_subscribe.sh 1>>/var/log/listen_subscribe.log 2>&1 &
 	if [ $? -eq 0 ]; then
 		echo -e "\e[1;32mSubscribe Server Started... \e[0m"
 	else
