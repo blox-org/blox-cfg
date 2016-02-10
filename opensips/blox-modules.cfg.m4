@@ -58,3 +58,8 @@ loadmodule "enum.so"
 loadmodule "ipops.so"
 loadmodule "userblacklist.so"
 loadmodule "load_balancer.so"
+loadmodule "pua.so"
+loadmodule "pua_mi.so"
+
+loadmodule "event_datagram.so"
+

@@ -76,7 +76,7 @@ modparam("registrar", "tcp_persistent_flag", 7)
 
 ################## NAT ######################
 
-modparam("userblacklist|uac_registrant|load_balancer|dialog|usrloc|auth_db|drouting|acc|avpops", "db_url", "mysql://opensips:opensipsrw@localhost/opensips_1_11")
+modparam("userblacklist|pua|uac_registrant|load_balancer|dialog|usrloc|auth_db|drouting|acc|avpops", "db_url", "mysql://opensips:opensipsrw@localhost/opensips_1_11")
 modparam("uac_registrant", "timer_interval", 10)
 
 
