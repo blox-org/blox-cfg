@@ -12,12 +12,33 @@
 ### END INIT INFO
 
 
+# Source function library
+if [ -e /etc/init.d/functions ]; then
+. /etc/init.d/functions
+DAEMON=daemon
+STATUS=status
+fi
+if [ -e "/lib/lsb/init-functions" ]; then
+. /lib/lsb/init-functions
+DAEMON=start_daemon
+STATUS=status_of_proc
+fi
+
 bloxngxdir=/usr/local/ngx-blox/
 rundir=$bloxngxdir/run
 logdir=$bloxngxdir/logs
 
 export PATH=$PATH:/usr/local/sbin/
 export STARTOPTIONS="-m512 -M32"
+
+
+#DEBFAULT START STOP PRESENCE SCRIPTS
+if [ -z "$PRESENCE_START" ]; then
+PRESENCE_START=yes
+fi
+if [ -z "$PRESENCE_STOP" ]; then
+PRESENCE_STOP=yes
+fi
 
 SEND_NOTIFY_PIDFILE=/var/run/send_notify.sh.pid
 LISTEN_SUBSCRIBE_PIDFILE=/var/run/listen_subscribe.sh.pid
@@ -83,6 +104,8 @@ start_blox() {
 	else
 		echo -e "\e[1;31mngx-blox Server Failed to Start... \e[0m"
 	fi
+
+	if [ "x$PRESENCE_START" = "xyes" ]; then
 	nohup /usr/bin/send_notify.sh      2>&1 1>/dev/null &
 	if [ $? -eq 0 ]; then
 		echo -e "\e[1;32mNotify Server Started... \e[0m"
@@ -95,7 +118,7 @@ start_blox() {
 	else
 		echo -e "\e[1;31mSubscribe Server Failed to Start... \e[0m"
 	fi
-		
+	fi
 }
 
 stop_blox() {
@@ -109,6 +132,7 @@ stop_blox() {
 		fi
 	fi
 
+	if [ "x$PRESENCE_STOP" = "xyes" ]; then
 	SEND_NOTIFY_PID=$(cat $SEND_NOTIFY_PIDFILE)
 	LISTEN_SUBSCRIBE_PID=$(cat $LISTEN_SUBSCRIBE_PIDFILE)
 	ret=-1
@@ -138,6 +162,7 @@ stop_blox() {
 		rm -f $LISTEN_SUBSCRIBE_PIDFILE;
 	else
 		echo -e "\e[1;31mSubscribe Server Failed to Stop... \e[0m"
+	fi
 	fi
 	fi
 }
