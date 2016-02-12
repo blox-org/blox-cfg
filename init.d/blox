@@ -189,13 +189,13 @@ status_blox() {
 
 	INSTANTS=$(ps -eo pid,ppid | grep -w $SEND_NOTIFY_PID | grep -v grep | wc -l)
 	if [ $INSTANTS -eq 3 ]; then
-		echo -e "\e[1;32mNotify Server Running ... $PID\e[0m"
+		echo -e "\e[1;32mNotify Server Running ... $SEND_NOTIFY_PID\e[0m"
 	else
 		echo -e "\e[1;31mNotify Server Not Running ... \e[0m"
 	fi
 	INSTANTS=$(ps -eo pid,ppid | grep -w $LISTEN_SUBSCRIBE_PID | grep -v grep | wc -l)
 	if [ $INSTANTS -eq 2 ]; then
-		echo -e "\e[1;32mSubscribe Server Running ... $PID\e[0m"
+		echo -e "\e[1;32mSubscribe Server Running ... $LISTEN_SUBSCRIBE_PID\e[0m"
 	else
 		echo -e "\e[1;31mSubscribe Server Not Running ... \e[0m"
 	fi
