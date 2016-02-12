@@ -87,9 +87,9 @@ def send_notify(lprow,wturi,furi,touri):
 		furi_defport = furi + ':5060' ;
 	furi = re.sub(':5060','',furi); #Remove 5060 for substution
 
-	print 'from_uri' + furi_defport  + '===' +  furi  + "==" + replace_from_uri;
-	print 'to_uri'   + touri_defport + '===' +  touri + "==" + replace_to_uri;
-	print 'wt_uri'   + wturi_defport + '===' +  wturi + "==" + replace_watcher_uri;
+	print 'from_uri:' + furi_defport  + '===' +  furi  + "==" + replace_from_uri;
+	print 'to_uri:'   + touri_defport + '===' +  touri + "==" + replace_to_uri;
+	print 'wt_uri:'   + wturi_defport + '===' +  wturi + "==" + replace_watcher_uri;
 	for line in nfd:
 		if re.match(r'Via:',line,re.M|re.I):
 			line = re.sub(r'Via: SIP/2.0/UDP (.*);branch=(.*)',r'Via: SIP/2.0/UDP 127.0.0.1:7777;branch=\2',line)
@@ -101,14 +101,17 @@ def send_notify(lprow,wturi,furi,touri):
 		elif re.match('\r\n',line,re.M|re.I):
 			break ;
 
-		line = re.sub(wturi_defport,replace_watcher_uri,line)
-		line = re.sub(wturi,replace_watcher_uri,line)
+		(line,cnt) = re.subn(wturi_defport,replace_watcher_uri,line)
+		if(cnt==0):
+			line = re.sub(wturi,replace_watcher_uri,line)
 
-		line = re.sub(furi_defport,replace_from_uri,line)
-		line = re.sub(furi,replace_from_uri,line)
+		(line) = re.sub(furi_defport,replace_from_uri,line)
+		if(cnt==0):
+			line = re.sub(furi,replace_from_uri,line)
 
-		line = re.sub(touri_defport,replace_to_uri,line)
-		line = re.sub(touri,replace_to_uri,line)
+		(line,cnt) = re.subn(touri_defport,replace_to_uri,line)
+		if(cnt==0):
+			line = re.sub(touri,replace_to_uri,line)
 
 		if re.match(r'Content-Length:',line,re.M|re.I):
 			line = None ;
@@ -121,14 +124,17 @@ def send_notify(lprow,wturi,furi,touri):
 		content_length += len(line) ;
 		content += line ;
 
-	content = re.sub(wturi_defport,replace_watcher_uri,content)
-	content = re.sub(wturi,replace_watcher_uri,content)
+	(content,cnt) = re.subn(wturi_defport,replace_watcher_uri,content)
+	if(cnt==0):
+		content = re.sub(wturi,replace_watcher_uri,content)
 
-	content = re.sub(furi_defport,replace_from_uri,content)
-	content = re.sub(furi,replace_from_uri,content)
+	(content,cnt) = re.subn(furi_defport,replace_from_uri,content)
+	if(cnt==0):
+		content = re.sub(furi,replace_from_uri,content)
 
-	content = re.sub(touri_defport,replace_to_uri,content)
-	content = re.sub(touri,replace_to_uri,content)
+	(content,cnt) = re.subn(touri_defport,replace_to_uri,content)
+	if(cnt==0):
+		content = re.sub(touri,replace_to_uri,content)
 
 	nfd_w.write('Remote-Contact-Header: ' + lprow['received'] + '\r\n') ;
 	nfd_w.write('Send-Socket: ' + lprow['socket'] + '\r\n') ;
