@@ -58,7 +58,8 @@ do
                 echo "Ignoring $m4config";
                 continue;
         fi
-        m4 $M4_FILES $m4config > $OUTDIR/$(basename $m4config|sed 's/\.m4$//')
+        #m4 $M4_FILES $m4config > $OUTDIR/$(basename $m4config|sed 's/\.m4$//')
+        cat $M4_FILES |  sed -n '/divert/,/divert/p;' | m4 - $m4config > $OUTDIR/$(basename $m4config|sed 's/\.m4$//')
 done
 
 rm -f $OUTDIR/blox-tls-*.cfg
