@@ -187,36 +187,39 @@ route {
          };
     };
 
-    if(method == "INVITE") {
-        route(ROUTE_INVITE);
+
+    if(uri == myself) {
+        if(method == "INVITE") {
+            route(ROUTE_INVITE);
+        }
+
+        if (method == "CANCEL") {
+            route(ROUTE_CANCEL);
+        }
+
+        if ( method == "ACK" ) { #already dialog handled, this should be dropped
+            xlog("L_INFO", "BLOX_DBG::: blox.cfg: Dropping SIP Method $rm received from $fu $si $sp to $ru ($avp(rcv))\n"); /* Dont know what to do */
+            t_check_trans();  # stops the retransmission
+            exit;
+        }
+
+        if(method == "NOTIFY") { /* Only REFER-NOTIFY, Not SUBSCRIBE */
+           route(ROUTE_NOTIFY);
+        }
+
+        if(method == "SUBSCRIBE") {
+            route("ROUTE_SUBSCRIBE");
+        }
+
+        if(method == "PUBLISH") {
+            route("ROUTE_PUBLISH");
+            exit;
+        };
     }
 
-    if (method == "CANCEL") {
-        route(ROUTE_CANCEL);
-    }
-
-    if ( method == "ACK" ) { #already dialog handled, this should be dropped
-        xlog("L_INFO", "BLOX_DBG::: blox.cfg: Dropping SIP Method $rm received from $fu $si $sp to $ru ($avp(rcv))\n"); /* Dont know what to do */
-        t_check_trans();  # stops the retransmission
-        exit;
-    }
-
-    if(method == "NOTIFY") { /* Only REFER-NOTIFY, Not SUBSCRIBE */
-       route(ROUTE_NOTIFY);
-    }
-
-    if(method == "SUBSCRIBE") {
-        route("ROUTE_SUBSCRIBE");
-    }
-
-    if(method == "PUBLISH") {
-        route("ROUTE_PUBLISH");
-        exit;
-    };
-
-    #drop();
-    #xlog("L_INFO", "BLOX_DBG::: blox.cfg: Dropping SIP Method $rm received from $fu $si $sp to $ru ($avp(rcv))\n"); /* Dont know what to do */
-    #exit;
+    drop();
+    xlog("L_INFO", "BLOX_DBG::: blox.cfg: Dropping SIP Method $rm received from $fu $si $sp to $ru ($avp(rcv))\n"); /* Dont know what to do */
+    exit;
 }
 
 # ----------- Experimentation routers ------------------------
