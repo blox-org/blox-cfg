@@ -23,12 +23,14 @@
 OLD_VERSION=$1
 NEW_VERSION=$2
 
+BLOX_TABLES="locationpbx locationtrunk locationpresence blox_config blox_profile_config \
+                         blox_param_config blox_codec blox_subscribe blox_presence_subscriber"
+BLOX_ALTER_TABLES="/etc/blox/sql/alter_acc.sql /etc/blox/sql/alter_blox_config.sql /etc/blox/sql/alter_usr_preferences.sql"
+
 if [ -n "$OLD_VERSION" -a -n "$NEW_VERSION" ] #Migration
 then
 	if [ "$OLD_VERSION" = "$NEW_VERSION" ]
 	then
-                BLOX_TABLES="locationpbx locationtrunk locationpresence blox_config blox_profile_config \
-                                blox_param_config blox_codec blox_subscribe blox_presence_subscriber"
                 OPENSIPS_TABLES="acc subscriber registrant dr_gateways dr_rules dr_groups userblacklist"
 
 		rm -f /etc/blox/sql/blox.migrate.sql /etc/blox/sql/opensips.migrate.sql
@@ -55,9 +57,13 @@ fi
 
 if [ -n "$OLD_VERSION" -a -n "$NEW_VERSION" -a "$OLD_VERSION" = "$NEW_VERSION" ]
 then
-	CREATE_SQL="/etc/blox/sql/blox.migrate.sql /etc/blox/sql/opensips.migrate.sql"
+	CREATE_SQL="/etc/blox/sql/blox.migrate.sql /etc/blox/sql/opensips.migrate.sql $BLOX_ALTER_TABLES"
 else
-	CREATE_SQL="/etc/blox/sql/create_location.sql /etc/blox/sql/create_blox_config.sql /etc/blox/sql/create_blox_codec.sql /etc/blox/sql/alter_acc.sql /etc/blox/sql/alter_usr_preferences.sql"
+	for bt in ${BLOX_TABLES}
+	do
+		CREATE_SQL="$CREATE_SQL /etc/blox/sql/create_${bt}.sql";
+	done
+	CREATE_SQL="$CREATE_SQL $BLOX_ALTER_TABLES" 
 fi
 
 for sqlFile in $CREATE_SQL
