@@ -438,11 +438,11 @@ route[MTS_WAN2LAN] {
     t_on_reply("MTS_WAN2LAN");
     t_on_failure("MTS_WAN2LAN");
 
-    if(has_totag()) { #Within dialog
-        if($du != null && $du != "") {
-            $ru = $du ;
-        }
-    }
+    #if(has_totag()) { #Within dialog
+    #    if($du != null && $du != "") {
+    #        $ru = $du ;
+    #    }
+    #}
 
     if(has_totag()) { #Within dialog
         if($DLG_dir == "downstream" && $dlg_val(dcontact)) {
