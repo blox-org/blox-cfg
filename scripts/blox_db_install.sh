@@ -68,6 +68,7 @@ fi
 
 for sqlFile in $CREATE_SQL
 do
+	echo "Executing $sqlFile" ;
 	/usr/bin/mysql -u opensips opensips_$NEW_VERSION --password="opensipsrw" < $sqlFile
 done
 
@@ -75,5 +76,6 @@ IFS="
 "
 for sql in $(cat /etc/blox/sql/blox_version.sql)
 do
+	echo "Executing $sql" ;
 	/usr/bin/mysql -u opensips opensips_$NEW_VERSION --password="opensipsrw" -e $sql
 done
