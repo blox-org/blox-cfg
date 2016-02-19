@@ -32,6 +32,8 @@ fi
 rtpengine=/usr/sbin/rtpengine
 prog=rtpengine
 CONFIGS=/etc/rtpengine/*.conf
+LOG_FACILITY=local1
+LOG_LEVEL=7
 
 init_rtpengine() {
 	RTPENGINE_NAME=$1
