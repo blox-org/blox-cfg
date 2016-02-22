@@ -87,11 +87,17 @@ route[LAN2WAN] {
         }
     }
 
-    #if(has_totag()) { #Within dialog
-    #    if($du != null && $du != "") {
-    #        $ru = $du ;
-    #    }
-    #}
+    if(has_totag()) { #Within dialog
+        if($du != null && $du != "") {
+            $var(duri) = $du ;
+            $var(fsock) = $fs ;
+            $var(dsocket) = $(var(duri){uri.host}) ;
+            $var(fsocket) = $(var(fsock){s.select,1,:}) ;
+            if($var(dsocket) == $var(fsocket)) {
+                $ru = $du ;
+            }
+        }
+    }
 
     xlog("L_INFO", "BLOX_DBG::: blox-lan2wan.cfg: ROUTING $rm - dir: $DLG_dir: from: $fu src:$si:$sp to ru:$ru : down: $avp(dcontact) up:$avp(ucontact) -> dst: $du \n");
 
@@ -112,9 +118,9 @@ onreply_route[LAN2WAN] {
         if (has_body("application/sdp")) {
             $var(transcoding) = 0 ;
             if(is_ip_rfc1918("$si") && nat_uac_test("40")) {
-                rtpengine_answer("force external internal trust-address replace-origin replace-session-connection");
+                rtpengine_answer("force external internal trust-address replace-origin replace-session-connection ICE=remove");
             } else { 
-                rtpengine_answer("force external internal replace-origin replace-session-connection");
+                rtpengine_answer("force external internal replace-origin replace-session-connection ICE=remove");
             }
         };
 

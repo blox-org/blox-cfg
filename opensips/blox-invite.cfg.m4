@@ -547,7 +547,7 @@ route[ROUTE_INVITE] {
                     $dlg_val(channel) = "sip:" + $si + ":" + $sp;
                     $dlg_val(dchannel) = $du;
                     $dlg_val(direction) = "inbound";
-                    /* Call-ID not required for WAN to LAN */
+                    /* Call-ID encoding not required for WAN to LAN */
                     topology_hiding();
                     setflag(ACC_FLAG_CDR_FLAG);
                     setflag(ACC_FLAG_LOG_FLAG);
@@ -758,7 +758,7 @@ route[ROUTE_INVITE] {
                         $dlg_val(dchannel) = $du ;
                         $dlg_val(direction) = "inbound";
 
-                        /* Call-ID not required for WAN to LAN */
+                        /* Call-ID encoding not required for WAN to LAN */
                         topology_hiding(); #flags remove: CR: C - CallID, R - Refer-To
                         add_rcv_param();
                         setflag(ACC_FLAG_CDR_FLAG);

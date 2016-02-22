@@ -467,11 +467,17 @@ route[MTS_LAN2WAN] {
         }
     }
 
-    #if(has_totag()) { #Within dialog
-    #    if($du != null && $du != "") {
-    #        $ru = $du ;
-    #    }
-    #}
+    if(has_totag()) { #Within dialog
+        if($du != null && $du != "") {
+            $var(duri) = $du ;
+            $var(fsock) = $fs ;
+            $var(dsocket) = $(var(duri){uri.host}) ;
+            $var(fsocket) = $(var(fsock){s.select,1,:}) ;
+            if($var(dsocket) == $var(fsocket)) {
+                $ru = $du ;
+            }
+        }
+    }
 
     xlog("L_INFO", "BLOX_DBG::: blox-lan2wan-allomts.cfg: ROUTING $rm - dir: $DLG_dir: from: $fu src:$si:$sp to ru:$ru : down: $avp(dcontact) up:$avp(ucontact) -> dst: $du \n");
 

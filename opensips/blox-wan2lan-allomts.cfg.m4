@@ -438,11 +438,17 @@ route[MTS_WAN2LAN] {
     t_on_reply("MTS_WAN2LAN");
     t_on_failure("MTS_WAN2LAN");
 
-    #if(has_totag()) { #Within dialog
-    #    if($du != null && $du != "") {
-    #        $ru = $du ;
-    #    }
-    #}
+    if(has_totag()) { #Within dialog
+        if($du != null && $du != "") {
+            $var(duri) = $du ;
+            $var(fsock) = $fs ;
+            $var(dsocket) = $(var(duri){uri.host}) ;
+            $var(fsocket) = $(var(fsock){s.select,1,:}) ;
+            if($var(dsocket) == $var(fsocket)) {
+                $ru = $du ;
+            }
+        }
+    }
 
     if(has_totag()) { #Within dialog
         if($DLG_dir == "downstream" && $dlg_val(dcontact)) {
