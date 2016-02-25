@@ -1,0 +1,31 @@
+#!/usr/bin/python
+import socket
+import sys 
+import time
+
+progname = sys.argv[0] 
+
+def usage():
+	print "usage: " + progname + " <host> <port> <command>"
+	sys.exit(-1);
+
+if len(sys.argv) < 5:
+	usage
+
+HOST = sys.argv[1]
+PORT = int(sys.argv[2]) 
+CMD  = sys.argv[3] + "\n";
+
+client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)    #This creates socket
+# Connect the socket to the port where the server is listening
+server_address = (HOST, PORT) 
+print >>sys.stderr, 'connecting to %s port %s' % server_address
+client_socket.connect(server_address)
+try:
+	print "Sending command: " + CMD + "(" + str(len(CMD)) + ")" ;
+	client_socket.send(CMD) ;
+	recv_data = client_socket.recv(2048)
+	print recv_data
+except socket.error as msg:
+	print msg
+client_socket.close()

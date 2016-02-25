@@ -58,6 +58,14 @@ init_rtpengine() {
 	MODULE=0
 }
 
+status_rtpengine() {
+	if [ -n "$LISTEN_CLI" ]; then
+		HOST=$(echo $LISTEN_CLI | awk -F':' '{print $1}')
+		PORT=$(echo $LISTEN_CLI | awk -F':' '{print $2}')
+		/usr/bin/rtpenginectl $HOST $PORT "list sessions"
+	fi
+}
+
 build_opts() {
 	shopt -s nocasematch
 	RPMS=`rpm -qa | grep ngcp-rtpengine-kernel`
