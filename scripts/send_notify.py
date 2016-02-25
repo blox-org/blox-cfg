@@ -57,18 +57,35 @@ def parse_uri(uri):
 		 ('ip',   re.sub(r'(.*):.*',r'\1',o.path)) if re.match(r'.*:.*',o.path) else ('ip', re.sub(r'(.*)',r'\1',o.path)), \
 		 ('port', re.sub(r'.*:(.*)',r'\1',o.path)) if re.match(r'.*:.*',o.path) else ('port', "5060"), \
 		 ('transport', re.sub(r'.*transport=(.*)',r'\1',transport))])
-		
 
-def send_notify(lprow,wturi,furi,touri):
+
+def convert_with_defport(uri):
+	minsplit = 2 ;
+	if(re.match(r'^[a-zA-Z]+:',uri)):
+		minsplit = 3 ;
+	if len(uri.split(':'))<minsplit:
+		return (uri + ':5060') ;
+	return uri ;
+
+def convert_without_defport(uri):
+	minsplit = 2 ;
+	if(re.match(r'^[a-zA-Z]+:',uri)):
+		minsplit = 3 ;
+	if len(uri.split(':'))>=minsplit: 
+		return re.sub(':5060','',uri); #Remove 5060 for substution
+	return uri ;
+
+def send_notify(lprow,wturi,furi,touri,EVENT_TYPE):
 	#print lprow.keys()
+	content_length=0
 	nfd = open(notify_file,"r",1);
 	recvline = nfd.readline(); #Ignore this customized line
 	localsocket = lprow['socket'].split(':');
-	content_length=0
+	localsocket_uri = localsocket[1] + ':' + localsocket[2] + ';transport=' + localsocket[0] ;
 	contact = lprow['contact'].split('@') ;
-	replace_watcher_uri = contact[0] + '@' + localsocket[1] + ':' + localsocket[2] ;
-	replace_to_uri   = 'sip:' + lprow['username'] + '@' + localsocket[1] + ':' + localsocket[2] ;
-	replace_from_uri = 'sip:' + lprow['username'] + '@' + localsocket[1] + ':' + localsocket[2] ;
+	replace_watcher_uri = contact[0] + '@' + localsocket_uri ;
+	replace_to_uri   = 'sip:' + lprow['username'] + '@' + localsocket_uri ;
+	replace_from_uri = 'sip:' + lprow['username'] + '@' + localsocket_uri ;
 	furi_defport  = furi ;
 	touri_defport = touri ;
 	wturi_defport = wturi ;
@@ -76,26 +93,24 @@ def send_notify(lprow,wturi,furi,touri):
 	notify_file_out = "/var/tmp/" + replace_from_uri + ".out"
 	nfd_w = open(notify_file_out,"w",1);
 
-	#print len(touri.split(':'))
-	if len(wturi.split(':'))<=2: #First add default 5060 for substution
-		wturi_defport = wturi + ':5060' ;
-	wturi = re.sub(':5060','',wturi); #Remove 5060 for substution
-	if len(touri.split(':'))<=2: #First add default 5060 for substution
-		touri_defport = touri + ':5060' ;
-	touri = re.sub(':5060','',touri); #Remove 5060 for substution
-	if len(furi.split(':'))<=2:  #First add default 5060 for substution
-		furi_defport = furi + ':5060' ;
-	furi = re.sub(':5060','',furi); #Remove 5060 for substution
+	wturi_defport = convert_with_defport(wturi);
+	wturi         = convert_without_defport(wturi);
+	touri_defport = convert_with_defport(touri);
+	touri         = convert_without_defport(touri);
+	furi_defport  = convert_with_defport(furi);
+	furi          = convert_without_defport(furi);
 
 	print 'from_uri:' + furi_defport  + '===' +  furi  + "==" + replace_from_uri;
 	print 'to_uri:'   + touri_defport + '===' +  touri + "==" + replace_to_uri;
 	print 'wt_uri:'   + wturi_defport + '===' +  wturi + "==" + replace_watcher_uri;
+
 	for line in nfd:
 		if re.match(r'Via:',line,re.M|re.I):
 			line = re.sub(r'Via: SIP/2.0/UDP (.*);branch=(.*)',r'Via: SIP/2.0/UDP 127.0.0.1:7777;branch=\2',line)
 		elif re.match(r'To:',line,re.M|re.I):
-			replace_from_pat = r'To:\1;tag='+ re.escape(lprow['attr']) + r'\3\r\n'
-			line = re.sub(r'To:(.*);tag=(.*)(;*.*)\r\n',replace_from_pat,line)
+			if EVENT_TYPE == "presence":
+				replace_from_pat = r'To:\1;tag='+ re.escape(lprow['attr']) + r'\3\r\n'
+				line = re.sub(r'To:(.*);tag=(.*)(;*.*)\r\n',replace_from_pat,line)
 		elif re.match(r'Call-ID:',line,re.M|re.I):
 			line = re.sub(r'Call-ID:(.*)\r\n','Call-ID: ' + lprow['callid'] + '\r\n',line)
 		elif re.match('\r\n',line,re.M|re.I):
@@ -136,6 +151,16 @@ def send_notify(lprow,wturi,furi,touri):
 	if(cnt==0):
 		content = re.sub(touri,replace_to_uri,content)
 
+	if EVENT_TYPE == "message-summary":
+		pbxsocket = parse_uri(lprow['attr']);
+		pbxipport = pbxsocket['ip'] + ':' + pbxsocket['port'];
+		pbxipport_defport = convert_with_defport(pbxipport);
+		pbxipport         = convert_without_defport(pbxipport);
+		(content,cnt) = re.subn(pbxipport_defport,localsocket_uri,content)
+		if(cnt==0):
+			content = re.sub(pbxipport,localsocket_uri,content)
+		print "Replaced :" + pbxipport + ":<=X=>:" + localsocket_uri ;
+
 	nfd_w.write('Remote-Contact-Header: ' + lprow['received'] + '\r\n') ;
 	nfd_w.write('Send-Socket: ' + lprow['socket'] + '\r\n') ;
 	nfd_w.write('Content-Length: ' + `content_length` + "\r\n\r\n") 
@@ -148,51 +173,36 @@ def send_notify(lprow,wturi,furi,touri):
 	#print_filecontent(notify_file_out)
 
 
+def SQLConnect(host,user,passwd,dbname):
+	db = MySQLdb.connect(host, # your host, usually localhost
+                     user, # your username
+                      passwd, # your password
+                      dbname) # name of the data base
+	return db ;
+
+def SQLCursor(db):
+	return db.cursor(cursorclass=MySQLdb.cursors.DictCursor)
+	
+def SQLExecute(cur,sql):
+	print sql ;
+	return cur.execute(sql);	
+
 
 #MAIN()
 nfd = open(notify_file,"r",1);
-recvline = nfd.readline();
+lanprofile = nfd.readline();
 reqline = nfd.readline().split()
 if reqline[0] == "NOTIFY":
-	print recvline
+	print "LANProfile:" + lanprofile 
 	print reqline[0]
 else:
 	print "Error: Not NOTIFY"
-	print recvline
+	print "LANProfile:" + lanprofile 
 	print reqline[0]
 	nfd.close();
 	sys.exit(-1) ;
 
-for line in nfd:
-	if re.match(r'From:',line,re.M|re.I):
-		from_uri = re.sub(r'From:\s*(.*)',r'\1',line.split(';')[0])
-		break;
-nfd.close() ;
-
 watcher_uri = reqline[1] ;
-#watcher = parse_uri(watcher_uri);
-
-db = MySQLdb.connect(host="localhost", # your host, usually localhost
-                     user="opensips", # your username
-                      passwd="opensipsrw", # your password
-                      db="opensips_1_11") # name of the data base
-
-
-cur = db.cursor(cursorclass=MySQLdb.cursors.DictCursor)
-
-print "SELECT value FROM blox_profile_config where uuid = '" + recvline.strip() + "'"; #Get LAN Profile
-cur.execute("SELECT value FROM blox_profile_config where uuid = '" + recvline.strip() + "'"); #Get LAN Profile
-
-lanprofile = cur.fetchone()['value'] ;
-
-cur.execute("SELECT value FROM blox_config where uuid = 'PBX:" + lanprofile + "'"); #Get RU from LAN Profile
-ruconfig = cur.fetchone()['value'];
-for v in ruconfig.split(';'): #get WAN profile using RU
-	if(re.match("WAN",v)): 
-		print "SELECT value FROM blox_profile_config where uuid = '" + v.split('=')[1] + "'" 
-		cur.execute("SELECT value FROM blox_profile_config where uuid = '" + v.split('=')[1] + "'")
-		wanprofile = cur.fetchone()['value'];
-		break ;
 
 if len(watcher_uri.split(':'))<=2:  #First add default 5060 for substution
 	watcher_uri_defport = watcher_uri + ':5060' ;
@@ -200,41 +210,104 @@ else:
 	watcher_uri_defport = watcher_uri ;
 	watcher_uri = re.sub(':5060','',watcher_uri); #Remove 5060 for substution
 
-print("SELECT from_uri, to_uri, event, socket, extra_hdr, expiry FROM blox_subscribe where from_uri = '" + watcher_uri + "' or from_uri = '" + watcher_uri_defport + "' ORDER BY last_modified DESC")
-cur.execute("SELECT from_uri, to_uri, event, socket, extra_hdr, expiry FROM blox_subscribe where from_uri = '" + watcher_uri + "' or from_uri = '" + watcher_uri_defport + "' ORDER BY last_modified DESC")
-result_blox_subscribe = cur.fetchall()
+for line in nfd:
+	print line.strip();
+	if re.match(r'From:',line,re.M|re.I):
+		from_uri = re.sub(r'From:\s*(.*)',r'\1',line.split(';')[0])
+	if re.match(r'Event:',line,re.M|re.I):
+		EventType = re.sub(r'Event:\s*(.*)',r'\1',line.split(';')[0])
+nfd.close() ;
+
+from_uri = from_uri.strip();
+EventType = EventType.strip();
 
 
-#cur.execute("SELECT id, username, received, callid, contact, received, socket, attr FROM locationpresence group by username, contact order by id")
-#cur.execute("SELECT id, username, received, callid, contact, received, socket, attr FROM locationpresence group by username, contact order by last_modified")
-cur.execute("SELECT id, username, received, callid, contact, received, socket, attr FROM locationpresence order by last_modified")
-result_locationpresence = cur.fetchall();
-lprow_hash = dict();
+db = SQLConnect("localhost","opensips","opensipsrw","opensips_1_11");
+cur = SQLCursor(db);
 
-for bsrow in result_blox_subscribe:
-	bs_from_uri = bsrow['from_uri'] ;
-	bs_to_uri   = bsrow['to_uri'] ;
-	if len(bs_to_uri.split(':'))<=2:  #First add default 5060 for substution
-		bs_to_uri_defport = bs_to_uri + ':5060' ;
-	else:
-		bs_to_uri_defport = bs_to_uri ;
-		bs_to_uri = re.sub(':5060','',bs_to_uri); #Remove 5060 for substution
+if EventType == "presence":
+	SQLExecute(cur,"SELECT from_uri, to_uri, event, socket, extra_hdr, expiry FROM blox_subscribe where from_uri = '" + watcher_uri + "' or from_uri = '" + watcher_uri_defport + "' ORDER BY last_modified DESC")
+	result_blox_subscribe = cur.fetchall()
+	SQLExecute(cur,"SELECT id, username, received, callid, contact, received, socket, attr FROM locationpresence order by last_modified")
+	result_location = cur.fetchall();
+	lprow_hash = dict();
+elif EventType == "message-summary":
+	SQLExecute(cur,"SELECT id, username, received, callid, contact, received, socket, attr FROM locationpbx      order by last_modified")
+	result_location = cur.fetchall();
+	lprow_hash = dict();
+else:
+	print "Unsupported Event Type :" + EventType + ":";
 
 
-	bs_socket   = bsrow['socket'].split(':') ;
-	#Match the to_uri of blox_subscribe matching from uri received 
-	if(bs_to_uri != from_uri and bs_to_uri_defport != from_uri):
-		print "From URI Not Matching " + bs_to_uri + '/' + bs_to_uri_defport + "!=" + from_uri ;
-		continue ;	
-	recvsocket = parse_uri(recvline);
-	#Check the recvsocket is same as blox_subscribe configured socket
-	if bs_socket[1] == recvsocket['ip'] and bs_socket[2] == recvsocket['port'] and bs_socket[0] == recvsocket['transport']:
-		print "Matching " + bsrow['socket'] + "<>" + recvline ;
-	else:
-		print "SOCKET Not Matching " + bsrow['socket'] + "<>" + recvline ;
-		continue ;
-		
-	for lprow in result_locationpresence:
+SQLExecute(cur,"SELECT value FROM blox_profile_config where uuid = '" + lanprofile.strip() + "'"); #Get LAN Profile
+
+lanid = cur.fetchone()['value'] ;
+
+SQLExecute(cur,"SELECT value FROM blox_config where uuid = 'PBX:" + lanid + "'"); #Get RU from LAN Profile
+ruconfig = cur.fetchone()['value'];
+for v in ruconfig.split(';'): #get WAN profile using RU
+	if(re.match("WAN",v)): 
+		print "SELECT value FROM blox_profile_config where uuid = '" + v.split('=')[1] + "'" 
+		SQLExecute(cur,"SELECT value FROM blox_profile_config where uuid = '" + v.split('=')[1] + "'")
+		wanprofile = cur.fetchone()['value'];
+		break ;
+
+
+if EventType == "presence":
+	for bsrow in result_blox_subscribe:
+		bs_from_uri = bsrow['from_uri'] ;
+		bs_to_uri   = bsrow['to_uri'] ;
+		if len(bs_to_uri.split(':'))<=2:  #First add default 5060 for substution
+			bs_to_uri_defport = bs_to_uri + ':5060' ;
+		else:
+			bs_to_uri_defport = bs_to_uri ;
+			bs_to_uri = re.sub(':5060','',bs_to_uri); #Remove 5060 for substution
+	
+	
+		bs_socket   = bsrow['socket'].split(':') ;
+		#Match the to_uri of blox_subscribe matching from uri received 
+		if(bs_to_uri != from_uri and bs_to_uri_defport != from_uri):
+			print "From URI Not Matching " + bs_to_uri + '/' + bs_to_uri_defport + "!=" + from_uri ;
+			continue ;	
+		lansocket = parse_uri(lanprofile);
+		#Check the lansocket is same as blox_subscribe configured socket
+		if bs_socket[1] == lansocket['ip'] and bs_socket[2] == lansocket['port'] and bs_socket[0] == lansocket['transport']:
+			print "Matching " + bsrow['socket'] + "<>" + lanprofile;
+		else:
+			print "SOCKET Not Matching " + bsrow['socket'] + "<>" + lanprofile;
+			continue ;
+			
+		for lprow in result_location:
+			for f in lprow:
+				print (f,':',lprow[f]);
+			user = lprow['username'] ;
+			contact = lprow['contact'] ;
+			key = user + contact ;
+			if lprow_hash.get(key,None) is not None: #Unique user and contact
+				print user + " User already processed " + contact ;
+				print "Continue sending the NOTIFY to other SUBSCRIBE"
+				#continue ;
+			lprow_hash[key] = 1;
+			user_pat = r'^sip:' + re.escape(user) + r'@.*' ;
+			if not re.match(user_pat,from_uri,re.M|re.I): #Find subscribed user for this user
+				print "From URI Not Matching " + from_uri + "~" + user_pat ;
+				continue ;
+			else:
+				print "Matching " + from_uri + "~" + user_pat ;
+			localsocket = lprow['socket'].split(':') ;
+			#Match the WAN Profile socket with the subscribed user socket
+			#print ">>" + localsocket[1] + wanprofile.split(';')[0].split(':')[1] + localsocket[2] + wanprofile.split(';')[0].split(':')[2]
+			if(localsocket[1] == wanprofile.split(';')[0].split(':')[1] and \
+				localsocket[2] == wanprofile.split(';')[0].split(':')[2]):
+				to_uri = "sip:" + user + "@" + localsocket[1] + ":" + localsocket[2]
+				send_notify(lprow,watcher_uri,from_uri,to_uri,EventType)
+			else:
+				print "SOCKET Not Matching " + localsocket[1] + "<>" + wanprofile.split(';')[0].split(':')[1] + ":" \
+					 + localsocket[2] + "<>" + wanprofile.split(';')[0].split(':')[2]
+		#We found the matching from_uri in blox_subscribe and notify has been sent, lets break
+		break ;
+elif EventType == "message-summary":
+	for lprow in result_location:
 		user = lprow['username'] ;
 		contact = lprow['contact'] ;
 		key = user + contact ;
@@ -243,26 +316,24 @@ for bsrow in result_blox_subscribe:
 			print "Continue sending the NOTIFY to other SUBSCRIBE"
 			#continue ;
 		lprow_hash[key] = 1;
-		user_pat = r'^sip:' + re.escape(user) + r'@.*' ;
-		if not re.match(user_pat,from_uri,re.M|re.I): #Find subscribed user for this user
-			print "From URI Not Matching " + from_uri + "~" + user_pat ;
-			continue ;
-		else:
-			print "Matching " + from_uri + "~" + user_pat ;
+		#user_pat = r'^sip:' + re.escape(user) + r'@.*' ;
+		#if not re.match(user_pat,from_uri,re.M|re.I): #Find subscribed user for this user
+		#	print "From URI Not Matching " + from_uri + "~" + user_pat ;
+		#	continue ;
+		#else:
+		#	print "Matching " + from_uri + "~" + user_pat ;
 		localsocket = lprow['socket'].split(':') ;
 		#Match the WAN Profile socket with the subscribed user socket
 		#print ">>" + localsocket[1] + wanprofile.split(';')[0].split(':')[1] + localsocket[2] + wanprofile.split(';')[0].split(':')[2]
 		if(localsocket[1] == wanprofile.split(';')[0].split(':')[1] and \
 			localsocket[2] == wanprofile.split(';')[0].split(':')[2]):
 			to_uri = "sip:" + user + "@" + localsocket[1] + ":" + localsocket[2]
-			send_notify(lprow,watcher_uri,from_uri,to_uri)
+			send_notify(lprow,watcher_uri,from_uri,to_uri,EventType)
 		else:
 			print "SOCKET Not Matching " + localsocket[1] + "<>" + wanprofile.split(';')[0].split(':')[1] + ":" \
 				 + localsocket[2] + "<>" + wanprofile.split(';')[0].split(':')[2]
-	#We found the matching from_uri in blox_subscribe and notify has been sent, lets break
-	break ;
-	
-	
+else:
+	print "Unsupported Event Type :" + EventType + ":";
 
 cur.close();
 db.close() ;

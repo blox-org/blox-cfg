@@ -92,7 +92,7 @@ route[ROUTE_REGISTER] {
                         exit;
                     }
 
-                    xdbg("BLOX_DBG: Sending to :$avp(LANProfile):\n");
+                    xdbg("BLOX_DBG: Sending via LAN Profile :$avp(LANProfile):\n");
                     $avp(LANIP) = $(avp(LANProfile){uri.host});
                     $avp(LANPORT) = $(avp(LANProfile){uri.port});
                     $avp(LANPROTO) = $(avp(LANProfile){uri.param,transport});
@@ -117,7 +117,7 @@ route[ROUTE_REGISTER] {
 
                     $fs = $avp(LANPROTO) + ":" + $avp(LANIP) + ":" + $avp(LANPORT) ;
                     $du = $avp(PBX) + ";transport=" + $avp(LANPROTO)  ;
-                    xlog("BLOX_DBG::: blox-register.cfg: Sending to $avp(LANIP) : $avp(LANPORT) : $fs :  $var(reguri)\n");
+                    xlog("BLOX_DBG::: blox-register.cfg: Sending via :$fs: to $var(reguri)\n");
                     uac_replace_from("$var(reguri)");
                     uac_replace_to("$var(reguri)");
                     remove_hf("Route"); #Not accepted for REGISTER
