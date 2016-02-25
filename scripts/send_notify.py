@@ -75,26 +75,23 @@ def convert_without_defport(uri):
 		return re.sub(':5060','',uri); #Remove 5060 for substution
 	return uri ;
 
-def send_notify(lprow,wturi,furi,touri,EVENT_TYPE):
-	#print lprow.keys()
+#row,ruri(request uri),furi(from uri), touri(to uri), EVENT_TYPE(presence,message-summary)
+def send_notify(lprow,ruri,furi,touri,EVENT_TYPE):
 	content_length=0
 	nfd = open(notify_file,"r",1);
 	recvline = nfd.readline(); #Ignore this customized line
 	localsocket = lprow['socket'].split(':');
 	localsocket_uri = localsocket[1] + ':' + localsocket[2] + ';transport=' + localsocket[0] ;
 	contact = lprow['contact'].split('@') ;
-	replace_watcher_uri = contact[0] + '@' + localsocket_uri ;
-	replace_to_uri   = 'sip:' + lprow['username'] + '@' + localsocket_uri ;
+	replace_request_uri = contact[0] + '@' + localsocket_uri ;
+	replace_to_uri   = contact[0] + '@' + localsocket_uri ;
 	replace_from_uri = 'sip:' + lprow['username'] + '@' + localsocket_uri ;
-	furi_defport  = furi ;
-	touri_defport = touri ;
-	wturi_defport = wturi ;
 
 	notify_file_out = "/var/tmp/" + replace_from_uri + ".out"
 	nfd_w = open(notify_file_out,"w",1);
 
-	wturi_defport = convert_with_defport(wturi);
-	wturi         = convert_without_defport(wturi);
+	ruri_defport = convert_with_defport(ruri);
+	ruri         = convert_without_defport(ruri);
 	touri_defport = convert_with_defport(touri);
 	touri         = convert_without_defport(touri);
 	furi_defport  = convert_with_defport(furi);
@@ -102,9 +99,10 @@ def send_notify(lprow,wturi,furi,touri,EVENT_TYPE):
 
 	print 'from_uri:' + furi_defport  + '===' +  furi  + "==" + replace_from_uri;
 	print 'to_uri:'   + touri_defport + '===' +  touri + "==" + replace_to_uri;
-	print 'wt_uri:'   + wturi_defport + '===' +  wturi + "==" + replace_watcher_uri;
+	print 'wt_uri:'   + ruri_defport + '===' +  ruri + "==" + replace_request_uri;
 
 	for line in nfd:
+		#print line.strip() ;
 		if re.match(r'Via:',line,re.M|re.I):
 			line = re.sub(r'Via: SIP/2.0/UDP (.*);branch=(.*)',r'Via: SIP/2.0/UDP 127.0.0.1:7777;branch=\2',line)
 		elif re.match(r'To:',line,re.M|re.I):
@@ -116,11 +114,11 @@ def send_notify(lprow,wturi,furi,touri,EVENT_TYPE):
 		elif re.match('\r\n',line,re.M|re.I):
 			break ;
 
-		(line,cnt) = re.subn(wturi_defport,replace_watcher_uri,line)
+		(line,cnt) = re.subn(ruri_defport,replace_request_uri,line)
 		if(cnt==0):
-			line = re.sub(wturi,replace_watcher_uri,line)
+			line = re.sub(ruri,replace_request_uri,line)
 
-		(line) = re.sub(furi_defport,replace_from_uri,line)
+		(line,cnt) = re.subn(furi_defport,replace_from_uri,line)
 		if(cnt==0):
 			line = re.sub(furi,replace_from_uri,line)
 
@@ -133,15 +131,17 @@ def send_notify(lprow,wturi,furi,touri,EVENT_TYPE):
 
 		if line is not None:
 			nfd_w.write(line) 
+			#print "<<=X=>>" + line.strip();
+
 
 	content = "" ;
 	for line in nfd:
 		content_length += len(line) ;
 		content += line ;
 
-	(content,cnt) = re.subn(wturi_defport,replace_watcher_uri,content)
+	(content,cnt) = re.subn(ruri_defport,replace_request_uri,content)
 	if(cnt==0):
-		content = re.sub(wturi,replace_watcher_uri,content)
+		content = re.sub(ruri,replace_request_uri,content)
 
 	(content,cnt) = re.subn(furi_defport,replace_from_uri,content)
 	if(cnt==0):
@@ -159,7 +159,6 @@ def send_notify(lprow,wturi,furi,touri,EVENT_TYPE):
 		(content,cnt) = re.subn(pbxipport_defport,localsocket_uri,content)
 		if(cnt==0):
 			content = re.sub(pbxipport,localsocket_uri,content)
-		print "Replaced :" + pbxipport + ":<=X=>:" + localsocket_uri ;
 
 	nfd_w.write('Remote-Contact-Header: ' + lprow['received'] + '\r\n') ;
 	nfd_w.write('Send-Socket: ' + lprow['socket'] + '\r\n') ;
@@ -202,13 +201,13 @@ else:
 	nfd.close();
 	sys.exit(-1) ;
 
-watcher_uri = reqline[1] ;
+request_uri = reqline[1] ;
 
-if len(watcher_uri.split(':'))<=2:  #First add default 5060 for substution
-	watcher_uri_defport = watcher_uri + ':5060' ;
+if len(request_uri.split(':'))<=2:  #First add default 5060 for substution
+	request_uri_defport = request_uri + ':5060' ;
 else:
-	watcher_uri_defport = watcher_uri ;
-	watcher_uri = re.sub(':5060','',watcher_uri); #Remove 5060 for substution
+	request_uri_defport = request_uri ;
+	request_uri = re.sub(':5060','',request_uri); #Remove 5060 for substution
 
 for line in nfd:
 	print line.strip();
@@ -226,7 +225,7 @@ db = SQLConnect("localhost","opensips","opensipsrw","opensips_1_11");
 cur = SQLCursor(db);
 
 if EventType == "presence":
-	SQLExecute(cur,"SELECT from_uri, to_uri, event, socket, extra_hdr, expiry FROM blox_subscribe where from_uri = '" + watcher_uri + "' or from_uri = '" + watcher_uri_defport + "' ORDER BY last_modified DESC")
+	SQLExecute(cur,"SELECT from_uri, to_uri, event, socket, extra_hdr, expiry FROM blox_subscribe where from_uri = '" + request_uri + "' or from_uri = '" + request_uri_defport + "' ORDER BY last_modified DESC")
 	result_blox_subscribe = cur.fetchall()
 	SQLExecute(cur,"SELECT id, username, received, callid, contact, received, socket, attr FROM locationpresence order by last_modified")
 	result_location = cur.fetchall();
@@ -278,8 +277,8 @@ if EventType == "presence":
 			continue ;
 			
 		for lprow in result_location:
-			for f in lprow:
-				print (f,':',lprow[f]);
+			#for f in lprow:
+			#	print (f,':',lprow[f]);
 			user = lprow['username'] ;
 			contact = lprow['contact'] ;
 			key = user + contact ;
@@ -300,7 +299,8 @@ if EventType == "presence":
 			if(localsocket[1] == wanprofile.split(';')[0].split(':')[1] and \
 				localsocket[2] == wanprofile.split(';')[0].split(':')[2]):
 				to_uri = "sip:" + user + "@" + localsocket[1] + ":" + localsocket[2]
-				send_notify(lprow,watcher_uri,from_uri,to_uri,EventType)
+				#send_notify(lprow,request_uri,from_uri,to_uri,EventType)
+				send_notify(lprow,request_uri,from_uri,request_uri,EventType) #to_uri same as request uri which needs to be replaced
 			else:
 				print "SOCKET Not Matching " + localsocket[1] + "<>" + wanprofile.split(';')[0].split(':')[1] + ":" \
 					 + localsocket[2] + "<>" + wanprofile.split(';')[0].split(':')[2]
@@ -328,7 +328,8 @@ elif EventType == "message-summary":
 		if(localsocket[1] == wanprofile.split(';')[0].split(':')[1] and \
 			localsocket[2] == wanprofile.split(';')[0].split(':')[2]):
 			to_uri = "sip:" + user + "@" + localsocket[1] + ":" + localsocket[2]
-			send_notify(lprow,watcher_uri,from_uri,to_uri,EventType)
+			#send_notify(lprow,request_uri,from_uri,to_uri,EventType)
+			send_notify(lprow,request_uri,from_uri,request_uri,EventType) #to_uri same as request uri which needs to be replaced
 		else:
 			print "SOCKET Not Matching " + localsocket[1] + "<>" + wanprofile.split(';')[0].split(':')[1] + ":" \
 				 + localsocket[2] + "<>" + wanprofile.split(';')[0].split(':')[2]
