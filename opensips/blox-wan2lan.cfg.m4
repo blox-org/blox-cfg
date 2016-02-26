@@ -49,9 +49,9 @@ route[WAN2LAN] {
         }
 
         if(is_ip_rfc1918("$si") && $var(nat40)) {
-            rtpengine_offer("force external internal trust-address replace-origin replace-session-connection");
+            rtpengine_offer("force external internal trust-address replace-origin replace-session-connection ICE=remove");
         } else {
-            rtpengine_offer("force external internal replace-origin replace-session-connection");
+            rtpengine_offer("force external internal replace-origin replace-session-connection ICE=remove");
         }
     };
 
