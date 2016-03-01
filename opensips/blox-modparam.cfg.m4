@@ -119,3 +119,5 @@ modparam("dialog","th_dlg_contact_params","th_cthdr_param")
 modparam("load_balancer", "probing_interval", LB_KEEPALIVE_INTERVAL)
 modparam("load_balancer", "probing_from","LB_KEEPALIVE_FROMURI")
 modparam("load_balancer", "probing_reply_codes", "404")
+
+modparam("path", "enable_double_path", 0);

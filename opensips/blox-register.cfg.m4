@@ -121,7 +121,7 @@ route[ROUTE_REGISTER] {
                     uac_replace_from("$var(reguri)");
                     uac_replace_to("$var(reguri)");
                     remove_hf("Route"); #Not accepted for REGISTER
-                    add_path_received();
+                    add_path();
 
                     xdbg("BLOX_DBG: SIP Method $rm forwarding to $du\n");
                     if(client_nat_test("3")) {
