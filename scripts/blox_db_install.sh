@@ -23,7 +23,7 @@
 OLD_VERSION=$1
 NEW_VERSION=$2
 
-BLOX_TABLES="locationpbx locationtrunk locationpresence blox_config blox_profile_config \
+BLOX_TABLES="locationpbx locationtrunk locationpresence blox_config blox_config_ext blox_profile_config \
                          blox_param_config blox_codec blox_subscribe blox_presence_subscriber"
 BLOX_ALTER_TABLES="/etc/blox/sql/alter_acc.sql /etc/blox/sql/alter_blox_config.sql /etc/blox/sql/alter_usr_preferences.sql"
 
