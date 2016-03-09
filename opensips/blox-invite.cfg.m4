@@ -116,14 +116,20 @@ route[ROUTE_INVITE] {
 
             if(!$avp(TRUNK)) { #If not already set by LCR
                 $avp(uuid) = "TRUNK:" + $avp(LAN) ;
-                if(cache_fetch("local","$avp(uuid)",$avp(TRUNK))) {
-                    xdbg("BLOX_DBG: blox-invite.cfg: Loaded from cache $avp(uuid): $avp(TRUNK)\n");
-                } else if (avp_db_load("$avp(uuid)","$avp(TRUNK)/blox_config")) {
-                    cache_store("local","$avp(uuid)","$avp(TRUNK)");
-                    xdbg("BLOX_DBG: blox-invite.cfg: Stored in cache $avp(uuid): $avp(TRUNK)\n");
-                } else {
-                    $avp(TRUNK) = null;
-                }
+            	if(cache_fetch("local","$avp(uuid)",$avp(TRUNK))) {
+            	    xdbg("BLOX_DBG: blox-invite.cfg: Loaded from cache $avp(uuid): $avp(TRUNK)\n");
+            	} else if (avp_db_load("$avp(uuid)","$avp(TRUNK)/blox_config")) {
+            	    $avp(CONFIG_EXT) = $(avp(TRUNK){uri.param,CONFIG_EXT});
+            	    if($avp(CONFIG_EXT) == "") { $avp(CONFIG_EXT) = null; }
+            	    route(READ_CONFIG_EXT,$avp(uuid));
+            	    if($avp(CONFIG_EXT)) {
+            	        $avp(TRUNK) = $avp(TRUNK) + ';' + $avp(CONFIG_EXT);
+            	    }
+            	    cache_store("local","$avp(uuid)","$avp(TRUNK)");
+            	    xdbg("BLOX_DBG: blox-invite.cfg: Stored in cache $avp(uuid): $avp(TRUNK)\n");
+            	} else {
+            	    $avp(TRUNK) = null;
+            	}
             }
 
             if($avp(TRUNK)) {
@@ -267,16 +273,22 @@ route[ROUTE_INVITE] {
                 exit;
             } else {
                 $avp(uuid) = "PBX:" + $avp(LAN) ;
-                if(cache_fetch("local","$avp(uuid)",$avp(PBX))) {
-                    xdbg("BLOX_DBG: blox-invite.cfg: Loaded from cache $avp(uuid): $avp(PBX)\n");
-                } else if (avp_db_load("$avp(uuid)","$avp(PBX)/blox_config")) {
-                    cache_store("local","$avp(uuid)","$avp(PBX)");
-                    xdbg("BLOX_DBG: blox-invite.cfg: Stored in cache $avp(uuid): $avp(PBX)\n");
-                } else {
+            	if(cache_fetch("local","$avp(uuid)",$avp(PBX))) {
+            	    xdbg("BLOX_DBG: blox-invite.cfg: Loaded from cache $avp(uuid): $avp(PBX)\n");
+            	} else if (avp_db_load("$avp(uuid)","$avp(PBX)/blox_config")) {
+            	    $avp(CONFIG_EXT) = $(avp(PBX){uri.param,CONFIG_EXT});
+            	    if($avp(CONFIG_EXT) == "") { $avp(CONFIG_EXT) = null; }
+            	    route(READ_CONFIG_EXT,$avp(uuid));
+            	    if($avp(CONFIG_EXT)) {
+            	        $avp(PBX) = $avp(PBX) + ';' + $avp(CONFIG_EXT);
+            	    }
+            	    cache_store("local","$avp(uuid)","$avp(PBX)");
+            	    xdbg("BLOX_DBG: blox-invite.cfg: Stored in cache $avp(uuid): $avp(PBX)\n");
+            	} else {
                     xlog("L_WARN", "BLOX_DBG::: blox-invite.cfg: SIP Profile for $si:$sp access denied\n");
                     sl_send_reply("603", "Declined");
                     exit;
-                }
+            	}
 
                 if($avp(PBX)) {
                     xdbg("BLOX_DBG: blox-invite.cfg: Got route $Ri RE\n");

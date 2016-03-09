@@ -275,11 +275,11 @@ failure_route[UAC_AUTH_FAIL] {
 route[READ_CONFIG_EXT] {
     $avp(uuid) = $param(1);
     $avp(CONFIG_EXT) = null;   
-    if(avp_db_query("SELECT LBID, LBRuleID FROM blox_config_ext WHERE uuid = '$avp(uuid)'","$avp(LBID);$avp(LBRuleID)" )) {
+    if(avp_db_query("SELECT LBID, LBRuleID, SHMP FROM blox_config_ext WHERE uuid = '$avp(uuid)'","$avp(LBID);$avp(LBRuleID),$avp(SHMP)" )) {
         if($avp(LBID) == "") { $avp(LBID) = null; }
         if($avp(LBRuleID) == "") { $avp(LBRuleID) = null; }
         if($avp(LBID) && $avp(LBRuleID)) {
-            $avp(CONFIG_EXT) = 'LBID=' + $avp(LBID) + ';'+ 'LBRuleID=' + $avp(LBRuleID);
+            $avp(CONFIG_EXT) = 'LBID=' + $avp(LBID) + ';LBRuleID=' + $avp(LBRuleID) + ';SHMP=' + $avp(SHMP) ;
         } else {
             xlog("L_ERR","BLOX_DBG::: DB Query wrong entry $avp(LBID):$avp(LBRuleID)\n"); 
         }
