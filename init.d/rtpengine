@@ -194,9 +194,9 @@ start() {
 	if [[ $MODULE == 1 ]]
 	then
 		echo "Loading module for in-kernel packet forwarding"
-		rmmod xt_MEDIAPROXY 2> /dev/null
+		rmmod xt_RTPENGINE 2> /dev/null
 		modprobe xt_RTPENGINE
-		LINENUM=$(iptables -nL INPUT --line-numbers  | awk '{if($2=="REJECT") print $1;}')
+		LINENUM=$(iptables -nL INPUT --line-numbers  | awk '{if($2=="REJECT") print $1;}' | head -1)
 		iptables -N rtpengine
 		iptables -t filter -p udp -I INPUT $LINENUM --dport $PORT_MIN:$PORT_MAX -j rtpengine 
 		iptables -I rtpengine -p udp --dport $PORT_MIN:$PORT_MAX -j ACCEPT 
