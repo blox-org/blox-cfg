@@ -23,10 +23,12 @@
 if [ -e /etc/init.d/functions ]; then
 . /etc/init.d/functions
 DAEMON=daemon
+STATUS=status
 fi
 if [ -e "/lib/lsb/init-functions" ]; then
 . /lib/lsb/init-functions
 DAEMON=start_daemon
+STATUS=status_of_proc
 fi
 
 rtpengine=/usr/sbin/rtpengine
@@ -68,7 +70,7 @@ status_rtpengine() {
 
 build_opts() {
 	shopt -s nocasematch
-	RPMS=`rpm -qa | grep ngcp-rtpengine-kernel`
+	#RPMS=`rpm -qa | grep ngcp-rtpengine-kernel`
 	RPMS=1
 	if [[ "$KERNEL" == "yes" && -n "$TABLE" && -n "$RPMS" ]]
 	then
@@ -256,7 +258,7 @@ case "$1" in
 	for config in $CONFIGS
 	do
 	init_rtpengine $(basename $config)
-        status -p ${pidfile} $rtpengine
+        $STATUS -p ${pidfile} $rtpengine
 	RETVAL=$?
 	done
 	;;
