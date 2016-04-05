@@ -92,7 +92,25 @@ route {
         xlog("L_INFO", "BLOX_DBG::: blox.cfg: Unknown SIP Profile $avp(SIPProfile) ==> $avp(LAN) $avp(WAN)\n");
         sl_send_reply("603", "Declined");
         exit;
+    }    
+    
+
+    if($avp(LAN)) {
+        route(READ_LAN_PROFILE);
+        $avp(SHMP) = $(avp(LANProfile){uri.param,shmp});
+    } else {
+        route(READ_WAN_PROFILE);
+        $avp(SHMP) = $(avp(WANProfile){uri.param,shmp});
     }
+    if($avp(SHMP)==""){$avp(SHMP)=null;}
+    
+    $var(SHMPACT) = null ;
+    if($avp(SHMP)) {
+            route(SIP_HEADER_MANIPULATE,$avp(SHMP));
+    } 
+
+    xdbg("BLOX_DBG::: blox.cfg: LAN SIP Profile $avp(LANProfile) ==> $avp(LAN)\n");
+    xdbg("BLOX_DBG::: blox.cfg: WAN SIP Profile $avp(WANProfile) ==> $avp(WAN)\n");
 
     $var(nat96) = null;
     $var(nat40) = null;
@@ -222,6 +240,34 @@ route {
     exit;
 }
 
+route[READ_WAN_PROFILE] {
+    if(cache_fetch("local","$avp(WAN)",$avp(WANProfile))) {
+        xdbg("BLOX_DBG: blox-invite.cfg: Loaded from cache $avp(WAN): $avp(WANProfile)\n");
+    } else if (avp_db_load("$avp(WAN)","$avp(WANProfile)/blox_profile_config")) {
+        cache_store("local","$avp(WAN)","$avp(WANProfile)");
+        xdbg("BLOX_DBG: blox-invite.cfg: Stored in cache $avp(WAN): $avp(WANProfile)\n");
+    } else {
+        $avp(WANProfile) = null;
+        xlog("L_INFO","BLOX_DBG: blox.cfg: Drop MESSAGE $ru from $si : $sp\n" );
+        drop(); # /* Default 5060 open to accept packets from WAN side, but we don't process it */
+        exit;
+    }
+}
+
+route[READ_LAN_PROFILE] {
+    if(cache_fetch("local","$avp(LAN)",$avp(LANProfile))) {
+        xdbg("BLOX_DBG: blox.cfg: Loaded from cache $avp(LAN): $avp(LANProfile)\n");
+    } else if (avp_db_load("$avp(LAN)","$avp(LANProfile)/blox_profile_config")) {
+        cache_store("local","$avp(LAN)","$avp(LANProfile)");
+        xdbg("BLOX_DBG: blox.cfg: Stored in cache $avp(LAN): $avp(LANProfile)\n");
+    } else {
+        $avp(LANProfile) = null;
+        xlog("L_INFO","BLOX_DBG: blox.cfg: Drop MESSAGE $ru from $si : $sp\n" );
+        drop(); # /* Default 5060 open to accept packets from LAN side, but we don't process it */
+        exit;
+    }
+}
+
 # ----------- Experimentation routers ------------------------
 failure_route[missed_call] {
     if (t_was_cancelled()) {
@@ -270,23 +316,6 @@ failure_route[UAC_AUTH_FAIL] {
             xlog("L_INFO", "BLOX_DBG::: blox.cfg: uac_auth failed\n") ;
         }
     }
-}
-
-route[READ_CONFIG_EXT] {
-    $avp(uuid) = $param(1);
-    $avp(CONFIG_EXT) = null;   
-    if(avp_db_query("SELECT LBID, LBRuleID, SHMP FROM blox_config_ext WHERE uuid = '$avp(uuid)'","$avp(LBID);$avp(LBRuleID),$avp(SHMP)" )) {
-        if($avp(LBID) == "") { $avp(LBID) = null; }
-        if($avp(LBRuleID) == "") { $avp(LBRuleID) = null; }
-        if($avp(LBID) && $avp(LBRuleID)) {
-            $avp(CONFIG_EXT) = 'LBID=' + $avp(LBID) + ';LBRuleID=' + $avp(LBRuleID) + ';SHMP=' + $avp(SHMP) ;
-        } else {
-            xlog("L_ERR","BLOX_DBG::: DB Query wrong entry $avp(LBID):$avp(LBRuleID)\n"); 
-        }
-    } else {
-        xlog("L_ERR","BLOX_DBG::: DB Query Failed\n");
-    }
-
 }
 
 ###########################################################################################

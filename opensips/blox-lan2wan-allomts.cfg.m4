@@ -481,6 +481,10 @@ route[MTS_LAN2WAN] {
 
     xlog("L_INFO", "BLOX_DBG::: blox-lan2wan-allomts.cfg: ROUTING $rm - dir: $DLG_dir: from: $fu src:$si:$sp to ru:$ru : down: $avp(dcontact) up:$avp(ucontact) -> dst: $du \n");
 
+    if($var(SHMPACT)) {
+            route(SIP_HEADER_MANIPULATE,$var(SIPHMACT));
+    } 
+
     if (!t_relay()) {
         xlog("L_ERR", "BLOX_DBG::: blox-lan2wan-allomts.cfg: Relay error $mb\n");
         sl_reply_error();

@@ -85,17 +85,7 @@ route[ROUTE_INVITE] {
                     $avp(LAN) = $(var(gw_attributes){uri.param,LAN});
                     if($avp(LAN)) {
                         xdbg("BLOX_DBG: blox-invite.cfg: Group: $avp(LAN)\n"); #Dont print directly without substr
-                        if(cache_fetch("local","$avp(LAN)",$avp(LANProfile))) {
-                            xdbg("BLOX_DBG: blox-invite.cfg: Loaded from cache $avp(LAN): $avp(LANProfile)\n");
-                        } else if (avp_db_load("$avp(LAN)","$avp(LANProfile)/blox_profile_config")) {
-                            cache_store("local","$avp(LAN)","$avp(LANProfile)");
-                            xdbg("BLOX_DBG: blox-invite.cfg: Stored in cache $avp(LAN): $avp(LANProfile)\n");
-                        } else {
-                            $avp(LANProfile) = null;
-                            xdbg("BLOX_DBG: blox-invite.cfg: Drop MESSAGE $ru from $si : $sp\n" );
-                            drop(); # /* Default 5060 open to accept packets from LAN side, but we don't process it */
-                            exit;
-                        }
+                        route(READ_LAN_PROFILE);
                         $var(RDIP) = $(avp(LANProfile){uri.host});
                         $var(RDPORT) = $(avp(LANProfile){uri.port});
                         #Manipulated Adding, Striping Prefix, Suffix
@@ -120,11 +110,6 @@ route[ROUTE_INVITE] {
             	    xdbg("BLOX_DBG: blox-invite.cfg: Loaded from cache $avp(uuid): $avp(TRUNK)\n");
             	} else if (avp_db_load("$avp(uuid)","$avp(TRUNK)/blox_config")) {
             	    $avp(CONFIG_EXT) = $(avp(TRUNK){uri.param,CONFIG_EXT});
-            	    if($avp(CONFIG_EXT) == "") { $avp(CONFIG_EXT) = null; }
-            	    route(READ_CONFIG_EXT,$avp(uuid));
-            	    if($avp(CONFIG_EXT)) {
-            	        $avp(TRUNK) = $avp(TRUNK) + ';' + $avp(CONFIG_EXT);
-            	    }
             	    cache_store("local","$avp(uuid)","$avp(TRUNK)");
             	    xdbg("BLOX_DBG: blox-invite.cfg: Stored in cache $avp(uuid): $avp(TRUNK)\n");
             	} else {
@@ -149,7 +134,6 @@ route[ROUTE_INVITE] {
                 $avp(GWID) = $(avp(TRUNK){uri.param,GWID});
                 $avp(SrcSRTP) = $(avp(TRUNK){uri.param,LANSRTP});
                 $avp(DstSRTP) = $(avp(TRUNK){uri.param,WANSRTP});
-                $avp(SIPHM) = $(avp(TRUNK){uri.param,SIPHM});
                 $var(ENUMSX) = $(avp(TRUNK){uri.param,ENUMSX}); #SUFFIX, default: e164.arpa.
                 $var(ENUMSE) = $(avp(TRUNK){uri.param,ENUMSE}); #SERVICE, default: e2u+sip
                 $var(ENUMTYPE) = $(avp(TRUNK){uri.param,ENUMTYPE}); #SERVICE, default: e2u+sip
@@ -164,24 +148,11 @@ route[ROUTE_INVITE] {
                 if($avp(GWID)==""){$avp(GWID)=null;}
                 if($avp(SrcSRTP)==""){$avp(SrcSRTP)=null;}
                 if($avp(DstSRTP)==""){$avp(DstSRTP)=null;}
-                if($avp(SIPHM)==""){$avp(SIPHM)=null;}
                 if($var(ENUMTYPE)==""){$var(ENUMTYPE)=null;}
                 if($var(ENUMSE)==""){$var(ENUMSE)=null;}
                 if($var(ENUMSX)==""){$var(ENUMSX)=null;}
 
                 if($avp(WAN)) {
-                    if(cache_fetch("local","$avp(WAN)",$avp(WANProfile))) {
-                        xdbg("BLOX_DBG: blox-invite.cfg: Loaded from cache $avp(WAN): $avp(WANProfile)\n");
-                    } else if (avp_db_load("$avp(WAN)","$avp(WANProfile)/blox_profile_config")) {
-                        cache_store("local","$avp(WAN)","$avp(WANProfile)");
-                        xdbg("BLOX_DBG: blox-invite.cfg: Stored in cache $avp(WAN): $avp(WANProfile)\n");
-                    } else {
-                        $avp(WANProfile) = null;
-                        xdbg("BLOX_DBG: blox-invite.cfg: Drop MESSAGE $ru from $si : $sp\n" );
-                        drop(); # /* Default 5060 open to accept packets from WAN side, but we don't process it */
-                        exit;
-                    }
-
                     if(!has_totag()) {
                         xdbg("BLOX_DBG: blox-invite.cfg: $avp(TRUNK)/$var(TRUNKUSER)/ $var(TRUNKIP)/$var(TRUNKPORT)/$avp(SIPProfile)\n");
                         $avp(cac_uuid) = $avp(TRUNK) ; 
@@ -197,9 +168,6 @@ route[ROUTE_INVITE] {
                         $dlg_val(request) = $ru ;
                         $dlg_val(channel) = "sip:" + $si + ":" + $sp;
                         $dlg_val(direction) = "outbound";
-                        if($avp(SIPHM)) {
-                                route(SIP_HEADER_MANIPULATE,$avp(SIPHM));
-                        } 
                         if(pcre_match("$ci","^BLOX_CALLID_PREFIX")) { /* Already tophide applied */
                             topology_hiding();
                         } else {
@@ -219,17 +187,6 @@ route[ROUTE_INVITE] {
                     };
                     if( route_to_gw("$avp(GWID)") ) {
                         if(!has_totag()) { #Set From/To Execute inital time
-                            if(cache_fetch("local","$avp(WAN)",$avp(WANProfile))) {
-                                xdbg("BLOX_DBG: blox-invite.cfg: Loaded from cache $avp(WAN): $avp(WANProfile)\n");
-                            } else if (avp_db_load("$avp(WAN)","$avp(WANProfile)/blox_profile_config")) {
-                                cache_store("local","$avp(WAN)","$avp(WANProfile)");
-                                xdbg("BLOX_DBG: blox-invite.cfg: Stored in cache $avp(WAN): $avp(WANProfile)\n");
-                            } else {
-                                $avp(WANProfile) = null;
-                                xlog("L_WARN", "BLOX_DBG::: blox-invite.cfg: No WAN profile Drop MESSAGE $ru from $si : $sp\n" );
-                                drop(); # /* Default 5060 open to accept packets from WAN side, but we don't process it */
-                                exit;
-                            }
                             if($avp(WANProfile)) {
                                 $avp(WANIP) = $(avp(WANProfile){uri.host});
                                 $avp(WANPORT) = $(avp(WANProfile){uri.port});
@@ -277,11 +234,6 @@ route[ROUTE_INVITE] {
             	    xdbg("BLOX_DBG: blox-invite.cfg: Loaded from cache $avp(uuid): $avp(PBX)\n");
             	} else if (avp_db_load("$avp(uuid)","$avp(PBX)/blox_config")) {
             	    $avp(CONFIG_EXT) = $(avp(PBX){uri.param,CONFIG_EXT});
-            	    if($avp(CONFIG_EXT) == "") { $avp(CONFIG_EXT) = null; }
-            	    route(READ_CONFIG_EXT,$avp(uuid));
-            	    if($avp(CONFIG_EXT)) {
-            	        $avp(PBX) = $avp(PBX) + ';' + $avp(CONFIG_EXT);
-            	    }
             	    cache_store("local","$avp(uuid)","$avp(PBX)");
             	    xdbg("BLOX_DBG: blox-invite.cfg: Stored in cache $avp(uuid): $avp(PBX)\n");
             	} else {
@@ -324,17 +276,7 @@ route[ROUTE_INVITE] {
                     setflag(487); 
                     route(OUTBOUND_CALL_ACCESS_CONTROL);
 
-                    if(cache_fetch("local","$avp(WAN)",$avp(WANProfile))) {
-                        xdbg("BLOX_DBG: blox-invite.cfg: Loaded from cache $avp(WAN): $avp(WANProfile)\n");
-                    } else if (avp_db_load("$avp(WAN)","$avp(WANProfile)/blox_profile_config")) {
-                        cache_store("local","$avp(WAN)","$avp(WANProfile)");
-                        xdbg("BLOX_DBG: blox-invite.cfg: Stored in cache $avp(WAN): $avp(WANProfile)\n");
-                    } else {
-                        $avp(WANProfile) = null;
-                        xlog("L_INFO", "BLOX_DBG::: blox-invite.cfg: Drop MESSAGE $ru from $si : $sp\n" );
-                        drop(); # /* Default 5060 open to accept packets from WAN side, but we don't process it */
-                        exit;
-                    }
+                    route(READ_WAN_PROFILE);
                     if($avp(WANProfile)) {
                         $avp(WANIP) = $(avp(WANProfile){uri.host});
                         $avp(WANPORT) = $(avp(WANProfile){uri.port});
@@ -381,7 +323,7 @@ route[ROUTE_INVITE] {
                         setflag(ACC_FLAG_LOG_FLAG);
                         setflag(ACC_FLAG_DB_FLAG);
                         setflag(ACC_FLAG_FAILED_TRANSACTION);
-                            append_hf("P-hint: TopHide-Applied\r\n"); 
+                        append_hf("P-hint: TopHide-Applied\r\n"); 
                         set_dlg_flag("DLG_FLAG_LAN2WAN") ;
                     };
 
@@ -437,11 +379,6 @@ route[ROUTE_INVITE] {
                 xdbg("BLOX_DBG: blox-invite.cfg: Loaded from cache $avp(uuid): $avp(TRUNK)\n");
             } else if (avp_db_load("$avp(uuid)","$avp(TRUNK)/blox_config")) {
                 $avp(CONFIG_EXT) = $(avp(TRUNK){uri.param,CONFIG_EXT});
-                if($avp(CONFIG_EXT) == "") { $avp(CONFIG_EXT) = null; }
-                route(READ_CONFIG_EXT,$avp(uuid));
-                if($avp(CONFIG_EXT)) {
-                    $avp(TRUNK) = $avp(TRUNK) + ';' + $avp(CONFIG_EXT);
-                }
                 cache_store("local","$avp(uuid)","$avp(TRUNK)");
                 xdbg("BLOX_DBG: blox-invite.cfg: Stored in cache $avp(uuid): $avp(TRUNK)\n");
             } else {
@@ -486,18 +423,6 @@ route[ROUTE_INVITE] {
                     $avp(INBNDURI) = 'sip:' + $(avp(INBNDURI){s.decode.hexa}) ;
                 }
 
-                if(cache_fetch("local","$avp(WAN)",$avp(WANProfile))) {
-                    xdbg("BLOX_DBG: blox-invite.cfg: Loaded from cache $avp(WAN): $avp(WANProfile)\n");
-                } else if (avp_db_load("$avp(WAN)","$avp(WANProfile)/blox_profile_config")) {
-                    cache_store("local","$avp(WAN)","$avp(WANProfile)");
-                    xdbg("BLOX_DBG: blox-invite.cfg: Stored in cache $avp(WAN): $avp(WANProfile)\n");
-                } else {
-                    $avp(WANProfile) = null;
-                    xlog("L_INFO", "BLOX_DBG::: blox-invite.cfg: Drop MESSAGE $ru from $si : $sp\n" );
-                    drop(); # /* Default 5060 open to accept packets from WAN side, but we don't process it */
-                    exit;
-                }
-
                 if($avp(WANProfile)) { # /* Passed to WAN2LAN */
                     $avp(WANIP) = $(avp(WANProfile){uri.host});
                     $avp(WANPORT) = $(avp(WANProfile){uri.port});
@@ -511,18 +436,7 @@ route[ROUTE_INVITE] {
                 }
 
                 if($avp(INBNDURI)) {
-                    if(cache_fetch("local","$avp(LAN)",$avp(LANProfile))) {
-                        xdbg("BLOX_DBG: blox-invite.cfg: Loaded from cache $avp(LAN): $avp(LANProfile)\n");
-                    } else if (avp_db_load("$avp(LAN)","$avp(LANProfile)/blox_profile_config")) {
-                        cache_store("local","$avp(LAN)","$avp(LANProfile)");
-                        xdbg("BLOX_DBG: blox-invite.cfg: Stored in cache $avp(LAN): $avp(LANProfile)\n");
-                    } else {
-                        $avp(LANProfile) = null;
-                        xlog("L_INFO", "BLOX_DBG::: blox-invite.cfg: Drop MESSAGE $ru from $si : $sp\n" );
-                        drop(); # /* Default 5060 open to accept packets from LAN side, but we don't process it */
-                        exit;
-                    }
-
+                    route(READ_LAN_PROFILE);
                     $avp(LANIP) = $(avp(LANProfile){uri.host});
                     $avp(LANPORT) = $(avp(LANProfile){uri.port});
                     $avp(LANPROTO) = $(avp(LANProfile){uri.param,transport});
@@ -605,11 +519,6 @@ route[ROUTE_INVITE] {
                 xdbg("BLOX_DBG: blox-invite.cfg: Loaded from cache $avp(uuid): $avp(PBX)\n");
             } else if (avp_db_load("$avp(uuid)","$avp(PBX)/blox_config")) {
                 $avp(CONFIG_EXT) = $(avp(PBX){uri.param,CONFIG_EXT});
-                if($avp(CONFIG_EXT) == "") { $avp(CONFIG_EXT) = null; }
-                route(READ_CONFIG_EXT,$avp(uuid));
-                if($avp(CONFIG_EXT)) {
-                    $avp(PBX) = $avp(PBX) + ';' + $avp(CONFIG_EXT);
-                }
                 cache_store("local","$avp(uuid)","$avp(PBX)");
                 xdbg("BLOX_DBG: blox-invite.cfg: Stored in cache $avp(uuid): $avp(PBX)\n");
             } else {
@@ -647,14 +556,9 @@ route[ROUTE_INVITE] {
                 setflag(487);
                 route(INBOUND_CALL_ACCESS_CONTROL); /* Check for call limitation */
 
-                if($avp(LAN)) {
-                    if(cache_fetch("local","$avp(WAN)",$avp(WANProfile))) {
-                        xdbg("BLOX_DBG: blox-invite.cfg: Loaded from cache $avp(WAN): $avp(WANProfile)\n");
-                    } else if (avp_db_load("$avp(WAN)","$avp(WANProfile)/blox_profile_config")) {
-                        cache_store("local","$avp(WAN)","$avp(WANProfile)");
-                        xdbg("BLOX_DBG: blox-invite.cfg: Stored in cache $avp(WAN): $avp(WANProfile)\n");
-                    }
 
+                if($avp(LAN)) {
+                    route(READ_WAN_PROFILE);
                     $avp(WANADVIP) = $(avp(WANProfile){uri.param,advip});
                     if($avp(WANADVIP)==""){$avp(WANADVIP)=null;}
 
@@ -726,18 +630,6 @@ route[ROUTE_INVITE] {
                         }
                     }
 
-                    if(cache_fetch("local","$avp(LAN)",$avp(LANProfile))) {
-                        xdbg("BLOX_DBG: blox-invite.cfg: Loaded from cache $avp(LAN): $avp(LANProfile)\n");
-                    } else if (avp_db_load("$avp(LAN)","$avp(LANProfile)/blox_profile_config")) {
-                        cache_store("local","$avp(LAN)","$avp(LANProfile)");
-                        xdbg("BLOX_DBG: blox-invite.cfg: Stored in cache $avp(LAN): $avp(LANProfile)\n");
-                    } else {
-                        $avp(LANProfile) = null;
-                        xlog("L_INFO", "BLOX_DBG::: blox-invite.cfg: Drop MESSAGE $ru from $si : $sp\n" );
-                        drop(); # /* Default 5060 open to accept packets from LAN side, but we don't process it */
-                        exit;
-                    }
-
                     #cache_store("local","LANProfile:$avp(LAN)","$avp(LANProfile)");
                     $avp(LANIP) = $(avp(LANProfile){uri.host});
                     $avp(LANPORT) = $(avp(LANProfile){uri.port});
@@ -785,7 +677,6 @@ route[ROUTE_INVITE] {
                             route(HUMBUG_FRAUD_DETECTION);
                         }
                     }
-
                     $var(fproto) = $(var(from){uri.param,transport}) ;
                     $var(tproto) = $(var(to){uri.param,transport}) ;
                     if($var(tproto)==""){$var(tproto)=null;}
@@ -820,7 +711,6 @@ route[ROUTE_INVITE] {
                              route(BLOX_LB_CFG,$avp(LBID),$avp(LB));
                         }
                     }
-
 
                     t_on_failure("WAN2LAN");
                     route(WAN2LAN);

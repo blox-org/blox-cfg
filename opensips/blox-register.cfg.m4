@@ -36,17 +36,6 @@ route[ROUTE_REGISTER] {
                     drop(); # /* Default 5060 open to accept packets from LAN side, but we don't process it */
                     exit;
                 }
-                if(cache_fetch("local","$avp(LAN)",$avp(LANProfile))) {
-                    xdbg("BLOX_DBG: Loaded from cache $avp(LAN): $avp(LANProfile)\n");
-                } else if (avp_db_load("$avp(LAN)","$avp(LANProfile)/blox_profile_config")) {
-                    cache_store("local","$avp(LAN)","$avp(LANProfile)");
-                    xdbg("BLOX_DBG: Stored in cache $avp(LAN): $avp(LANProfile)\n");
-                } else {
-                    $avp(LANProfile) = null;
-                    xlog("L_INFO", "BLOX_DBG::: blox-register.cfg: Drop MESSAGE $ru from $si : $sp\n" );
-                    drop(); # /* Default 5060 open to accept packets from LAN side, but we don't process it */
-                    exit;
-                }
                 xdbg("BLOX_DBG: PBXTRUNK Profile :$avp(PBXTRUNK):\n");
                 $var(PBXTRUNKIP) = $(avp(PBXTRUNK){uri.host});
                 $var(PBXTRUNKPORT) = $(avp(PBXTRUNK){uri.port});
@@ -80,18 +69,7 @@ route[ROUTE_REGISTER] {
                 $avp(LAN) = $(avp(PBX){uri.param,LAN}) ;
 
                 if($avp(LAN)) {
-                    if(cache_fetch("local","$avp(LAN)",$avp(LANProfile))) {
-                        xdbg("BLOX_DBG: Loaded from cache $avp(LAN): $avp(LANProfile)\n");
-                    } else if (avp_db_load("$avp(LAN)","$avp(LANProfile)/blox_profile_config")) {
-                        cache_store("local","$avp(LAN)","$avp(LANProfile)");
-                        xdbg("BLOX_DBG: Stored in cache $avp(LAN): $avp(LANProfile)\n");
-                    } else {
-                        $avp(LANProfile) = null;
-                        xlog("L_INFO", "BLOX_DBG::: blox-register.cfg: Drop MESSAGE $ru from $si : $sp\n" );
-                        drop(); # /* Default 5060 open to accept packets from LAN side, but we don't process it */
-                        exit;
-                    }
-
+                    route(READ_LAN_PROFILE);
                     xdbg("BLOX_DBG: Sending via LAN Profile :$avp(LANProfile):\n");
                     $avp(LANIP) = $(avp(LANProfile){uri.host});
                     $avp(LANPORT) = $(avp(LANProfile){uri.port});
