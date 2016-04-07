@@ -33,6 +33,9 @@ route[ROUTE_NOTIFY] {
             $du = $var(remote);
             $fs = $var(socket);
             xlog("L_INFO","Sent NOTIFY to $var(remote) via $var(socket)\n") ;
+            if($var(SHMPACT)) {
+                route(SIP_HEADER_MANIPULATE,$var(SHMPACT));
+            }  
             t_relay();
             exit ;
         } else if ((uri==myself || from_uri==myself)) { #Log only LAN NOTIFY

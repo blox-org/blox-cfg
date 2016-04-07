@@ -6,13 +6,15 @@ BLOX_SIPHM=/etc/blox/siphm.conf
 BLOX_CONFIG_DIR=/usr/local/etc/opensips
 SIPHM_SWITCH_CFG=$BLOX_CONFIG_DIR/blox-sip-header-manipulation-switch.cfg
 SIPHM_ROUTES_CFG=$BLOX_CONFIG_DIR/blox-sip-header-manipulation-routes.cfg
+SIPHM_ROUTES_ACTION_CFG=$BLOX_CONFIG_DIR/blox-sip-header-manipulation-routes-action.cfg
 
 commands=(remove_hf append_hf insert_hf append_urihf append_time append_cturi append_ctparam)
 max_commands_param=(2 2 2 2 0 1 1)
 #MAXIMUM 2 param Support for condition
 condition=(eq ne is_present_hf is_not_present_hf is_method is_not_method has_body has_no_body)
 max_condition_param=(2 2 1 1 1 1 1 1)
-START_ROUTE_ID=900
+START_ROUTE_ID=500
+START_ROUTE_ACTION_ID=600
 
 LOG_ERR()
 {
@@ -217,6 +219,7 @@ AddCommand()
 #MAIN
 exec 1>$SIPHM_ROUTES_CFG #Default STDOUT to create routes
 exec 5>$SIPHM_SWITCH_CFG #Descriptor 5 to create switch case statements
+exec 6>$SIPHM_ROUTES_ACTION_CFG #Default 6 to create action routes
 
 echo "switch(\$(var(siphmr){s.int})) {" >&5
 CURRENT_ROUTE_ID=0
@@ -237,20 +240,37 @@ do
 				echo "}"
 			fi
 			echo "route[$((START_ROUTE_ID+id))] {"
-			CURRENT_ROUTE_ID=$id ;
 			echo "case $((START_ROUTE_ID+id)):" >&5
 			echo "route($((START_ROUTE_ID+id)));" >&5
 			echo "break;" >&5
+			CURRENT_ROUTE_ID=$id ;
 		fi
+
+		START_ROUTE_ACTION_ID=$((START_ROUTE_ACTION_ID+1))
+		echo "case $((START_ROUTE_ACTION_ID)):" >&5
+		echo "route($((START_ROUTE_ACTION_ID)));" >&5
+		echo "break;" >&5
+
+
 		cnd=$(echo $line|awk -F '|' '{print $3}')
 		if [ -n "$cnd" ] ; then
 			AddCondition $line
 			echo '{'
 		fi
+cat <<EOACTRT
+    if(\$var(SHMPACT)) {
+        \$var(SHMPACT) = \$var(SHMPACT) + "$((START_ROUTE_ACTION_ID)):" ;
+    } else {
+        \$var(SHMPACT) = "$((START_ROUTE_ACTION_ID)):" ;
+    }
+EOACTRT
+
+		echo "route[$((START_ROUTE_ACTION_ID))] {" >&6
 		cmd=$(echo $line|awk -F '|' '{print $6}')
 		if [ -n "$cmd" ]; then
-			AddCommand $line
+			AddCommand $line >&6
 		fi
+		echo '}' >&6
 
 		if [ -n "$cnd" ] ; then
 			echo '}'

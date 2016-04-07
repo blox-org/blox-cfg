@@ -92,8 +92,8 @@ route {
         xlog("L_INFO", "BLOX_DBG::: blox.cfg: Unknown SIP Profile $avp(SIPProfile) ==> $avp(LAN) $avp(WAN)\n");
         sl_send_reply("603", "Declined");
         exit;
-    }    
-    
+    }
+
 
     if($avp(LAN)) {
         route(READ_LAN_PROFILE);
@@ -138,7 +138,7 @@ route {
     xdbg("BLOX_DBG: blox.cfg: Got ($pr:$Ri:$Rp) $avp(SIPProfile): Index:$avp(LAN):$avp(WAN):");
 
     if (is_method("OPTIONS") ) {
-    	xdbg("BLOX_DBG: blox.cfg: Not support OPTIONS\n");
+        xdbg("BLOX_DBG: blox.cfg: Not support OPTIONS\n");
         append_hf("Allow: INVITE, ACK, REFER, NOTIFY, CANCEL, BYE, REGISTER" );
         sl_send_reply("405", "Method Not Allowed");
         exit;

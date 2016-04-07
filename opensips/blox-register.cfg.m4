@@ -108,6 +108,9 @@ route[ROUTE_REGISTER] {
 
                     t_on_reply("WAN2LAN_REGISTER");
 
+                    if($var(SHMPACT)) {
+                        route(SIP_HEADER_MANIPULATE,$var(SHMPACT));
+                    } 
                     if (!t_relay()) {
                         xlog("L_ERR", "BLOX_DBG::: blox-register.cfg: REGISTER Relay error $mb\n");
                         sl_reply_error();
