@@ -83,20 +83,16 @@ route[ROUTE_INVITE] {
                     append_to_reply("Diversion: <$ru>;reason=deflection\r\n");
 
                     $avp(LAN) = $(var(gw_attributes){uri.param,LAN});
-                    if($avp(LAN)) {
-                        xdbg("BLOX_DBG: blox-invite.cfg: Group: $avp(LAN)\n"); #Dont print directly without substr
-                        route(READ_LAN_PROFILE);
-                        $var(RDIP) = $(avp(LANProfile){uri.host});
-                        $var(RDPORT) = $(avp(LANProfile){uri.port});
-                        #Manipulated Adding, Striping Prefix, Suffix
-                        $var(ru) = "sip:" + $rU + "@" + $var(RDIP) + ":" + $var(RDPORT) ; #/* 5062 should be Unique port for the Gateway to set in Diversion IP:PORT */
-                        xlog("L_NOTICE","{ \"LCR-REDIRECT\" : { \"FURI\": \"$fu;tag=$ft\", \"RURI-ORG\": \"$var(oru)\", \"RURI\": \"$ru\", \"REDIRECT\": \"$var(ru)\", \"SRCIP\": \"$si:$sp\", \"DSTIP\": \"$Ri:$Rp\", \"TS\": $TS } }"); /* NOTICE USED FOR LCR AND LOGGED INTO lcr.log */
-                        $ru = $var(ru) ;
-                        sl_send_reply("302","LCR Redirect");
-                        exit;
-                    } else {
-                        xlog("L_NOTICE", "BLOX_DBG::: blox-invite.cfg: LCR: No LAN: $var(g)\n"); #Dont print directly without substr
-                    }
+                    xdbg("BLOX_DBG: blox-invite.cfg: Group: $avp(LAN)\n"); #Dont print directly without substr
+                    route(READ_LAN_PROFILE);
+                    $var(RDIP) = $(avp(LANProfile){uri.host});
+                    $var(RDPORT) = $(avp(LANProfile){uri.port});
+                    #Manipulated Adding, Striping Prefix, Suffix
+                    $var(ru) = "sip:" + $rU + "@" + $var(RDIP) + ":" + $var(RDPORT) ; #/* 5062 should be Unique port for the Gateway to set in Diversion IP:PORT */
+                    xlog("L_NOTICE","{ \"LCR-REDIRECT\" : { \"FURI\": \"$fu;tag=$ft\", \"RURI-ORG\": \"$var(oru)\", \"RURI\": \"$ru\", \"REDIRECT\": \"$var(ru)\", \"SRCIP\": \"$si:$sp\", \"DSTIP\": \"$Ri:$Rp\", \"TS\": $TS } }"); /* NOTICE USED FOR LCR AND LOGGED INTO lcr.log */
+                    $ru = $var(ru) ;
+                    sl_send_reply("302","LCR Redirect");
+                    exit;
                 } else {
                         xlog("L_NOTICE", "BLOX_DBG::: blox-invite.cfg: LCR: No Next GW found for LCR, PBX $si:$sp $var(gw_attributes)\n");
                         send_reply("503", "No Rules matching the URI");
@@ -252,7 +248,6 @@ route[ROUTE_INVITE] {
                     #/* Check Roaming Extension routing */
                     $var(PBXIP) = $(avp(PBX){uri.host}) ;
                     $var(PBXPORT) = $(avp(PBX){uri.port}) ;
-                    $avp(WAN) = $(avp(PBX){uri.param,WAN});
                     $avp(T38Param)  = $(avp(PBX){uri.param,T38Param});
                     $avp(MEDIA)  = $(avp(PBX){uri.param,MEDIA});
                     $avp(SrcSRTP) = $(avp(PBX){uri.param,LANSRTP});
@@ -263,7 +258,6 @@ route[ROUTE_INVITE] {
 
                     if($var(PBXIP)==""){$var(PBXIP)=null;}
                     if($var(PBXPORT)==""){$var(PBXPORT)=null;}
-                    if($avp(WAN)==""){$avp(WAN)=null;}
                     if($avp(T38Param)==""){$avp(T38Param)=null;}
                     if($avp(MEDIA)==""){$avp(MEDIA)=null;}
                     if($avp(SrcSRTP)==""){$avp(SrcSRTP)=null;}
@@ -276,6 +270,8 @@ route[ROUTE_INVITE] {
                     setflag(487); 
                     route(OUTBOUND_CALL_ACCESS_CONTROL);
 
+                    $avp(WAN) = $(avp(PBX){uri.param,WAN});
+                    if($avp(WAN)==""){$avp(WAN)=null;}
                     route(READ_WAN_PROFILE);
                     if($avp(WANProfile)) {
                         $avp(WANIP) = $(avp(WANProfile){uri.host});
@@ -400,7 +396,6 @@ route[ROUTE_INVITE] {
                 $avp(SrcSRTP) = $(avp(TRUNK){uri.param,WANSRTP});
                 $avp(DstSRTP) = $(avp(TRUNK){uri.param,LANSRTP});
                 $avp(WAN) = $(avp(TRUNK){uri.param,WAN});
-                $avp(LAN) = $(avp(TRUNK){uri.param,LAN});
                 $avp(INBNDURI) = $(avp(TRUNK){uri.param,INBNDURI});
                 $avp(LBID) = $(avp(PBX){uri.param,LBID});
                 $avp(LBRuleID) = $(avp(PBX){uri.param,LBRuleID});
@@ -414,7 +409,6 @@ route[ROUTE_INVITE] {
                 if($avp(SrcSRTP)==""){$avp(SrcSRTP)=null;}
                 if($avp(DstSRTP)==""){$avp(DstSRTP)=null;}
                 if($avp(WAN)==""){$avp(WAN)=null;}
-                if($avp(LAN)==""){$avp(LAN)=null;}
                 if($avp(INBNDURI)==""){$avp(INBNDURI)=null;}
                 if($avp(LBID)==""){$avp(LBID)=null;}
                 if($avp(LBRuleID)==""){$avp(LBRuleID)=null;}
@@ -436,6 +430,8 @@ route[ROUTE_INVITE] {
                 }
 
                 if($avp(INBNDURI)) {
+                    $avp(LAN) = $(avp(TRUNK){uri.param,LAN});
+                    if($avp(LAN)==""){$avp(LAN)=null;}
                     route(READ_LAN_PROFILE);
                     $avp(LANIP) = $(avp(LANProfile){uri.host});
                     $avp(LANPORT) = $(avp(LANProfile){uri.port});
@@ -630,7 +626,9 @@ route[ROUTE_INVITE] {
                         }
                     }
 
-                    #cache_store("local","LANProfile:$avp(LAN)","$avp(LANProfile)");
+                    $avp(LAN) = $(avp(PBX){uri.param,LAN});
+                    if($avp(LAN)==""){$avp(LAN)=null;}
+                    route(READ_LAN_PROFILE);
                     $avp(LANIP) = $(avp(LANProfile){uri.host});
                     $avp(LANPORT) = $(avp(LANProfile){uri.port});
                     $avp(LANPROTO) = $(avp(LANProfile){uri.param,transport});

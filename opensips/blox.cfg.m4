@@ -241,30 +241,34 @@ route {
 }
 
 route[READ_WAN_PROFILE] {
-    if(cache_fetch("local","$avp(WAN)",$avp(WANProfile))) {
-        xdbg("BLOX_DBG: blox-invite.cfg: Loaded from cache $avp(WAN): $avp(WANProfile)\n");
-    } else if (avp_db_load("$avp(WAN)","$avp(WANProfile)/blox_profile_config")) {
-        cache_store("local","$avp(WAN)","$avp(WANProfile)");
-        xdbg("BLOX_DBG: blox-invite.cfg: Stored in cache $avp(WAN): $avp(WANProfile)\n");
-    } else {
-        $avp(WANProfile) = null;
-        xlog("L_INFO","BLOX_DBG: blox.cfg: Drop MESSAGE $ru from $si : $sp\n" );
-        drop(); # /* Default 5060 open to accept packets from WAN side, but we don't process it */
-        exit;
+    if($avp(WAN)) {
+        if(cache_fetch("local","$avp(WAN)",$avp(WANProfile))) {
+            xdbg("BLOX_DBG: blox-invite.cfg: Loaded from cache $avp(WAN): $avp(WANProfile)\n");
+        } else if (avp_db_load("$avp(WAN)","$avp(WANProfile)/blox_profile_config")) {
+            cache_store("local","$avp(WAN)","$avp(WANProfile)");
+            xdbg("BLOX_DBG: blox-invite.cfg: Stored in cache $avp(WAN): $avp(WANProfile)\n");
+        } else {
+            $avp(WANProfile) = null;
+            xlog("L_INFO","BLOX_DBG: blox.cfg: Drop MESSAGE $ru from $si : $sp\n" );
+            drop(); # /* Default 5060 open to accept packets from WAN side, but we don't process it */
+            exit;
+        }
     }
 }
 
 route[READ_LAN_PROFILE] {
-    if(cache_fetch("local","$avp(LAN)",$avp(LANProfile))) {
-        xdbg("BLOX_DBG: blox.cfg: Loaded from cache $avp(LAN): $avp(LANProfile)\n");
-    } else if (avp_db_load("$avp(LAN)","$avp(LANProfile)/blox_profile_config")) {
-        cache_store("local","$avp(LAN)","$avp(LANProfile)");
-        xdbg("BLOX_DBG: blox.cfg: Stored in cache $avp(LAN): $avp(LANProfile)\n");
-    } else {
-        $avp(LANProfile) = null;
-        xlog("L_INFO","BLOX_DBG: blox.cfg: Drop MESSAGE $ru from $si : $sp\n" );
-        drop(); # /* Default 5060 open to accept packets from LAN side, but we don't process it */
-        exit;
+    if($avp(LAN)) {
+        if(cache_fetch("local","$avp(LAN)",$avp(LANProfile))) {
+            xdbg("BLOX_DBG: blox.cfg: Loaded from cache $avp(LAN): $avp(LANProfile)\n");
+        } else if (avp_db_load("$avp(LAN)","$avp(LANProfile)/blox_profile_config")) {
+            cache_store("local","$avp(LAN)","$avp(LANProfile)");
+            xdbg("BLOX_DBG: blox.cfg: Stored in cache $avp(LAN): $avp(LANProfile)\n");
+        } else {
+            $avp(LANProfile) = null;
+            xlog("L_INFO","BLOX_DBG: blox.cfg: Drop MESSAGE $ru from $si : $sp\n" );
+            drop(); # /* Default 5060 open to accept packets from LAN side, but we don't process it */
+            exit;
+        }
     }
 }
 
