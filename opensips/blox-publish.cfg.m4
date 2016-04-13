@@ -66,7 +66,7 @@ route[ROUTE_PUBLISH] {
                     
                     $ru = "sip:" + $var(PBXIP) + ":" + $var(PBXPORT) ;
                     $fs = $avp(LANPROTO) + ":" + $avp(LANIP) + ":" + $avp(LANPORT) ;
-                    $du = $avp(PBX) + ";transport=" + $avp(LANPROTO)  ;
+                    $du = "sip:" + $var(PBXIP) + ":" +  $var(PBXPORT) + ";transport=" + $avp(LANPROTO)  ;
                     $var(reguri) = "sip:" + $fU + "@" + $var(PBXIP) + ":" + $var(PBXPORT) + ";" + "transport=" + $avp(LANPROTO) ;
                     xlog("Sending to $avp(LANIP) : $avp(LANPORT) : $fs :  $var(reguri)\n");
                     uac_replace_from("$var(reguri)");

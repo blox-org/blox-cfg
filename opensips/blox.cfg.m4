@@ -272,6 +272,25 @@ route[READ_LAN_PROFILE] {
     }
 }
 
+route[READ_HEADER] {
+    $var(match) = $param(1);
+    $var(HEADER) = null ;
+
+    switch($var(match)) {
+        case "$rU":    
+            $var(HEADER) = $rU;
+            break;
+        case "$tU":    
+            $var(HEADER) = $tU;
+            break;
+        case "$fU":    
+            $var(HEADER) = $fU;
+            break;
+        default :
+            xlog(" Requested Condition did not matched  \n");   
+    }   
+}
+
 # ----------- Experimentation routers ------------------------
 failure_route[missed_call] {
     if (t_was_cancelled()) {
@@ -339,8 +358,7 @@ include_file "blox-lcr.cfg"
 include_file "blox-cac.cfg"
 include_file "blox-enum.cfg"
 include_file "blox-sip-header-manipulation.cfg"
-include_file "blox-lb-switch.cfg"
-include_file "blox-lb-route.cfg"
+include_file "blox-lb.cfg"
 ###########################################################################################
 # ----------- SIP Profile based routers without MTS ------------------------
 import_file  "blox-allomts-dummy.cfg"

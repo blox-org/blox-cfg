@@ -105,7 +105,7 @@ route[ROUTE_SUBSCRIBE] {
                         }
 
                         $fs = $avp(LANPROTO) + ":" + $avp(LANIP) + ":" + $avp(LANPORT) ;
-                        $du = $avp(PBX) + ";transport=" + $avp(LANPROTO)  ;
+                        $du = "sip:" + $var(PBXIP) + ":" +  $var(PBXPORT) + ";transport=" + $avp(LANPROTO)  ;
                         xlog("BLOX_DBG::: blox-subscribe.cfg: Sending via :$fs: to $var(reguri)\n");
                         uac_replace_from("$var(reguri)");
                         uac_replace_to("$var(reguri)");

@@ -102,15 +102,14 @@ route[ROUTE_INVITE] {
 
             if(!$avp(TRUNK)) { #If not already set by LCR
                 $avp(uuid) = "TRUNK:" + $avp(LAN) ;
-            	if(cache_fetch("local","$avp(uuid)",$avp(TRUNK))) {
-            	    xdbg("BLOX_DBG: blox-invite.cfg: Loaded from cache $avp(uuid): $avp(TRUNK)\n");
-            	} else if (avp_db_load("$avp(uuid)","$avp(TRUNK)/blox_config")) {
-            	    $avp(CONFIG_EXT) = $(avp(TRUNK){uri.param,CONFIG_EXT});
-            	    cache_store("local","$avp(uuid)","$avp(TRUNK)");
-            	    xdbg("BLOX_DBG: blox-invite.cfg: Stored in cache $avp(uuid): $avp(TRUNK)\n");
-            	} else {
-            	    $avp(TRUNK) = null;
-            	}
+                if(cache_fetch("local","$avp(uuid)",$avp(TRUNK))) {
+                    xdbg("BLOX_DBG: blox-invite.cfg: Loaded from cache $avp(uuid): $avp(TRUNK)\n");
+                } else if (avp_db_load("$avp(uuid)","$avp(TRUNK)/blox_config")) {
+                    cache_store("local","$avp(uuid)","$avp(TRUNK)");
+                    xdbg("BLOX_DBG: blox-invite.cfg: Stored in cache $avp(uuid): $avp(TRUNK)\n");
+                } else {
+                    $avp(TRUNK) = null;
+                }
             }
 
             if($avp(TRUNK)) {
@@ -226,17 +225,16 @@ route[ROUTE_INVITE] {
                 exit;
             } else {
                 $avp(uuid) = "PBX:" + $avp(LAN) ;
-            	if(cache_fetch("local","$avp(uuid)",$avp(PBX))) {
-            	    xdbg("BLOX_DBG: blox-invite.cfg: Loaded from cache $avp(uuid): $avp(PBX)\n");
-            	} else if (avp_db_load("$avp(uuid)","$avp(PBX)/blox_config")) {
-            	    $avp(CONFIG_EXT) = $(avp(PBX){uri.param,CONFIG_EXT});
-            	    cache_store("local","$avp(uuid)","$avp(PBX)");
-            	    xdbg("BLOX_DBG: blox-invite.cfg: Stored in cache $avp(uuid): $avp(PBX)\n");
-            	} else {
+                if(cache_fetch("local","$avp(uuid)",$avp(PBX))) {
+                    xdbg("BLOX_DBG: blox-invite.cfg: Loaded from cache $avp(uuid): $avp(PBX)\n");
+                } else if (avp_db_load("$avp(uuid)","$avp(PBX)/blox_config")) {
+                    cache_store("local","$avp(uuid)","$avp(PBX)");
+                    xdbg("BLOX_DBG: blox-invite.cfg: Stored in cache $avp(uuid): $avp(PBX)\n");
+                } else {
                     xlog("L_WARN", "BLOX_DBG::: blox-invite.cfg: SIP Profile for $si:$sp access denied\n");
                     sl_send_reply("603", "Declined");
                     exit;
-            	}
+                }
 
                 if($avp(PBX)) {
                     xdbg("BLOX_DBG: blox-invite.cfg: Got route $Ri RE\n");
@@ -374,7 +372,6 @@ route[ROUTE_INVITE] {
             if(cache_fetch("local","$avp(uuid)",$avp(TRUNK))) {
                 xdbg("BLOX_DBG: blox-invite.cfg: Loaded from cache $avp(uuid): $avp(TRUNK)\n");
             } else if (avp_db_load("$avp(uuid)","$avp(TRUNK)/blox_config")) {
-                $avp(CONFIG_EXT) = $(avp(TRUNK){uri.param,CONFIG_EXT});
                 cache_store("local","$avp(uuid)","$avp(TRUNK)");
                 xdbg("BLOX_DBG: blox-invite.cfg: Stored in cache $avp(uuid): $avp(TRUNK)\n");
             } else {
@@ -397,8 +394,6 @@ route[ROUTE_INVITE] {
                 $avp(DstSRTP) = $(avp(TRUNK){uri.param,LANSRTP});
                 $avp(WAN) = $(avp(TRUNK){uri.param,WAN});
                 $avp(INBNDURI) = $(avp(TRUNK){uri.param,INBNDURI});
-                $avp(LBID) = $(avp(PBX){uri.param,LBID});
-                $avp(LBRuleID) = $(avp(PBX){uri.param,LBRuleID});
 
                 if($var(TRUNKUSER)==""){$var(TRUNKUSER)=null;}
                 if($var(TRUNKIP)==""){$var(TRUNKIP)=null;}
@@ -410,8 +405,6 @@ route[ROUTE_INVITE] {
                 if($avp(DstSRTP)==""){$avp(DstSRTP)=null;}
                 if($avp(WAN)==""){$avp(WAN)=null;}
                 if($avp(INBNDURI)==""){$avp(INBNDURI)=null;}
-                if($avp(LBID)==""){$avp(LBID)=null;}
-                if($avp(LBRuleID)==""){$avp(LBRuleID)=null;}
 
                 if($avp(INBNDURI)){
                     $avp(INBNDURI) = 'sip:' + $(avp(INBNDURI){s.decode.hexa}) ;
@@ -485,25 +478,6 @@ route[ROUTE_INVITE] {
                     $rd = $var(TRUNKIP);
                 }
 
-                xlog("BLOX_DBG::: Checking Load Balance Configuration $avp(LBRuleID) : $avp(LBID)\n");
-
-                if($avp(LBID) && $avp(LBRuleID)) {
-                    $avp(uuid) = "LBRuleID:"+$avp(LBRuleID);
-                    if(cache_fetch("local","$avp(uuid)",$avp(LB))) {
-                        xdbg("Loaded from cache $avp(uuid): $avp(LB)\n");
-                    } else if (avp_db_load("$avp(uuid)","$avp(LB)/blox_lb_rules")) {
-                        cache_store("local","$avp(uuid)","$avp(LB)");
-                        xdbg("Stored in cache $avp(uuid): $avp(LB)\n");
-                    } else {
-                        $avp(LB) = null;
-                        xlog("L_INFO", "Drop MESSAGE $ru from $si : $sp\n" );
-                        drop();
-                        exit();        
-                    }
-                    if($avp(LB)){    
-                         route(BLOX_LB_CFG,$avp(LBID),$avp(LB));
-                    }
-                }
 
                 t_on_failure("WAN2LAN");
                 route(WAN2LAN);
@@ -514,7 +488,6 @@ route[ROUTE_INVITE] {
             if(cache_fetch("local","$avp(uuid)",$avp(PBX))) {
                 xdbg("BLOX_DBG: blox-invite.cfg: Loaded from cache $avp(uuid): $avp(PBX)\n");
             } else if (avp_db_load("$avp(uuid)","$avp(PBX)/blox_config")) {
-                $avp(CONFIG_EXT) = $(avp(PBX){uri.param,CONFIG_EXT});
                 cache_store("local","$avp(uuid)","$avp(PBX)");
                 xdbg("BLOX_DBG: blox-invite.cfg: Stored in cache $avp(uuid): $avp(PBX)\n");
             } else {
@@ -534,8 +507,6 @@ route[ROUTE_INVITE] {
                 $avp(SrcSRTP) = $(avp(PBX){uri.param,WANSRTP});
                 $avp(DstSRTP) = $(avp(PBX){uri.param,LANSRTP});
                 $var(PBXIPAUTH) = $(avp(PBX){uri.param,IPAuth}) ;
-                $avp(LBID) = $(avp(PBX){uri.param,LBID});
-                $avp(LBRuleID) = $(avp(PBX){uri.param,LBRuleID});
 
                 if($var(PBXIP)==""){$var(PBXIP)=null;}
                 if($var(PBXPORT)==""){$var(PBXPORT)=null;}
@@ -545,8 +516,6 @@ route[ROUTE_INVITE] {
                 if($avp(SrcSRTP)==""){$avp(SrcSRTP)=null;}
                 if($avp(DstSRTP)==""){$avp(DstSRTP)=null;}
                 if($var(PBXIPAUTH)==""){$var(PBXIPAUTH)=null;}
-                if($avp(LBID)==""){$avp(LBID)=null;}
-                if($avp(LBRuleID)==""){$avp(LBRuleID)=null;}
 
                 $avp(cac_uuid) = $avp(PBX) ; 
                 setflag(487);
@@ -636,7 +605,14 @@ route[ROUTE_INVITE] {
                     if($avp(LANDOMAIN)==""){$avp(LANDOMAIN)=null;}
 
                     $fs = $avp(LANPROTO) + ":" + $avp(LANIP) + ":" + $avp(LANPORT) ;
-                    $du = $avp(PBX) + "transport=" + $avp(LANPROTO)  ;
+                    $var(lbret) = 0;    
+                    route(BLOX_LB_CFG,$avp(uuid));
+                    if($var(lbret) == 1 )  { #Check LoadBalance Route
+                        xlog("BLOX_DBG: blox-invite.cfg: PBX Load Balance is Successful\n");
+                    } else {
+                        $du = "sip:" + $var(PBXIP) + ":" +  $var(PBXPORT) + ";transport=" + $avp(LANPROTO)  ;
+                    }
+                    xlog("BLOX_DBG: blox-invite.cfg: -- choosen destination uri $du\n");
                     if($avp(LANDOMAIN)) {
                         $ru = "sip:" + $rU + "@" + $avp(LANDOMAIN) ;
                         $var(Tto)   = "sip:" + $tU + "@" + $avp(LANDOMAIN) ;
@@ -650,7 +626,7 @@ route[ROUTE_INVITE] {
 
                     $var(to)   = $tu ;
                     $var(from) = $fu ;
-                    xdbg("BLOX_DBG::: blox-invite.cfg: Update from $var(Tto) << $var(to) : $var(Tfrom) << $var(from)\n");
+                    xdbg("BLOX_DBG:: blox-invite.cfg: Update from $var(Tto) << $var(to) : $var(Tfrom) << $var(from)\n");
                     if(!has_totag()) {
                         create_dialog("PpB");
                         $dlg_val(MediaProfileID) = $(avp(PBX){uri.param,MEDIA});
@@ -691,24 +667,6 @@ route[ROUTE_INVITE] {
                     }
 
                     xlog("BLOX_DBG::: Checking Load Balance Configuration $avp(LBRuleID) : $avp(LBID)\n");
-
-                    if($avp(LBID) && $avp(LBRuleID)) {
-                        $avp(uuid) = "LBRuleID:"+$avp(LBRuleID);
-                        if(cache_fetch("local","$avp(uuid)",$avp(LB))) {
-                            xdbg("Loaded from cache $avp(uuid): $avp(LB)\n");
-                        } else if (avp_db_load("$avp(uuid)","$avp(LB)/blox_lb_rules")) {
-                            cache_store("local","$avp(uuid)","$avp(LB)");
-                            xdbg("Stored in cache $avp(uuid): $avp(LB)\n");
-                        } else {
-                            $avp(LB) = null;
-                            xlog("L_INFO", "Drop MESSAGE $ru from $si : $sp\n" );
-                            drop();
-                            exit();        
-                        }
-                        if($avp(LB)){    
-                             route(BLOX_LB_CFG,$avp(LBID),$avp(LB));
-                        }
-                    }
 
                     t_on_failure("WAN2LAN");
                     route(WAN2LAN);
