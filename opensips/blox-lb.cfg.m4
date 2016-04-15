@@ -17,7 +17,7 @@
 #  * along with this program. If not, see <http://www.gnu.org/licenses/>
 #  */
 
-route[BLOX_LB_CFG] {
+route[BLOX_LOADBALANCE] {
     $var(lbret) = 0;    
     $var(uuid) = "LB" + $param(1);
     if($var(uuid)) {

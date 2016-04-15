@@ -359,6 +359,7 @@ include_file "blox-cac.cfg"
 include_file "blox-enum.cfg"
 include_file "blox-sip-header-manipulation.cfg"
 include_file "blox-lb.cfg"
+include_file "blox-domain.cfg"
 ###########################################################################################
 # ----------- SIP Profile based routers without MTS ------------------------
 import_file  "blox-allomts-dummy.cfg"

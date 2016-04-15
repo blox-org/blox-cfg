@@ -82,8 +82,9 @@ route[ROUTE_REGISTER] {
                         subst("/Contact: +<sip:(.*)@(.*?)>(.*)$/Contact: <sip:\1@$avp(LANIP):$avp(LANPORT)>/");
                     }
 
-                    $var(PBXIP) = $(avp(PBX){uri.host}) ;
-                    $var(PBXPORT) = $(avp(PBX){uri.port}) ;
+                    route(BLOX_DOMAIN,$avp(uuid));
+                    $var(PBXIP) = $(avp(REGURI){uri.host}) ;
+                    $var(PBXPORT) = $(avp(REGURI){uri.port}) ;
                     
                     if($avp(LANDOMAIN)) {
                         $ru = "sip:" + $avp(LANDOMAIN) + ":" + $var(PBXPORT) ;
@@ -110,7 +111,7 @@ route[ROUTE_REGISTER] {
 
                     if($var(SHMPACT)) {
                         route(SIP_HEADER_MANIPULATE,$var(SHMPACT));
-                    } 
+                    }
                     if (!t_relay()) {
                         xlog("L_ERR", "BLOX_DBG::: blox-register.cfg: REGISTER Relay error $mb\n");
                         sl_reply_error();

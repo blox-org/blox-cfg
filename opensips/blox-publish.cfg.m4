@@ -61,10 +61,16 @@ route[ROUTE_PUBLISH] {
                         subst("/Contact: +<sip:(.*)@(.*?)>(.*)$/Contact: <sip:\1@$avp(LANIP):$avp(LANPORT)>/");
                     }
 
-                    $var(PBXIP) = $(avp(PBX){uri.host}) ;
-                    $var(PBXPORT) = $(avp(PBX){uri.port}) ;
+                    route(BLOX_DOMAIN,$avp(uuid));
+                    $var(PBXIP) = $(avp(PUBURI){uri.host}) ;
+                    $var(PBXPORT) = $(avp(PUBURI){uri.port}) ;
                     
-                    $ru = "sip:" + $var(PBXIP) + ":" + $var(PBXPORT) ;
+                    if($avp(LANDOMAIN)) {
+                        $ru = "sip:" + $avp(LANDOMAIN) + ":" + $var(PBXPORT) ;
+                    } else {
+                        $ru = "sip:" + $var(PBXIP) + ":" + $var(PBXPORT) ;
+                    }
+
                     $fs = $avp(LANPROTO) + ":" + $avp(LANIP) + ":" + $avp(LANPORT) ;
                     $du = "sip:" + $var(PBXIP) + ":" +  $var(PBXPORT) + ";transport=" + $avp(LANPROTO)  ;
                     $var(reguri) = "sip:" + $fU + "@" + $var(PBXIP) + ":" + $var(PBXPORT) + ";" + "transport=" + $avp(LANPROTO) ;

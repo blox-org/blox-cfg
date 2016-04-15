@@ -422,7 +422,11 @@ route[ROUTE_INVITE] {
                     if($avp(WANADVPORT)==""){$avp(WANADVPORT)=null;}
                 }
 
-                if($avp(INBNDURI)) {
+                $var(lbret) = 0;    
+                route(BLOX_LOADBALANCE,$avp(uuid));
+                if($var(lbret) == 1 )  { #Check LoadBalance Route
+                    xdbg("BLOX_DBG: blox-invite.cfg: TRUNK Load Balance is Successful\n");
+                } else if($avp(INBNDURI)) {
                     $avp(LAN) = $(avp(TRUNK){uri.param,LAN});
                     if($avp(LAN)==""){$avp(LAN)=null;}
                     route(READ_LAN_PROFILE);
@@ -606,11 +610,12 @@ route[ROUTE_INVITE] {
 
                     $fs = $avp(LANPROTO) + ":" + $avp(LANIP) + ":" + $avp(LANPORT) ;
                     $var(lbret) = 0;    
-                    route(BLOX_LB_CFG,$avp(uuid));
+                    route(BLOX_LOADBALANCE,$avp(uuid));
                     if($var(lbret) == 1 )  { #Check LoadBalance Route
                         xlog("BLOX_DBG: blox-invite.cfg: PBX Load Balance is Successful\n");
                     } else {
-                        $du = "sip:" + $var(PBXIP) + ":" +  $var(PBXPORT) + ";transport=" + $avp(LANPROTO)  ;
+                        route(BLOX_DOMAIN,$avp(uuid));
+                        xlog("BLOX_DBG: blox-invite.cfg: Load Balance Failed so choosen destination uri $du\n");
                     }
                     xlog("BLOX_DBG: blox-invite.cfg: -- choosen destination uri $du\n");
                     if($avp(LANDOMAIN)) {
