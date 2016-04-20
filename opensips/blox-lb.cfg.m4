@@ -49,22 +49,20 @@ route[BLOX_LOADBALANCE] {
         }
    
         if($avp(LBRule)) {
-            $var(match) = $(avp(LBRule){param.value,cond});
-            $var(pat) = $(avp(LBRule){param.value,pattern});
+            $var(cond) = $(avp(LBRule){param.value,cond});
             $var(lbres) = $(avp(LBRule){param.value,lbres});
     
-            if($var(match)==""){$var(match)=null;}
-            if($var(pat)==""){$var(pat)=null;}
-            if($var(lbres)==""){$var(res)=null;}
+            if($var(cond)==""){$var(cond)=null;}
+            if($var(lbres)==""){$var(lbres)=null;}
 
     
-            if($var(match) && $var(pat) && $var(lbres)) {
+            if($var(cond) && $var(lbres)) {
                 $var(regexp) = "/\,/;/g";
                 $var(lbres) = $(var(lbres){re.subst,$var(regexp)}); #Table stores with ',' needs to be replaced with ';' to pass to load balancer
 
-                xlog("BLOX_DBG::: lbres $var(lbres) pat $var(pat) matching condition $var(match)\n");
-                route(READ_HEADER,$var(match)); 
-                if($var(HEADER) && (pcre_match("$var(HEADER)","$var(pat)"))) {
+                route(LB_MATCH_CONDITION,$var(cond)); 
+                xlog("BLOX_DBG::: lbres $var(lbres) cond $var(cond) $var(match)\n");
+                if($var(match)) {
                     $var(LBGID) = $(var(LBGID){s.int});
                     if (load_balance("$var(LBGID)","$var(lbres)")) {
                         xlog("BLOX_DBG::: load_balance success with $var(LBGID)");
@@ -86,3 +84,11 @@ route[BLOX_LOADBALANCE] {
     return(-1); 
 
 }
+
+route[LB_MATCH_CONDITION] {
+	$var(match) = null;
+include_file "blox-lb-rule-match-switch.cfg"
+}
+
+
+include_file "blox-lb-rule-match-routes.cfg"
