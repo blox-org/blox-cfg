@@ -49,8 +49,8 @@ route[BLOX_LOADBALANCE] {
         }
    
         if($avp(LBRule)) {
-            $var(cond) = $(avp(LBRule){param.value,cond});
-            $var(lbres) = $(avp(LBRule){param.value,lbres});
+            $var(cond) = $(var(LBMAPit){s.select,0,,});
+            $var(lbres) = $avp(LBRule);
     
             if($var(cond)==""){$var(cond)=null;}
             if($var(lbres)==""){$var(lbres)=null;}
