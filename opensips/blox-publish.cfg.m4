@@ -62,8 +62,8 @@ route[ROUTE_PUBLISH] {
                     }
 
                     route(BLOX_DOMAIN,$avp(uuid));
-                    $var(PBXIP) = $(avp(PUBURI){uri.host}) ;
-                    $var(PBXPORT) = $(avp(PUBURI){uri.port}) ;
+                    $var(PBXIP) = $(avp(DEFURI){uri.host}) ;
+                    $var(PBXPORT) = $(avp(DEFURI){uri.port}) ;
                     
                     if($avp(LANDOMAIN)) {
                         $ru = "sip:" + $avp(LANDOMAIN) + ":" + $var(PBXPORT) ;
