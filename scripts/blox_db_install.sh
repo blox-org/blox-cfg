@@ -25,7 +25,8 @@ NEW_VERSION=$2
 
 BLOX_TABLES="locationpbx locationtrunk locationpresence blox_config blox_domain\
 		blox_config_ext blox_profile_config blox_param_config \
-		blox_codec blox_subscribe blox_presence_subscriber"
+		blox_codec blox_subscribe blox_presence_subscriber \
+		blox_lb blox_lb_rules"
 BLOX_ALTER_TABLES="/etc/blox/sql/alter_acc.sql \
 		/etc/blox/sql/alter_blox_config.sql \
 		/etc/blox/sql/alter_usr_preferences.sql"
