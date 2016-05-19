@@ -10,7 +10,7 @@ route[BLOX_DOMAIN] {
         $avp(DEFURI) = null;
         xlog("L_WARN", "BLOX_DBG::: $rm METHOD Domain name not configured in blox for $var(uuid)\n" );
 	drop();
-	return 0;
+	exit;
     }
 
     $du = $avp(DEFURI) ;
