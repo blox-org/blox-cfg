@@ -129,9 +129,10 @@ route[ROUTE_INVITE] {
                 $avp(GWID) = $(avp(TRUNK){uri.param,GWID});
                 $avp(SrcSRTP) = $(avp(TRUNK){uri.param,LANSRTP});
                 $avp(DstSRTP) = $(avp(TRUNK){uri.param,WANSRTP});
-                $var(ENUMSX) = $(avp(TRUNK){uri.param,ENUMSX}); #SUFFIX, default: e164.arpa.
-                $var(ENUMSE) = $(avp(TRUNK){uri.param,ENUMSE}); #SERVICE, default: e2u+sip
-                $var(ENUMTYPE) = $(avp(TRUNK){uri.param,ENUMTYPE}); #SERVICE, default: e2u+sip
+                route(READ_ENUM,$avp(uuid));	
+                $var(ENUMSX) = $(avp(ENUM){uri.param,ENUMSX}); #SUFFIX, default: e164.arpa.
+                $var(ENUMSE) = $(avp(ENUM){uri.param,ENUMSE}); #SERVICE, default: e2u+sip
+                $var(ENUMTYPE) = $(avp(ENUM){uri.param,ENUMTYPE}); #SERVICE, default: e2u+sip
 
                 if($var(TRUNKUSER)==""){$var(TRUNKUSER)=null;}
                 if($var(TRUNKIP)==""){$var(TRUNKIP)=null;}
@@ -250,9 +251,10 @@ route[ROUTE_INVITE] {
                     $avp(MEDIA)  = $(avp(PBX){uri.param,MEDIA});
                     $avp(SrcSRTP) = $(avp(PBX){uri.param,LANSRTP});
                     $avp(DstSRTP) = $(avp(PBX){uri.param,WANSRTP});
-                    $var(ENUMSX) = $(avp(PBX){uri.param,ENUMSX}); #SUFFIX, default: e164.arpa.
-                    $var(ENUMSE) = $(avp(PBX){uri.param,ENUMSE}); #SERVICE, default: e2u+sip
-                    $var(ENUMTYPE) = $(avp(PBX){uri.param,ENUMTYPE}); #SERVICE, default: e2u+sip
+                    route(READ_ENUM,$avp(uuid));	
+                    $var(ENUMSX) = $(avp(ENUM){uri.param,ENUMSX}); #SUFFIX, default: e164.arpa.
+                    $var(ENUMSE) = $(avp(ENUM){uri.param,ENUMSE}); #SERVICE, default: e2u+sip
+                    $var(ENUMTYPE) = $(avp(ENUM){uri.param,ENUMTYPE}); #SERVICE, default: e2u+sip
 
                     if($var(PBXIP)==""){$var(PBXIP)=null;}
                     if($var(PBXPORT)==""){$var(PBXPORT)=null;}

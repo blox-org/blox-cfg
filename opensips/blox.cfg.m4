@@ -271,6 +271,18 @@ route[READ_LAN_PROFILE] {
         }
     }
 }
+route[READ_ENUM] {
+    $var(uuid) = "ENUM"+$param(1);
+    if(cache_fetch("local","$var(uuid)",$avp(ENUM))) {
+        xdbg("BLOX_DBG: blox.cfg: Loaded from cache $var(uuid): $avp(ENUM)\n");
+    } else if (avp_db_load("$var(uuid)","$avp(ENUM)/blox_enum")) {
+        cache_store("local","$var(uuid)","$avp(ENUM)");
+        xdbg("BLOX_DBG: blox.cfg: Stored in cache $var(uuid): $avp(ENUm)\n");
+    } else {
+        $avp(ENUM) = null;
+        xlog("L_INFO","BLOX_DBG: blox.cfg: ENUM is not configured  \n" );
+    }
+}
 
 route[READ_HEADER] {
     $var(match) = $param(1);
