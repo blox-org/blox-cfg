@@ -146,9 +146,13 @@ onreply_route[WAN2LAN_REGISTER] {
             };
 
             if($avp(WANADVIP)) { # Roaming user: replace it with advIP:Port
-                subst("/Contact: +<sip:(.*)@(.*)>(.*)$/Contact: <sip:\1@$avp(WANADVIP):$avp(WANADVPORT)>\3/");
+                if(!subst("/Contact: +<sip:(.*)@(.*?)>;(.*)$/Contact: <sip:\1@$avp(WANADVIP):$avp(WANADVPORT)>;\3/")) {
+                    subst("/Contact: +<sip:(.*)@(.*?)>(.*)$/Contact: <sip:\1@$avp(WANADVIP):$avp(WANADVPORT)>/");
+                }
             } else {
-                subst("/Contact: +<sip:(.*)@(.*)>(.*)$/Contact: <sip:\1@$avp(WANIP):$avp(WANPORT)>\3/");
+                if(!subst("/Contact: +<sip:(.*)@(.*?)>;(.*)$/Contact: <sip:\1@$avp(WANIP):$avp(WANPORT)>;\3/")) {
+                    subst("/Contact: +<sip:(.*)@(.*?)>(.*)$/Contact: <sip:\1@$avp(WANIP):$avp(WANPORT)>/");
+                }
             }
 
             xdbg("BLOX_DBG: Saved Location $fu/$ru/$si/$ci/$avp(rcv)" );
