@@ -37,6 +37,7 @@ route[WAN2LAN] {
         }
 
         $avp(MediaTranscoding) = $(avp(MediaProfile){param.value,TRANSCODING});
+        $avp(MediaNAT) = $(avp(MediaProfile){param.value,NAT});
         if($avp(MediaTranscoding) == "1") {
                 route(MTS_WAN2LAN);
                 exit ;
@@ -49,9 +50,17 @@ route[WAN2LAN] {
         }
 
         if(is_ip_rfc1918("$si") && $var(nat40)) {
-            rtpengine_offer("force external internal trust-address replace-origin replace-session-connection ICE=remove");
+            if($avp(MediaNAT) == "1") {
+                rtpengine_offer("force publicif internal trust-address replace-origin replace-session-connection ICE=remove");
+            } else {
+                rtpengine_offer("force external internal trust-address replace-origin replace-session-connection ICE=remove");
+            }
         } else {
-            rtpengine_offer("force external internal replace-origin replace-session-connection ICE=remove");
+            if($avp(MediaNAT) == "1") {
+                rtpengine_offer("force publicif internal replace-origin replace-session-connection ICE=remove");
+            } else {
+                rtpengine_offer("force external internal replace-origin replace-session-connection ICE=remove");
+            }
         }
     };
 
@@ -120,9 +129,17 @@ onreply_route[WAN2LAN] {
         if (has_body("application/sdp")) {
             $var(transcoding) = 0 ;
             if(is_ip_rfc1918("$si") && nat_uac_test("40")) {
-                rtpengine_answer("force internal external trust-address replace-origin replace-session-connection ICE=remove");
+                if($avp(MediaNAT) == "1") {
+                    rtpengine_answer("force internal publicif trust-address replace-origin replace-session-connection ICE=remove");
+                } else {
+                    rtpengine_answer("force internal external trust-address replace-origin replace-session-connection ICE=remove");
+                }
             } else {
-                rtpengine_answer("force internal external replace-origin replace-session-connection ICE=remove");
+                if($avp(MediaNAT) == "1") {
+                    rtpengine_answer("force internal publicif replace-origin replace-session-connection ICE=remove");
+                } else {
+                    rtpengine_answer("force internal external replace-origin replace-session-connection ICE=remove");
+                }
             }
         };
 
