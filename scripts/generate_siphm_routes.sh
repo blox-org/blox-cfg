@@ -217,72 +217,77 @@ AddCommand()
 
 
 #MAIN
+>$SIPHM_ROUTES_CFG
+>$SIPHM_SWITCH_CFG
+>$SIPHM_ROUTES_ACTION_CFG
 exec 1>$SIPHM_ROUTES_CFG #Default STDOUT to create routes
 exec 5>$SIPHM_SWITCH_CFG #Descriptor 5 to create switch case statements
 exec 6>$SIPHM_ROUTES_ACTION_CFG #Default 6 to create action routes
 
-echo "switch(\$(var(siphmr){s.int})) {" >&5
-CURRENT_ROUTE_ID=0
-IFS="
-"
-for line in $(sort -t '|' -n --key=1,2 $BLOX_SIPHM)
-do
-	if [ -n "$line" -a -z "$(echo $line|grep "^[	| ]*#")" ] #Ignore Matching ^#
-	then
-		id=$(echo $line|awk -F '|' '{print $1}')
-		if [ $id -gt $MAX_SIPHM_PROFILES ]
+if [ $(wc -l $BLOX_SIPHM | awk '{print $1}') -gt 0 ]; then
+	echo "switch(\$(var(siphmr){s.int})) {" >&5
+	CURRENT_ROUTE_ID=0
+	IFS="
+	"
+	for line in $(sort -t '|' -n --key=1,2 $BLOX_SIPHM)
+	do
+		if [ -n "$line" -a -z "$(echo $line|grep "^[	| ]*#")" ] #Ignore Matching ^#
 		then
-			LOG_ERR "MAX_SIPHM_PROFILES reached $MAX_SIPHM_PROFILES"
-			break
-		fi
-		if [ $CURRENT_ROUTE_ID != $id ] ; then #START THE NEW ROUTE
-			if [ $CURRENT_ROUTE_ID != 0 ] ; then #CLOSE THE PREVIOUS ROUTE
-				echo "}"
+			id=$(echo $line|awk -F '|' '{print $1}')
+			if [ $id -gt $MAX_SIPHM_PROFILES ]
+			then
+				LOG_ERR "MAX_SIPHM_PROFILES reached $MAX_SIPHM_PROFILES"
+				break
 			fi
-			echo "route[$((START_ROUTE_ID+id))] {"
-			echo "case $((START_ROUTE_ID+id)):" >&5
-			echo "route($((START_ROUTE_ID+id)));" >&5
+			if [ $CURRENT_ROUTE_ID != $id ] ; then #START THE NEW ROUTE
+				if [ $CURRENT_ROUTE_ID != 0 ] ; then #CLOSE THE PREVIOUS ROUTE
+					echo "}"
+				fi
+				echo "route[$((START_ROUTE_ID+id))] {"
+				echo "case $((START_ROUTE_ID+id)):" >&5
+				echo "route($((START_ROUTE_ID+id)));" >&5
+				echo "break;" >&5
+				CURRENT_ROUTE_ID=$id ;
+			fi
+	
+			START_ROUTE_ACTION_ID=$((START_ROUTE_ACTION_ID+1))
+			echo "case $((START_ROUTE_ACTION_ID)):" >&5
+			echo "route($((START_ROUTE_ACTION_ID)));" >&5
 			echo "break;" >&5
-			CURRENT_ROUTE_ID=$id ;
-		fi
-
-		START_ROUTE_ACTION_ID=$((START_ROUTE_ACTION_ID+1))
-		echo "case $((START_ROUTE_ACTION_ID)):" >&5
-		echo "route($((START_ROUTE_ACTION_ID)));" >&5
-		echo "break;" >&5
-
-
-		cnd=$(echo $line|awk -F '|' '{print $3}')
-		if [ -n "$cnd" ] ; then
-			AddCondition $line
-			echo '{'
-		fi
+	
+	
+			cnd=$(echo $line|awk -F '|' '{print $3}')
+			if [ -n "$cnd" ] ; then
+				AddCondition $line
+				echo '{'
+			fi
 cat <<EOACTRT
-    if(\$var(SHMPACT)) {
-        \$var(SHMPACT) = \$var(SHMPACT) + "$((START_ROUTE_ACTION_ID)):" ;
-    } else {
-        \$var(SHMPACT) = "$((START_ROUTE_ACTION_ID)):" ;
-    }
+	    if(\$var(SHMPACT)) {
+	        \$var(SHMPACT) = \$var(SHMPACT) + "$((START_ROUTE_ACTION_ID)):" ;
+	    } else {
+	        \$var(SHMPACT) = "$((START_ROUTE_ACTION_ID)):" ;
+	    }
 EOACTRT
-
-		echo "route[$((START_ROUTE_ACTION_ID))] {" >&6
-		cmd=$(echo $line|awk -F '|' '{print $6}')
-		if [ -n "$cmd" ]; then
-			AddCommand $line >&6
+	
+			echo "route[$((START_ROUTE_ACTION_ID))] {" >&6
+			cmd=$(echo $line|awk -F '|' '{print $6}')
+			if [ -n "$cmd" ]; then
+				AddCommand $line >&6
+			fi
+			echo '}' >&6
+	
+			if [ -n "$cnd" ] ; then
+				echo '}'
+			fi
 		fi
-		echo '}' >&6
-
-		if [ -n "$cnd" ] ; then
-			echo '}'
-		fi
+	done
+	if [ $CURRENT_ROUTE_ID != 0 ] ; then #CLOSE THE PREVIOUS ROUTE
+		echo "}"
 	fi
-done
-if [ $CURRENT_ROUTE_ID != 0 ] ; then #CLOSE THE PREVIOUS ROUTE
-	echo "}"
+	
+	echo "default:" >&5
+	echo "xlog(\"L_ERR\",\"No route \$var(siphmr) for SIP Header Manipulation\n\");" >&5
+	echo "}" >&5
 fi
-
-echo "default:" >&5
-echo "xlog(\"L_ERR\",\"No route \$var(siphmr) for SIP Header Manipulation\n\");" >&5
-echo "}" >&5
 
 exit 0
