@@ -26,6 +26,7 @@ modparam("drouting", "rule_id_avp", "$avp(dr_ruleid)")
 modparam("drouting", "probing_interval", NAT_KEEPALIVE_INTERVAL)
 modparam("drouting", "probing_method", "NAT_KEEPALIVE_METHOD")
 modparam("drouting", "probing_from", "NAT_KEEPALIVE_FROMURI")
+modparam("drouting", "probing_reply_codes", "501, 403, 404")
 
 modparam("nat_traversal", "keepalive_interval", NAT_KEEPALIVE_INTERVAL)
 modparam("nat_traversal", "keepalive_method", "NAT_KEEPALIVE_METHOD")
