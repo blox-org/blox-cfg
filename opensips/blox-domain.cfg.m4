@@ -13,11 +13,6 @@ route[BLOX_DOMAIN] {
         xlog("L_WARN", "BLOX_DBG::: $rm METHOD Domain name not configured in blox for $var(uuid)\n" );
     }
 
-    if($avp(SUBURI)) {
-        $du = $avp(SUBURI) ;
-        return(1); 
-    }
-
     if(cache_fetch("local","$var(uuid)",$avp(DEFURI))) {
         xdbg("Loaded from cache $var(uuid): $avp(DEFURI)\n");
     } else if (avp_db_load("$var(uuid)","$avp(DEFURI)/blox_domain")) {
