@@ -129,10 +129,15 @@ route[ROUTE_INVITE] {
                 $avp(GWID) = $(avp(TRUNK){uri.param,GWID});
                 $avp(SrcSRTP) = $(avp(TRUNK){uri.param,LANSRTP});
                 $avp(DstSRTP) = $(avp(TRUNK){uri.param,WANSRTP});
-                route(READ_ENUM,$avp(uuid));	
-                $var(ENUMSX) = $(avp(ENUM){uri.param,ENUMSX}); #SUFFIX, default: e164.arpa.
-                $var(ENUMSE) = $(avp(ENUM){uri.param,ENUMSE}); #SERVICE, default: e2u+sip
-                $var(ENUMTYPE) = $(avp(ENUM){uri.param,ENUMTYPE}); #SERVICE, default: e2u+sip
+                route(READ_ENUM,$avp(uuid));
+                if($avp(ENUM)) {
+                    $var(ENUMSX) = $(avp(ENUM){uri.param,ENUMSX}); #SUFFIX, default: e164.arpa.
+                    $var(ENUMSE) = $(avp(ENUM){uri.param,ENUMSE}); #SERVICE, default: e2u+sip
+                    $var(ENUMTYPE) = $(avp(ENUM){uri.param,ENUMTYPE}); #SERVICE, default: e2u+sip
+                    if($var(ENUMTYPE)==""){$var(ENUMTYPE)=null;}
+                    if($var(ENUMSE)==""){$var(ENUMSE)=null;}
+                    if($var(ENUMSX)==""){$var(ENUMSX)=null;}
+                }
 
                 if($var(TRUNKUSER)==""){$var(TRUNKUSER)=null;}
                 if($var(TRUNKIP)==""){$var(TRUNKIP)=null;}
@@ -144,9 +149,6 @@ route[ROUTE_INVITE] {
                 if($avp(GWID)==""){$avp(GWID)=null;}
                 if($avp(SrcSRTP)==""){$avp(SrcSRTP)=null;}
                 if($avp(DstSRTP)==""){$avp(DstSRTP)=null;}
-                if($var(ENUMTYPE)==""){$var(ENUMTYPE)=null;}
-                if($var(ENUMSE)==""){$var(ENUMSE)=null;}
-                if($var(ENUMSX)==""){$var(ENUMSX)=null;}
 
                 if($avp(WAN)) {
                     if(!has_totag()) {
@@ -251,10 +253,15 @@ route[ROUTE_INVITE] {
                     $avp(MEDIA)  = $(avp(PBX){uri.param,MEDIA});
                     $avp(SrcSRTP) = $(avp(PBX){uri.param,LANSRTP});
                     $avp(DstSRTP) = $(avp(PBX){uri.param,WANSRTP});
-                    route(READ_ENUM,$avp(uuid));	
-                    $var(ENUMSX) = $(avp(ENUM){uri.param,ENUMSX}); #SUFFIX, default: e164.arpa.
-                    $var(ENUMSE) = $(avp(ENUM){uri.param,ENUMSE}); #SERVICE, default: e2u+sip
-                    $var(ENUMTYPE) = $(avp(ENUM){uri.param,ENUMTYPE}); #SERVICE, default: e2u+sip
+                    route(READ_ENUM,$avp(uuid));
+                    if($avp(ENUM)) {
+                        $var(ENUMSX) = $(avp(ENUM){uri.param,ENUMSX}); #SUFFIX, default: e164.arpa.
+                        $var(ENUMSE) = $(avp(ENUM){uri.param,ENUMSE}); #SERVICE, default: e2u+sip
+                        $var(ENUMTYPE) = $(avp(ENUM){uri.param,ENUMTYPE}); #SERVICE, default: e2u+sip
+                        if($var(ENUMSX)==""){$var(ENUMSX)=null;}
+                        if($var(ENUMSE)==""){$var(ENUMSE)=null;}
+                        if($var(ENUMTYPE)==""){$var(ENUMTYPE)=null;}
+                    }
 
                     if($var(PBXIP)==""){$var(PBXIP)=null;}
                     if($var(PBXPORT)==""){$var(PBXPORT)=null;}
@@ -262,9 +269,6 @@ route[ROUTE_INVITE] {
                     if($avp(MEDIA)==""){$avp(MEDIA)=null;}
                     if($avp(SrcSRTP)==""){$avp(SrcSRTP)=null;}
                     if($avp(DstSRTP)==""){$avp(DstSRTP)=null;}
-                    if($var(ENUMSX)==""){$var(ENUMSX)=null;}
-                    if($var(ENUMSE)==""){$var(ENUMSE)=null;}
-                    if($var(ENUMTYPE)==""){$var(ENUMTYPE)=null;}
 
                     $avp(cac_uuid) = $avp(PBX) ; 
                     setflag(487); 
