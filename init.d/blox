@@ -3,7 +3,7 @@
 # chkconfig: 345 64 35
 ### BEGIN INIT INFO
 # Provides: blox
-# Required-Start:
+# Required-Start:    mysqld
 # Required-Stop:
 # Default-Start:     3 4 5
 # Default-Stop:      0 1 2 6

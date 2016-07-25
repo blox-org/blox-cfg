@@ -94,8 +94,8 @@ route[ROUTE_SUBSCRIBE] {
                         }
 
                         route(BLOX_DOMAIN,$avp(uuid));
-                        $var(PBXIP) = $(avp(DEFURI){uri.host}) ;
-                        $var(PBXPORT) = $(avp(DEFURI){uri.port}) ;
+                        $var(PBXIP) = $(avp(SUBURI){uri.host}) ;
+                        $var(PBXPORT) = $(avp(SUBURI){uri.port}) ;
                         
                         if($avp(LANDOMAIN)) {
                             $ru = "sip:" + $avp(LANDOMAIN) + ":" + $var(PBXPORT) ;

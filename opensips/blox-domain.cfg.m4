@@ -1,6 +1,23 @@
 route[BLOX_DOMAIN] {
     $var(uuid) = "DOM" + $param(1) + ":" + $rd ;
+
     $avp(DEFURI) = "";    
+    $avp(SUBURI) = "";    
+    if(cache_fetch("local","$var(uuid)",$avp(SUBURI))) {
+        xdbg("Loaded from cache $var(uuid): $avp(SUBURI)\n");
+    } else if (avp_db_load("$var(uuid)","$avp(SUBURI)/blox_domain")) {
+        cache_store("local","$var(uuid)","$avp(SUBURI)");
+        xdbg("Stored in cache $var(uuid): $avp(SUBURI)\n");
+    } else {
+        $avp(SUBURI) = null;
+        xlog("L_WARN", "BLOX_DBG::: $rm METHOD Domain name not configured in blox for $var(uuid)\n" );
+    }
+
+    if($avp(SUBURI)) {
+        $du = $avp(SUBURI) ;
+        return(1); 
+    }
+
     if(cache_fetch("local","$var(uuid)",$avp(DEFURI))) {
         xdbg("Loaded from cache $var(uuid): $avp(DEFURI)\n");
     } else if (avp_db_load("$var(uuid)","$avp(DEFURI)/blox_domain")) {
@@ -9,8 +26,6 @@ route[BLOX_DOMAIN] {
     } else {
         $avp(DEFURI) = null;
         xlog("L_WARN", "BLOX_DBG::: $rm METHOD Domain name not configured in blox for $var(uuid)\n" );
-	drop();
-	exit;
     }
 
     $du = $avp(DEFURI) ;
