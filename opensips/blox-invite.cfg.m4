@@ -617,11 +617,13 @@ route[ROUTE_INVITE] {
                         xlog("BLOX_DBG: blox-invite.cfg: PBX Load Balance is Successful\n");
                     } else {
                         route(BLOX_DOMAIN,$avp(uuid));
+                        $var(PBXIP) = $(avp(DEFURI){uri.host}) ;
+                        $var(PBXPORT) = $(avp(DEFURI){uri.port}) ;
                         xlog("BLOX_DBG: blox-invite.cfg: Load Balance Failed so choosen destination uri $du\n");
                     }
                     xlog("BLOX_DBG: blox-invite.cfg: -- choosen destination uri $du\n");
                     if($avp(LANDOMAIN)) {
-                        $ru = "sip:" + $rU + "@" + $avp(LANDOMAIN) ;
+                        $ru = "sip:" + $rU + "@" + $avp(LANDOMAIN) + ":" + $var(PBXPORT) ;
                         $var(Tto)   = "sip:" + $tU + "@" + $avp(LANDOMAIN) ;
                         $var(Tfrom) = "sip:" + $fU + "@" + $avp(LANDOMAIN) ;
                     } else {

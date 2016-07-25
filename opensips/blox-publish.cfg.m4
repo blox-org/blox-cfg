@@ -67,16 +67,18 @@ route[ROUTE_PUBLISH] {
                     
                     if($avp(LANDOMAIN)) {
                         $ru = "sip:" + $avp(LANDOMAIN) + ":" + $var(PBXPORT) ;
+                        $var(puburi) = "sip:" + $tU + "@" + $avp(LANDOMAIN) + ":" + $var(PBXPORT) + ";" + "transport=" + $avp(LANPROTO) ;
                     } else {
                         $ru = "sip:" + $var(PBXIP) + ":" + $var(PBXPORT) ;
+                        $var(puburi) = "sip:" + $tU + "@" + $var(PBXIP) + ":" + $var(PBXPORT) + ";" + "transport=" + $avp(LANPROTO) ;
                     }
 
                     $fs = $avp(LANPROTO) + ":" + $avp(LANIP) + ":" + $avp(LANPORT) ;
                     $du = "sip:" + $var(PBXIP) + ":" +  $var(PBXPORT) + ";transport=" + $avp(LANPROTO)  ;
-                    $var(reguri) = "sip:" + $fU + "@" + $var(PBXIP) + ":" + $var(PBXPORT) + ";" + "transport=" + $avp(LANPROTO) ;
-                    xlog("Sending to $avp(LANIP) : $avp(LANPORT) : $fs :  $var(reguri)\n");
-                    uac_replace_from("$var(reguri)");
-                    uac_replace_to("$var(reguri)");
+                    $var(puburi) = "sip:" + $fU + "@" + $var(PBXIP) + ":" + $var(PBXPORT) + ";" + "transport=" + $avp(LANPROTO) ;
+                    xlog("Sending to $avp(LANIP) : $avp(LANPORT) : $fs :  $var(puburi)\n");
+                    uac_replace_from("$var(puburi)");
+                    uac_replace_to("$var(puburi)");
                     #remove_hf("Event");
                     #append_hf("Event: call-completion");
 

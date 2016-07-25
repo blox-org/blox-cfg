@@ -99,15 +99,17 @@ route[ROUTE_SUBSCRIBE] {
                         
                         if($avp(LANDOMAIN)) {
                             $ru = "sip:" + $avp(LANDOMAIN) + ":" + $var(PBXPORT) ;
+                            $var(suburi) = "sip:" + $tU + "@" + $avp(LANDOMAIN) + ":" + $var(PBXPORT) + ";" + "transport=" + $avp(LANPROTO) ;
                         } else {
                             $ru = "sip:" + $var(PBXIP) + ":" + $var(PBXPORT) ;
+                            $var(suburi) = "sip:" + $tU + "@" + $var(PBXIP) + ":" + $var(PBXPORT) + ";" + "transport=" + $avp(LANPROTO) ;
                         }
 
                         $fs = $avp(LANPROTO) + ":" + $avp(LANIP) + ":" + $avp(LANPORT) ;
                         $du = "sip:" + $var(PBXIP) + ":" +  $var(PBXPORT) + ";transport=" + $avp(LANPROTO)  ;
-                        xlog("BLOX_DBG::: blox-subscribe.cfg: Sending via :$fs: to $var(reguri)\n");
-                        uac_replace_from("$var(reguri)");
-                        uac_replace_to("$var(reguri)");
+                        xlog("BLOX_DBG::: blox-subscribe.cfg: Sending via :$fs: to $var(suburi)\n");
+                        uac_replace_from("$var(suburi)");
+                        uac_replace_to("$var(suburi)");
                         remove_hf("Route"); #Not accepted for REGISTER
                         add_path();
 
