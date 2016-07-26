@@ -5,6 +5,7 @@ endif
 STAGEDIR=bin$(SYSARCH)
 
 EXE=inotify-recursive
+CFLAGS=-g -O2
 
 .PHONY:
 all: init $(EXE)

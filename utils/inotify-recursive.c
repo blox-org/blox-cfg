@@ -79,6 +79,11 @@ static int _inotify_add_watch(const char *file)
 		return ALREADY_ADDED;
 	}
 
+	if(wi >= MAX_WATCHER) {
+		fprintf(stderr, "%d Too many levels for watching dir %s\n", wi, file);
+		return ERROR;
+	}
+
 	//printf( "Adding directory %s to watch list.\n", file);
 	notifies[wi].wd = inotify_add_watch(wfd, file, WATCH_FLAGS);
 	strncpy(notifies[wi].dirname,file,MAX_PATH);
