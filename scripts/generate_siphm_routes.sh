@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 #This script is to parse and generate route for sip header manipulation based on /etc/blox/siphm.conf
 
