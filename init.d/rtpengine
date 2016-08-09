@@ -36,6 +36,7 @@ prog=rtpengine
 CONFIGS=/etc/rtpengine/*.conf
 LOG_FACILITY=local1
 LOG_LEVEL=7
+STOP_MAXRETRY=3
 
 init_rtpengine() {
 	RTPENGINE_NAME=$1
@@ -191,6 +192,19 @@ build_opts() {
         fi
 }
 
+cmd_exec() {
+	CMD=${1:-echo -n}
+	RETRY=${2:-1}
+	SLEEP=${3:-0}
+
+	echo "cmd_exec:$CMD:" >&2 
+	RET=1
+	while [ $RET -ne 0 -a $RETRY -gt 0 ]; do
+		eval $CMD; RET=$?; sleep $SLEEP; RETRY=$((RETRY-1))
+	done
+	return $RET
+}
+
 start() {
 	pid=$(cat $pidfile 2>/dev/null) ; kill -0 $pid 2>/dev/null
 	if [ $? -ne 0 ]; then
@@ -235,9 +249,8 @@ stop() {
 		iptables -D rtpengine -p udp -j RTPENGINE --id $CUR_TABLE
 		iptables -D rtpengine -p udp --dport $PORT_MIN:$PORT_MAX -j ACCEPT 
 		iptables -X rtpengine
-		echo "del $TABLE" > /proc/rtpengine/control
-		rmmod xt_RTPENGINE
-		rm -f $cachefile	
+		cmd_exec "echo 'del $TABLE' > /proc/rtpengine/control; rmmod xt_RTPENGINE" $STOP_MAXRETRY 1
+		if [ $? -eq 0 ]; then rm -f $cachefile; fi
 	fi
  
 	[ $RETVAL = 0 ] && rm -f ${lockfile} ${pidfile}
