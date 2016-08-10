@@ -26,7 +26,8 @@ route[ROUTE_NOTIFY] {
             remove_hf("Remote-Contact-Header");
             remove_hf("Send-Socket");
             remove_hf("User-Agent");
-            insert_hf("User-Agent: Blox-0.9.9-beta\r\n","CSeq") ;
+            insert_hf("User-Agent: USERAGENT\r\n","CSeq") ;
+
             if(remove_hf("Server")) { #Removed Server success, then add ours
                 insert_hf("Server: Blox-0.9.9-beta\r\n","CSeq") ;
             }
