@@ -64,6 +64,10 @@ route[WAN2LAN] {
         }
     };
 
+    #Clearing the cfgparam used for T38
+    $avp(cfgparam) = "cfgparam" ;
+    avp_db_delete("$hdr(call-id)","$avp($avp(cfgparam))") ;
+
     t_on_reply("WAN2LAN");
     t_on_failure("WAN2LAN");
 

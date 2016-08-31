@@ -148,6 +148,7 @@ route[ROUTE_SUBSCRIBE] {
 onreply_route[WAN2LAN_SUBSCRIBE] {
     remove_hf("User-Agent");
     insert_hf("User-Agent: USERAGENT\r\n","CSeq") ;
+
     if(remove_hf("Server")) { #Removed Server success, then add ours
         insert_hf("Server: USERAGENT\r\n","CSeq") ;
     }

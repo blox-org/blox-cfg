@@ -21,5 +21,5 @@
 divert(-1)
 define(`NAT_KEEPALIVE_METHOD',`OPTIONS')
 define(`NAT_KEEPALIVE_INTERVAL',`30')
-define(`NAT_KEEPALIVE_FROMURI',`sbc@blox.org')
+define(`NAT_KEEPALIVE_FROMURI',`sip:sbc@blox.org')
 divert(0)dnl

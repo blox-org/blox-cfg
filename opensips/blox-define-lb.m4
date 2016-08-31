@@ -20,5 +20,5 @@
 
 divert(-1)
 define(`LB_KEEPALIVE_INTERVAL',`30')
-define(`LB_KEEPALIVE_FROMURI',`sbc@blox.org')
+define(`LB_KEEPALIVE_FROMURI',`sip:sbc@blox.org')
 divert(0)dnl
