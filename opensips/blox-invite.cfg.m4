@@ -413,7 +413,7 @@ route[ROUTE_INVITE] {
                 if($avp(INBNDURI)==""){$avp(INBNDURI)=null;}
 
                 if($avp(INBNDURI)){
-                    $avp(INBNDURI) = 'sip:' + $(avp(INBNDURI){s.decode.hexa}) ;
+                    $avp(INBNDURI) = 'sip:' + $tU + '@' + $(avp(INBNDURI){s.decode.hexa}) ;
                 }
 
                 if($avp(WANProfile)) { # /* Passed to WAN2LAN */
