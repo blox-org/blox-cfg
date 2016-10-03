@@ -153,8 +153,11 @@ route[MTS_LAN2WAN] {
                                 $var(inline) = $(var(param){s.select,2, }) ;
                                 if($var(inline) == "inline") {
                                     $var(encoded) = $(var(aline){s.select,2,:}) ;
-                                    $var(decoded) = $(var(encoded){s.decode.base64}) ;
-                                    $var(hexenc) = $(var(decoded){s.encode.hexa}) ;
+                                    #FIXME avp variable is used instead of var for decoding base64, 
+                                    #there is issue with the decoded value getting copied to var variable.
+                                    #It is working if avp is used
+                                    $avp(decoded) = $(var(encoded){s.decode.base64}) ;
+                                    $var(hexenc) = $(avp(decoded){s.encode.hexa}) ;
                                     $var(rsrcmkey) = $(var(hexenc){s.substr,0,32});
                                     $var(rsrcmsalt) = $(var(hexenc){s.substr,32,0});
                                     $var(rSrcSRTPParam) = $var(suite) + ":" + $var(rsrcmkey) + ":" + $var(rsrcmsalt) + ":" + $var(encoded);
@@ -498,6 +501,7 @@ onreply_route[MTS_LAN2WAN] {
     xdbg("BLOX_DBG::: blox-lan2wan-allomts.cfg: Got Response $rs/ $fu/$ru/$si/$ci/$avp(rcv)\n");
     if (status =~ "(183)|2[0-9][0-9]") {
         if (has_body("application/sdp")) {
+            get_dynamic_lock("$rm:$ci:$cs");
             $var(uid) = $avp(uid);
 
             $avp(rDstSRTPParam) = null ;
@@ -707,13 +711,15 @@ onreply_route[MTS_LAN2WAN] {
                                 $var(srcmsalt) = $(avp(rDstSRTPParam){s.select,2,:});
                             } else {
                                 if(($var(rsrcmkey) && $var(rsrcmsalt))) {
-                                    $var(srcrhexenc) = $(RANDOM{s.encode.hexa}) +  $(RANDOM{s.encode.hexa}) +  $(RANDOM{s.encode.hexa}) +  $(RANDOM{s.encode.hexa});
-                                    $var(srcmkey) = $(var(srcrhexenc){s.substr,0,32});
-                                    $var(srcmsalt) = $(var(srcrhexenc){s.substr,32,28});
+                                    if($avp(srcrhexenc) == null) {
+                                        $avp(srcrhexenc) = $(RANDOM{s.encode.hexa}) +  $(RANDOM{s.encode.hexa}) +  $(RANDOM{s.encode.hexa}) +  $(RANDOM{s.encode.hexa});
+                                    }
+                                    $var(srcmkey) = $(avp(srcrhexenc){s.substr,0,32});
+                                    $var(srcmsalt) = $(avp(srcrhexenc){s.substr,32,28});
                                     $var(srcmkeysalt) = $var(srcmkey) + $var(srcmsalt) ;
                                     $var(srcmkshexdec) = $(var(srcmkeysalt){s.decode.hexa}) ;
                                     $var(srcinline) = $(var(srcmkshexdec){s.encode.base64}) ;
-                                    xdbg("BLOX_DBG: blox-lan2wan-allomts.cfg: $var(srcrhexenc) ==> $var(srcmkey) <<>> $var(srcmsalt) <== $var(srcmkshexdec) <== $var(srcinline) \n");    
+                                    xdbg("BLOX_DBG: blox-lan2wan-allomts.cfg: $avp(srcrhexenc) ==> $var(srcmkey) <<>> $var(srcmsalt) <== $var(srcmkshexdec) <== $var(srcinline) \n");    
                                     $avp(SrcSRTPParam) = $var(suite) + ":" + $var(srcmkey) + ":" + $var(srcmsalt) ;
                                 } else {
                                     $avp(rSrcSRTPParam) = null ;
@@ -761,7 +767,9 @@ onreply_route[MTS_LAN2WAN] {
                     xdbg("BLOX_DBG::: blox-lan2wan-allomts.cfg: +++++++++++++++transcoding: $var(transcoding)+++++$var(rDstMediaPort):$var(maudio):+++++\n");
 
                     $avp(resource) = "resource" + "-" + $ft; /* Grab media port offset from resource-$ft */
-                    route(DELETE_ALLOMTS_RESOURCE); #Delete previous session, if any
+                    if($avp(dupreq) == null) {
+                        route(DELETE_ALLOMTS_RESOURCE); #Delete previous session, if any
+                    }
 
                     #remote rtp_nostrict=true in real system
                     #no strict used in REST rtp_nostrict=true due to lan/wan emulation with single nic card 
@@ -786,7 +794,9 @@ onreply_route[MTS_LAN2WAN] {
                         }
                     }
                     xlog("L_INFO", "BLOX_DBG::: blox-lan2wan-allomts.cfg: Connecting $var(url)\n");
-                    rest_get("$var(url)","$var(body)");
+                    if($avp(dupreq) == null) {
+                        rest_get("$var(url)","$var(body)");
+                    }
                     $avp($avp(resource)) = $var(body);
                     $json(resource1) := $var(body) ;
                     if($json(resource1/VT-Index) != null) {
@@ -800,7 +810,9 @@ onreply_route[MTS_LAN2WAN] {
                     xlog("L_INFO", "BLOX_DBG::: blox-lan2wan-allomts.cfg: Got Response $avp(resource) -> $avp($avp(resource)): $(avp(rSrcCodec)[$var(rSrcCodecIdx)]):$avp(rSrcMediaPort)<==>$avp(SrcMediaPort)\n");
 
                     $avp(resource) = "resource" + "-" + $tt ;
-                    route(DELETE_ALLOMTS_RESOURCE); #Delete previous session, if any
+                    if($avp(dupreq) == null) {
+                        route(DELETE_ALLOMTS_RESOURCE); #Delete previous session, if any
+                    }
 
                     if($var(transcoding) == 0) {
                         if($avp(SrcT38)) {
@@ -823,7 +835,9 @@ onreply_route[MTS_LAN2WAN] {
                         }
                     }
                     xlog("L_INFO", "BLOX_DBG::: blox-lan2wan-allomts.cfg: Connecting $var(url)\n");
-                    rest_get("$var(url)","$var(body)");
+                    if($avp(dupreq) == null) {
+                        rest_get("$var(url)","$var(body)");
+                    }
                     $avp($avp(resource)) = $var(body);
                     $json(resource2) := $var(body) ;
                     if($json(resource2/VT-Index) != null) {
@@ -940,19 +954,24 @@ onreply_route[MTS_LAN2WAN] {
                     }
 
                     xdbg("BLOX_DBG: blox-lan2wan-allomts.cfg: Got Index ---->> $var(idx1) <==> $var(idx2) <<  $avp(SrcMediaIP) : $avp(SrcMediaPort)\n" ) ;
-                    #transcoding failed for any reason no need to update the sdp
-                    if($var(idx1) >= 0 && $var(idx2) >= 0) {
-                        add_body("$var(sdp)","application/sdp");
-                        set_dlg_flag("DLG_FLAG_TRANSCODING") ; #81 Dialog Transcoding flag
+                    if($json(resource1/VT-Index) != null && $json(resource2/VT-Index) != null) { #Connect Needed for only voice termnation
+                        if($avp(dupreq) == null) {
+                            route(CONNECT_ALLOMTS_RESOURCE);
+                        }
                     }
 
-                    if($json(resource1/VT-Index) != null && $json(resource2/VT-Index) != null) { #Connect Needed for only voice termnation
-                        route(CONNECT_ALLOMTS_RESOURCE);
+                    #transcoding failed for any reason no need to update the sdp
+                    if($avp(dupreq) || ($var(idx1) >= 0 && $var(idx2) >= 0)) {
+                        add_body("$var(sdp)","application/sdp");
+                        set_dlg_flag("DLG_FLAG_TRANSCODING") ; #81 Dialog Transcoding flag
+                        $avp(dupreq) = $rm + ":" + $ci + ":" + $cs ;
                     }
+
                 }
             } else {
                 xlog("L_WARN", "BLOX_DBG::: blox-lan2wan-allomts.cfg: transcoding: feature disabled for this profile\n");
             }
+            release_dynamic_lock("$rm:$ci:$cs");
         };
 
 
