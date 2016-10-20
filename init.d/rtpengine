@@ -278,6 +278,7 @@ case "$1" in
 	init_rtpengine $(basename $config)
         $STATUS -p ${pidfile} $rtpengine
 	RETVAL=$?
+	status_rtpengine
 	done
 	;;
   restart)
