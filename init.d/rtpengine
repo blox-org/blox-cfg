@@ -65,6 +65,7 @@ status_rtpengine() {
 	if [ -n "$LISTEN_CLI" ]; then
 		HOST=$(echo $LISTEN_CLI | awk -F':' '{print $1}')
 		PORT=$(echo $LISTEN_CLI | awk -F':' '{print $2}')
+		/usr/bin/rtpenginectl $HOST $PORT "list numsessions"
 		/usr/bin/rtpenginectl $HOST $PORT "list sessions"
 	fi
 }
