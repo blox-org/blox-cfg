@@ -623,9 +623,9 @@ route[ROUTE_INVITE] {
                         route(BLOX_DOMAIN,$avp(uuid));
                         $var(PBXIP) = $(avp(DEFURI){uri.host}) ;
                         $var(PBXPORT) = $(avp(DEFURI){uri.port}) ;
-                        xlog("BLOX_DBG: blox-invite.cfg: Load Balance Failed so choosen destination uri $du\n");
+                        xdbg("BLOX_DBG: blox-invite.cfg: Load Balance Failed so choosen destination uri $du\n");
                     }
-                    xlog("BLOX_DBG: blox-invite.cfg: -- choosen destination uri $du\n");
+                    xdbg("BLOX_DBG: blox-invite.cfg: -- choosen destination uri $du\n");
                     if($avp(LANDOMAIN)) {
                         $ru = "sip:" + $rU + "@" + $avp(LANDOMAIN) + ":" + $var(PBXPORT) ;
                         $var(Tto)   = "sip:" + $tU + "@" + $avp(LANDOMAIN) ;
@@ -679,7 +679,7 @@ route[ROUTE_INVITE] {
                         uac_replace_from("$var(from)");
                     }
 
-                    xlog("BLOX_DBG::: Checking Load Balance Configuration $avp(LBRuleID) : $avp(LBID)\n");
+                    xdbg("BLOX_DBG::: Checking Load Balance Configuration $avp(LBRuleID) : $avp(LBID)\n");
 
                     t_on_failure("WAN2LAN");
                     route(WAN2LAN);
