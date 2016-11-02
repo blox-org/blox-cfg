@@ -64,13 +64,15 @@ route[ROUTE_PUBLISH] {
                     route(BLOX_DOMAIN,$avp(uuid));
                     $var(PBXIP) = $(avp(DEFURI){uri.host}) ;
                     $var(PBXPORT) = $(avp(DEFURI){uri.port}) ;
+                    $avp(LANDOMAIN) = $(avp(DEFURI){uri.param,domain});
+                    if($avp(LANDOMAIN)==""){$avp(LANDOMAIN)=null;}
                     
                     if($avp(LANDOMAIN)) {
-                        $ru = "sip:" + $avp(LANDOMAIN) + ":" + $var(PBXPORT) ;
-                        $var(puburi) = "sip:" + $tU + "@" + $avp(LANDOMAIN) + ":" + $var(PBXPORT) + ";" + "transport=" + $avp(LANPROTO) ;
+                        $ru = "sip:" + $avp(LANDOMAIN) + ":" + $var(PBXPORT) + ";transport=" + $avp(LANPROTO);
+                        $var(puburi) = "sip:" + $tU + "@" + $avp(LANDOMAIN) + ":" + $var(PBXPORT) ;
                     } else {
-                        $ru = "sip:" + $var(PBXIP) + ":" + $var(PBXPORT) ;
-                        $var(puburi) = "sip:" + $tU + "@" + $var(PBXIP) + ":" + $var(PBXPORT) + ";" + "transport=" + $avp(LANPROTO) ;
+                        $ru = "sip:" + $var(PBXIP) + ":" + $var(PBXPORT) + ";transport=" + $avp(LANPROTO);
+                        $var(puburi) = "sip:" + $tU + "@" + $var(PBXIP) + ":" + $var(PBXPORT) ;
                     }
 
                     $fs = $avp(LANPROTO) + ":" + $avp(LANIP) + ":" + $avp(LANPORT) ;

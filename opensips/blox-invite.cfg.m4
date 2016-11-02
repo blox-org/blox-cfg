@@ -185,6 +185,7 @@ route[ROUTE_INVITE] {
                     };
                     if( route_to_gw("$avp(GWID)") ) {
                         if(!has_totag()) { #Set From/To Execute inital time
+                            route(READ_WAN_PROFILE);
                             if($avp(WANProfile)) {
                                 $avp(WANIP) = $(avp(WANProfile){uri.host});
                                 $avp(WANPORT) = $(avp(WANProfile){uri.port});
@@ -192,12 +193,17 @@ route[ROUTE_INVITE] {
                                 $avp(WANADVIP) = $(avp(WANProfile){uri.param,advip});
                                 $avp(WANADVPORT) = $(avp(WANProfile){uri.param,advport});
 
-                                if($avp(WANPROTO)==""){$avp(WANPROTO)=null;}
+                                if($avp(WANPROTO)==""){$avp(WANPROTO)="udp";}
                                 if($avp(WANADVIP)==""){$avp(WANADVIP)=null;}
                                 if($avp(WANADVPORT)==""){$avp(WANADVPORT)=null;}
 
-                                $var(to)   = "sip:" + $rU             + "@" + $var(TRUNKIP) + ":" + $var(TRUNKPORT) ;
-                                $var(from) = "sip:" + $var(TRUNKUSER) + "@" + $var(TRUNKIP) + ":" + $var(TRUNKPORT) ;
+                                if($var(TRUNKDOMAIN)) {
+                                    $var(to)   = "sip:" + $tU             + "@" + $var(TRUNKDOMAIN) + ":" + $var(TRUNKPORT) ;
+                                    $var(from) = "sip:" + $var(TRUNKUSER) + "@" + $var(TRUNKDOMAIN) + ":" + $var(TRUNKPORT) ;
+                                } else {
+                                    $var(to)   = "sip:" + $tU             + "@" + $var(TRUNKIP) + ":" + $var(TRUNKPORT) ;
+                                    $var(from) = "sip:" + $var(TRUNKUSER) + "@" + $var(TRUNKIP) + ":" + $var(TRUNKPORT) ;
+                                }
                                 uac_replace_to("$var(to)");
                                 uac_replace_from("$var(from)");
                             } else {
@@ -206,14 +212,17 @@ route[ROUTE_INVITE] {
                             set_dlg_flag("DLG_FLAG_LAN2WAN") ;
                         }
                         remove_hf("Diversion");
-                        $du = $ru ;
+                        $du = "sip:" + $var(TRUNKIP) + ":" + $var(TRUNKPORT) + ";transport=" + $avp(WANPROTO)  ;
+                        if($var(TRUNKDOMAIN)) {
+                            $ru = "sip:" + $tU + "@" + $var(TRUNKDOMAIN) + ":" + $var(TRUNKPORT) + ";transport=" + $avp(WANPROTO) ;
+                        } else {
+                            $ru = "sip:" + $tU + "@" + $var(TRUNKIP) + ":" + $var(TRUNKPORT) + ";transport=" + $avp(WANPROTO) ;
+                        }
                         
                         if($var(ENUMSE) != null && $var(ENUMSX) != null) {
                             route(ENUM,$var(ENUMTYPE),$var(ENUMSX),$var(ENUMSE)) ;
                         }
-                        if($var(TRUNKDOMAIN)) {
-                            $ru = "sip:" + $tU + "@" + $var(TRUNKDOMAIN) ;
-                        }
+
                         t_on_failure("LAN2WAN");
                         xdbg("BLOX_DBG: blox-invite.cfg: Routing $var(from) $var(to) $ru to $du from $si : $sp via $fs\n" );
                         route(LAN2WAN);
@@ -413,7 +422,12 @@ route[ROUTE_INVITE] {
                 if($avp(INBNDURI)==""){$avp(INBNDURI)=null;}
 
                 if($avp(INBNDURI)){
-                    $avp(INBNDURI) = 'sip:' + $tU + '@' + $(avp(INBNDURI){s.decode.hexa}) ;
+                    $avp(INBNDURI) = 'sip:' + $(avp(INBNDURI){s.decode.hexa}) ;
+                    $var(INBNDIP) = $(avp(INBNDURI){uri.host}) ;
+                    $var(INBNDPORT) = $(avp(INBNDURI){uri.port}) ;
+                    $avp(INBNDDOMAIN) = $(avp(INBNDURI){uri.param,domain}) ;
+                    if($avp(INBNDDOMAIN)==""){$avp(INBNDDOMAIN)=$rd;}
+                    xdbg("BLOX_DBG: blox-invite.cfg: INBND:$avp(INBNDURI):$var(INBNDIP):$var(INBNDPORT):$avp(INBNDDOMAIN):\n");
                 }
 
                 if($avp(WANProfile)) { # /* Passed to WAN2LAN */
@@ -440,24 +454,15 @@ route[ROUTE_INVITE] {
                     $avp(LANPORT) = $(avp(LANProfile){uri.port});
                     $avp(LANPROTO) = $(avp(LANProfile){uri.param,transport});
                     $fs = $avp(LANPROTO) + ":" + $avp(LANIP) + ":" + $avp(LANPORT) ;
-                    $ru = $avp(INBNDURI) + ';transport=' + $avp(LANPROTO) ;
-                    $du = $avp(INBNDURI) + ';transport=' + $avp(LANPROTO) ;
-                } else {
-                    if (!lookup("locationtrunk","m")) { ; /* Find PBX Registered to US */
-                        xdbg("BLOX_DBG: blox-invite.cfg: Error no registration to SBC for TRUNK $avp(TRUNK)\n");
-                        switch ($retcode) {
-                            case -1:
-                            case -3:
-                                t_newtran();
-                                t_on_failure("LAN2WAN");
-                                t_reply("404", "Not Found");
-                                exit;
-                            case -2:
-                                append_hf("Allow: INVITE, ACK, REFER, NOTIFY, CANCEL, BYE, REGISTER" );
-                                sl_send_reply("405", "Method Not Allowed");
-                                exit;
-                        }
-                    }
+
+                    $var(to) = "sip:" + $tU + "@" + $avp(INBNDDOMAIN) + ":" + $var(INBNDPORT) ;
+                    $var(from) = "sip:" + $fU + "@" + $avp(INBNDDOMAIN) + ":" + $var(INBNDPORT);
+
+                    uac_replace_to("$var(to)");
+                    uac_replace_from("$var(from)");
+
+                    $ru = "sip:" + $tU + "@" + $avp(INBNDDOMAIN) + ":" + $var(INBNDPORT) + ';transport=' + $avp(LANPROTO) ;
+                    $du = "sip:" + $var(INBNDIP) + ":" + $var(INBNDPORT) + ';transport=' + $avp(LANPROTO) ;
                 }
                 xdbg("BLOX_DBG: blox-invite.cfg: Found to route $fs $ru $du TRUNK\n");
 
@@ -481,13 +486,6 @@ route[ROUTE_INVITE] {
                     set_dlg_flag("DLG_FLAG_WAN2LAN") ;
                     append_hf("P-hint: TopHide-Applied\r\n"); 
                 };
-
-                if($var(TRUNKDOMAIN)) {
-                    $rd = $var(TRUNKDOMAIN);
-                } else {
-                    $rd = $var(TRUNKIP);
-                }
-
 
                 t_on_failure("WAN2LAN");
                 route(WAN2LAN);
@@ -611,25 +609,24 @@ route[ROUTE_INVITE] {
                     $avp(LANIP) = $(avp(LANProfile){uri.host});
                     $avp(LANPORT) = $(avp(LANProfile){uri.port});
                     $avp(LANPROTO) = $(avp(LANProfile){uri.param,transport});
-                    $avp(LANDOMAIN) = $(avp(LANProfile){uri.param,domain});
-                    if($avp(LANDOMAIN)==""){$avp(LANDOMAIN)=null;}
 
                     $fs = $avp(LANPROTO) + ":" + $avp(LANIP) + ":" + $avp(LANPORT) ;
                     $var(lbret) = 0;    
                     route(BLOX_LOADBALANCE,$avp(uuid));
                     if($var(lbret) == 1 )  { #Check LoadBalance Route
-                        xlog("BLOX_DBG: blox-invite.cfg: PBX Load Balance is Successful\n");
+                        xlog("L_INFO","BLOX_DBG: blox-invite.cfg: PBX Load Balance is Successful\n");
                     } else {
                         route(BLOX_DOMAIN,$avp(uuid));
                         $var(PBXIP) = $(avp(DEFURI){uri.host}) ;
                         $var(PBXPORT) = $(avp(DEFURI){uri.port}) ;
-                        xdbg("BLOX_DBG: blox-invite.cfg: Load Balance Failed so choosen destination uri $du\n");
+                    	$avp(LANDOMAIN) = $(avp(DEFURI){uri.param,domain});
+                    	if($avp(LANDOMAIN)==""){$avp(LANDOMAIN)=null;}
+                        xdbg("BLOX_DBG: blox-invite.cfg: DOMAIN $rd ==> Destination uri $du\n");
                     }
-                    xdbg("BLOX_DBG: blox-invite.cfg: -- choosen destination uri $du\n");
                     if($avp(LANDOMAIN)) {
                         $ru = "sip:" + $rU + "@" + $avp(LANDOMAIN) + ":" + $var(PBXPORT) ;
-                        $var(Tto)   = "sip:" + $tU + "@" + $avp(LANDOMAIN) ;
-                        $var(Tfrom) = "sip:" + $fU + "@" + $avp(LANDOMAIN) ;
+                        $var(Tto)   = "sip:" + $tU + "@" + $avp(LANDOMAIN) + ":" + $var(PBXPORT) ;
+                        $var(Tfrom) = "sip:" + $fU + "@" + $avp(LANDOMAIN) + ":" + $var(PBXPORT) ;
                     } else {
                         $ru = "sip:" + $rU + "@" + $var(PBXIP) + ":" + $var(PBXPORT) ;
                         $var(Tto)   = "sip:" + $tU + "@" + $var(PBXIP) + ":" + $var(PBXPORT);
@@ -637,8 +634,12 @@ route[ROUTE_INVITE] {
                     }
 
 
-                    $var(to)   = $tu ;
-                    $var(from) = $fu ;
+                    #$var(to)   = $tu ;
+                    #$var(from) = $fu ;
+
+                    $var(to)   = $var(Tto) ;
+                    $var(from) = $var(Tfrom) ;
+
                     xdbg("BLOX_DBG:: blox-invite.cfg: Update from $var(Tto) << $var(to) : $var(Tfrom) << $var(from)\n");
                     if(!has_totag()) {
                         create_dialog("PpB");
@@ -672,12 +673,12 @@ route[ROUTE_INVITE] {
                     xlog("L_INFO", "BLOX_DBG::: blox-invite.cfg: Update from $var(Tto) << $var(to) : $var(Tfrom) << $var(from)\n");
                     if($var(tproto) == null) {
                         $var(to) = $var(to) + ";transport=" + $avp(LANPROTO) ;
-                        uac_replace_to("$var(to)");
                     }
+                    uac_replace_to("$var(to)");
                     if($var(fproto) == null) {
                         $var(from) = $var(from) + ";transport=" + $avp(LANPROTO) ;
-                        uac_replace_from("$var(from)");
                     }
+                    uac_replace_from("$var(from)");
 
                     xdbg("BLOX_DBG::: Checking Load Balance Configuration $avp(LBRuleID) : $avp(LBID)\n");
 

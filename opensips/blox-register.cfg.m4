@@ -23,35 +23,7 @@ route[ROUTE_REGISTER] {
             if ((uri==myself || from_uri==myself)) {
             #Internal Interface or External
             if($avp(LAN)) {
-                xdbg("BLOX_DBG: Got from $Ri LAN\n");
-                $avp(uuid) = "PBX:" + $avp(LAN);
-                if(cache_fetch("local","$avp(uuid)",$avp(PBXTRUNK))) {
-                    xdbg("BLOX_DBG: Loaded from cache $avp(uuid): $avp(PBXTRUNK)\n");
-                } else if (avp_db_load("$avp(uuid)","$avp(PBXTRUNK)/blox_config")) {
-                    cache_store("local","$avp(uuid)","$avp(PBXTRUNK)");
-                    xdbg("BLOX_DBG: Stored in cache $avp(uuid): $avp(PBXTRUNK)\n");
-                } else {
-                    $avp(PBXTRUNK) = null;
-                    xdbg("BLOX_DBG: Drop MESSAGE $ru from $si : $sp\n" );
-                    drop(); # /* Default 5060 open to accept packets from LAN side, but we don't process it */
-                    exit;
-                }
-                xdbg("BLOX_DBG: PBXTRUNK Profile :$avp(PBXTRUNK):\n");
-                $var(PBXTRUNKIP) = $(avp(PBXTRUNK){uri.host});
-                $var(PBXTRUNKPORT) = $(avp(PBXTRUNK){uri.port});
-                $avp(DOMAIN) = $(avp(LANProfile){uri.param,domain}) ;
-
-                if ($si == $var(PBXTRUNKIP) && $sp == $var(PBXTRUNKPORT)) { /* PBX to SBC */
-                    fix_nated_register(); /* will set the (not just contact) received address to put in db */
-                    force_rport();
-                    if (!proxy_authorize("$avp(DOMAIN)", "subscriber")) {
-                          proxy_challenge("$avp(DOMAIN)", "0");
-                          exit;
-                    };
-                    xlog("L_INFO", "BLOX_DBG::: blox-register.cfg: SIP Method $rm received from $fu $si $sp to $ru ($avp(rcv))\n");
-                    save("locationtrunk");
-                    exit;
-                };
+                xlog("L_INFO","BLOX_DBG: Got from $Ri LAN, No Trunk REGISTER\n");
             } else if($avp(WAN)) {
                 xdbg("BLOX_DBG: Got from $Ri WAN\n");
                 $avp(uuid) = "PBX:" + $avp(WAN);
@@ -74,8 +46,6 @@ route[ROUTE_REGISTER] {
                     $avp(LANIP) = $(avp(LANProfile){uri.host});
                     $avp(LANPORT) = $(avp(LANProfile){uri.port});
                     $avp(LANPROTO) = $(avp(LANProfile){uri.param,transport});
-                    $avp(LANDOMAIN) = $(avp(LANProfile){uri.param,domain});
-                    if($avp(LANDOMAIN)==""){$avp(LANDOMAIN)=null;}
                     fix_nated_register(); /* will set the (not just contact) received address to put in db */
                     force_rport();
                     if(! subst("/Contact: +<sip:(.*)@(.*?)>;(.*)$/Contact: <sip:\1@$avp(LANIP):$avp(LANPORT)>;\3/")) {
@@ -85,13 +55,15 @@ route[ROUTE_REGISTER] {
                     route(BLOX_DOMAIN,$avp(uuid));
                     $var(PBXIP) = $(avp(DEFURI){uri.host}) ;
                     $var(PBXPORT) = $(avp(DEFURI){uri.port}) ;
+                    $avp(LANDOMAIN) = $(avp(DEFURI){uri.param,domain});
+                    if($avp(LANDOMAIN)==""){$avp(LANDOMAIN)=null;}
                     
                     if($avp(LANDOMAIN)) {
-                        $ru = "sip:" + $avp(LANDOMAIN) + ":" + $var(PBXPORT) ;
-                        $var(reguri) = "sip:" + $tU + "@" + $avp(LANDOMAIN) + ":" + $var(PBXPORT) + ";" + "transport=" + $avp(LANPROTO) ;
+                        $ru = "sip:" + $avp(LANDOMAIN) + ":" + $var(PBXPORT) + ";transport=" + $avp(LANPROTO);
+                        $var(reguri) = "sip:" + $tU + "@" + $avp(LANDOMAIN) + ":" + $var(PBXPORT) ;
                     } else {
-                        $ru = "sip:" + $var(PBXIP) + ":" + $var(PBXPORT) ;
-                        $var(reguri) = "sip:" + $tU + "@" + $var(PBXIP) + ":" + $var(PBXPORT) + ";" + "transport=" + $avp(LANPROTO) ;
+                        $ru = "sip:" + $var(PBXIP) + ":" + $var(PBXPORT) + ";transport=" + $avp(LANPROTO);
+                        $var(reguri) = "sip:" + $tU + "@" + $var(PBXIP) + ":" + $var(PBXPORT) ;
                     }
 
                     $fs = $avp(LANPROTO) + ":" + $avp(LANIP) + ":" + $avp(LANPORT) ;
