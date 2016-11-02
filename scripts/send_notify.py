@@ -36,6 +36,21 @@ def print_filecontent(filename):
 		content = content_file.read()
 	print content 
 
+def get_nat_ip_port(uri):
+	uri = uri.strip();
+	o = urlparse.urlparse(uri);
+	advip = None;
+	advport = "5060" ;
+	for t in o.params.split(";"):
+		if(re.match("advip",t)):
+			advip = t;
+			break
+		if(re.match("advport",t)):
+			advport = t;
+			break
+	return dict([ ('advip', advip), ('advport',advport )]) ;
+
+
 def parse_uri(uri):
 	uri = uri.strip();
 	o = urlparse.urlparse(uri);
@@ -76,16 +91,18 @@ def convert_without_defport(uri):
 	return uri ;
 
 #row,ruri(request uri),furi(from uri), touri(to uri), EVENT_TYPE(presence,message-summary)
-def send_notify(lprow,ruri,furi,touri,EVENT_TYPE):
+def send_notify(lprow,contact_host,ruri,furi,touri,EVENT_TYPE):
 	content_length=0
 	nfd = open(notify_file,"r",1);
 	recvline = nfd.readline(); #Ignore this customized line
 	localsocket = lprow['socket'].split(':');
 	localsocket_uri = localsocket[1] + ':' + localsocket[2] + ';transport=' + localsocket[0] ;
+	contact_host += ';transport=' + localsocket[0];
+
 	contact = lprow['contact'].split('@') ;
-	replace_request_uri = contact[0] + '@' + localsocket_uri ;
-	replace_to_uri   = contact[0] + '@' + localsocket_uri ;
-	replace_from_uri = 'sip:' + lprow['username'] + '@' + localsocket_uri ;
+	replace_request_uri = contact[0] + '@' + contact_host ;
+	replace_to_uri   = contact[0] + '@' + contact_host ;
+	replace_from_uri = 'sip:' + lprow['username'] + '@' + contact_host ;
 
 	notify_file_out = "/var/tmp/" + replace_from_uri + ".out"
 	nfd_w = open(notify_file_out,"w",1);
@@ -109,6 +126,9 @@ def send_notify(lprow,ruri,furi,touri,EVENT_TYPE):
 			if EVENT_TYPE == "presence":
 				replace_from_pat = r'To:\1;tag='+ re.escape(lprow['attr']) + r'\3\r\n'
 				line = re.sub(r'To:(.*);tag=(.*)(;*.*)\r\n',replace_from_pat,line)
+		elif re.match(r'Contact:',line,re.M|re.I):
+			line = re.sub(r'Contact:(.*)@(.*)\r\n',r'Contact: \1@' + contact_host + '\r\n',line)
+
 		elif re.match(r'Call-ID:',line,re.M|re.I):
 			line = re.sub(r'Call-ID:(.*)\r\n','Call-ID: ' + lprow['callid'] + '\r\n',line)
 		elif re.match('\r\n',line,re.M|re.I):
@@ -299,8 +319,14 @@ if EventType == "presence":
 			if(localsocket[1] == wanprofile.split(';')[0].split(':')[1] and \
 				localsocket[2] == wanprofile.split(';')[0].split(':')[2]):
 				to_uri = "sip:" + user + "@" + localsocket[1] + ":" + localsocket[2]
+				wan_host = get_nat_ip_port(wanprofile) ;
+				if wan_host['advip'] is not None:
+					contact_host = wan_host['advip'] + ":" + wan_host['advport'];
+				else:
+					contact_host = localsocket[1] + ":" + localsocket[2] ;
+
 				#send_notify(lprow,request_uri,from_uri,to_uri,EventType)
-				send_notify(lprow,request_uri,from_uri,request_uri,EventType) #to_uri same as request uri which needs to be replaced
+				send_notify(lprow,contact_host,request_uri,from_uri,request_uri,EventType) #to_uri same as request uri which needs to be replaced
 			else:
 				print "SOCKET Not Matching " + localsocket[1] + "<>" + wanprofile.split(';')[0].split(':')[1] + ":" \
 					 + localsocket[2] + "<>" + wanprofile.split(';')[0].split(':')[2]
@@ -328,8 +354,13 @@ elif EventType == "message-summary":
 		if(localsocket[1] == wanprofile.split(';')[0].split(':')[1] and \
 			localsocket[2] == wanprofile.split(';')[0].split(':')[2]):
 			to_uri = "sip:" + user + "@" + localsocket[1] + ":" + localsocket[2]
+			wan_host = get_nat_ip_port(wanprofile) ;
+			if wan_host['advip'] is not None:
+				contact_host = wan_host['advip'] + ":" + wan_host['advport'];
+			else:
+				contact_host = localsocket[1] + ":" + localsocket[2] ;
 			#send_notify(lprow,request_uri,from_uri,to_uri,EventType)
-			send_notify(lprow,request_uri,from_uri,request_uri,EventType) #to_uri same as request uri which needs to be replaced
+			send_notify(lprow,contact_host,request_uri,from_uri,request_uri,EventType) #to_uri same as request uri which needs to be replaced
 		else:
 			print "SOCKET Not Matching " + localsocket[1] + "<>" + wanprofile.split(';')[0].split(':')[1] + ":" \
 				 + localsocket[2] + "<>" + wanprofile.split(';')[0].split(':')[2]
