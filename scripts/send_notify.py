@@ -43,11 +43,10 @@ def get_nat_ip_port(uri):
 	advport = "5060" ;
 	for t in o.params.split(";"):
 		if(re.match("advip",t)):
-			advip = t;
-			break
+			advip = re.sub(r'.*advip=(.*)',r'\1',t)
 		if(re.match("advport",t)):
-			advport = t;
-			break
+			advport = re.sub(r'.*advport=(.*)',r'\1',t)
+	#print "advip=" + advip + ";advport=" + advport ;
 	return dict([ ('advip', advip), ('advport',advport )]) ;
 
 
@@ -127,7 +126,7 @@ def send_notify(lprow,contact_host,ruri,furi,touri,EVENT_TYPE):
 				replace_from_pat = r'To:\1;tag='+ re.escape(lprow['attr']) + r'\3\r\n'
 				line = re.sub(r'To:(.*);tag=(.*)(;*.*)\r\n',replace_from_pat,line)
 		elif re.match(r'Contact:',line,re.M|re.I):
-			line = re.sub(r'Contact:(.*)@(.*)\r\n',r'Contact: \1@' + contact_host + '\r\n',line)
+			line = re.sub(r'Contact:(.*)sip:(.*)@(.*)\r\n',r'Contact: <sip:\2@' + contact_host + '>\r\n',line)
 
 		elif re.match(r'Call-ID:',line,re.M|re.I):
 			line = re.sub(r'Call-ID:(.*)\r\n','Call-ID: ' + lprow['callid'] + '\r\n',line)
@@ -281,8 +280,6 @@ if EventType == "presence":
 		else:
 			bs_to_uri_defport = bs_to_uri ;
 			bs_to_uri = re.sub(':5060','',bs_to_uri); #Remove 5060 for substution
-	
-	
 		bs_socket   = bsrow['socket'].split(':') ;
 		#Match the to_uri of blox_subscribe matching from uri received 
 		if(bs_to_uri != from_uri and bs_to_uri_defport != from_uri):
@@ -316,10 +313,12 @@ if EventType == "presence":
 			localsocket = lprow['socket'].split(':') ;
 			#Match the WAN Profile socket with the subscribed user socket
 			#print ">>" + localsocket[1] + wanprofile.split(';')[0].split(':')[1] + localsocket[2] + wanprofile.split(';')[0].split(':')[2]
-			if(localsocket[1] == wanprofile.split(';')[0].split(':')[1] and \
-				localsocket[2] == wanprofile.split(';')[0].split(':')[2]):
+			wan_host = get_nat_ip_port(wanprofile) ;
+			if((localsocket[1] == wanprofile.split(';')[0].split(':')[1] and \
+				localsocket[2] == wanprofile.split(';')[0].split(':')[2]) or \
+					(localsocket[1] == wan_host['advip'] and \
+					localsocket[2] == wan_host['advport'])):
 				to_uri = "sip:" + user + "@" + localsocket[1] + ":" + localsocket[2]
-				wan_host = get_nat_ip_port(wanprofile) ;
 				if wan_host['advip'] is not None:
 					contact_host = wan_host['advip'] + ":" + wan_host['advport'];
 				else:
@@ -328,8 +327,8 @@ if EventType == "presence":
 				#send_notify(lprow,request_uri,from_uri,to_uri,EventType)
 				send_notify(lprow,contact_host,request_uri,from_uri,request_uri,EventType) #to_uri same as request uri which needs to be replaced
 			else:
-				print "SOCKET Not Matching " + localsocket[1] + "<>" + wanprofile.split(';')[0].split(':')[1] + ":" \
-					 + localsocket[2] + "<>" + wanprofile.split(';')[0].split(':')[2]
+				print "SOCKET Not Matching " + localsocket[1] + "<>" + wanprofile.split(';')[0].split(':')[1] + ":" + localsocket[2] + "<>" + wanprofile.split(';')[0].split(':')[2]
+				print "SOCKET Not Matching " + localsocket[1] + "<>" + wan_host['advip'] + ":" + localsocket[2] + "<>" + wan_host['advport'] ;
 		#We found the matching from_uri in blox_subscribe and notify has been sent, lets break
 		break ;
 elif EventType == "message-summary":
@@ -351,10 +350,12 @@ elif EventType == "message-summary":
 		localsocket = lprow['socket'].split(':') ;
 		#Match the WAN Profile socket with the subscribed user socket
 		#print ">>" + localsocket[1] + wanprofile.split(';')[0].split(':')[1] + localsocket[2] + wanprofile.split(';')[0].split(':')[2]
-		if(localsocket[1] == wanprofile.split(';')[0].split(':')[1] and \
-			localsocket[2] == wanprofile.split(';')[0].split(':')[2]):
+		wan_host = get_nat_ip_port(wanprofile) ;
+		if((localsocket[1] == wanprofile.split(';')[0].split(':')[1] and \
+			localsocket[2] == wanprofile.split(';')[0].split(':')[2]) or \
+				(localsocket[1] == wan_host['advip'] and \
+				localsocket[2] == wan_host['advport'])):
 			to_uri = "sip:" + user + "@" + localsocket[1] + ":" + localsocket[2]
-			wan_host = get_nat_ip_port(wanprofile) ;
 			if wan_host['advip'] is not None:
 				contact_host = wan_host['advip'] + ":" + wan_host['advport'];
 			else:
@@ -362,8 +363,8 @@ elif EventType == "message-summary":
 			#send_notify(lprow,request_uri,from_uri,to_uri,EventType)
 			send_notify(lprow,contact_host,request_uri,from_uri,request_uri,EventType) #to_uri same as request uri which needs to be replaced
 		else:
-			print "SOCKET Not Matching " + localsocket[1] + "<>" + wanprofile.split(';')[0].split(':')[1] + ":" \
-				 + localsocket[2] + "<>" + wanprofile.split(';')[0].split(':')[2]
+			print "SOCKET Not Matching " + localsocket[1] + "<>" + wanprofile.split(';')[0].split(':')[1] + ":" + localsocket[2] + "<>" + wanprofile.split(';')[0].split(':')[2]
+			print "SOCKET Not Matching " + localsocket[1] + "<>" + wan_host['advip'] + ":" + localsocket[2] + "<>" + wan_host['advport'] ;
 else:
 	print "Unsupported Event Type :" + EventType + ":";
 
