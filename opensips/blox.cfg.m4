@@ -179,7 +179,7 @@ route {
     };
 
     $avp(dupreq) = null;
-    if (has_totag() && (uri == myself)  && is_method("INVITE|ACK|BYE|UPDATE|REFER|NOTIFY")) {
+    if (has_totag() && (uri == myself)  && is_method("INVITE|ACK|BYE|UPDATE|REFER|NOTIFY|PRACK")) {
          xdbg("BLOX_DBG: blox.cfg: MATCHING DIALOG\n");
          if(match_dialog()) {
             xdbg("BLOX_DBG: blox.cfg: MATCHED DIALOG\n");
