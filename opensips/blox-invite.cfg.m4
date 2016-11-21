@@ -128,6 +128,7 @@ route[ROUTE_INVITE] {
                 $avp(T38Param)  = $(avp(TRUNK){uri.param,T38Param});
                 $avp(MEDIA)  = $(avp(TRUNK){uri.param,MEDIA});
                 $avp(GWID) = $(avp(TRUNK){uri.param,GWID});
+                $avp(CID) = $(avp(TRUNK){uri.param,CID});
                 $avp(SrcSRTP) = $(avp(TRUNK){uri.param,LANSRTP});
                 $avp(DstSRTP) = $(avp(TRUNK){uri.param,WANSRTP});
                 route(READ_ENUM,$avp(uuid));
@@ -148,6 +149,7 @@ route[ROUTE_INVITE] {
                 if($avp(T38Param)==""){$avp(T38Param)=null;}
                 if($avp(MEDIA)==""){$avp(MEDIA)=null;}
                 if($avp(GWID)==""){$avp(GWID)=null;}
+                if($avp(CID)==""){$avp(CID)=null;}
                 if($avp(SrcSRTP)==""){$avp(SrcSRTP)=null;}
                 if($avp(DstSRTP)==""){$avp(DstSRTP)=null;}
 
