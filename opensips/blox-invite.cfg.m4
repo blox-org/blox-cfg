@@ -115,9 +115,10 @@ route[ROUTE_INVITE] {
             if($avp(TRUNK)) {
                 xdbg("BLOX_DBG: blox-invite.cfg: Routing Forwarded PBX MESSAGE $avp(TRUNK)\n");
 
-                $var(cfgparam) = "cfgparam" ;
-                $avp($var(cfgparam)) = $avp(TRUNK);
-                avp_db_store("$hdr(call-id)","$avp($var(cfgparam))");
+        #FIXME: performance on db needs to be optimized
+                #$var(cfgparam) = "cfgparam" ;
+                #$avp($var(cfgparam)) = $avp(TRUNK);
+                #avp_db_store("$hdr(call-id)","$avp($var(cfgparam))");
 
                 $var(TRUNKUSER) = $(avp(TRUNK){uri.user});
                 $var(TRUNKIP) = $(avp(TRUNK){uri.host});
@@ -251,9 +252,10 @@ route[ROUTE_INVITE] {
                 if($avp(PBX)) {
                     xdbg("BLOX_DBG: blox-invite.cfg: Got route $Ri RE\n");
 
-                    $var(cfgparam) = "cfgparam" ;
-                    $avp($var(cfgparam)) = $avp(PBX);
-                    avp_db_store("$hdr(call-id)","$avp($var(cfgparam))");
+                        #FIXME: performance on db needs to be optimized
+                    #$var(cfgparam) = "cfgparam" ;
+                    #$avp($var(cfgparam)) = $avp(PBX);
+                    #avp_db_store("$hdr(call-id)","$avp($var(cfgparam))");
 
                     #/* Check Roaming Extension routing */
                     $var(PBXIP) = $(avp(PBX){uri.host}) ;
@@ -619,8 +621,8 @@ route[ROUTE_INVITE] {
                         route(BLOX_DOMAIN,$avp(uuid));
                         $var(PBXIP) = $(avp(DEFURI){uri.host}) ;
                         $var(PBXPORT) = $(avp(DEFURI){uri.port}) ;
-                    	$avp(LANDOMAIN) = $(avp(DEFURI){uri.param,domain});
-                    	if($avp(LANDOMAIN)==""){$avp(LANDOMAIN)=null;}
+                        $avp(LANDOMAIN) = $(avp(DEFURI){uri.param,domain});
+                        if($avp(LANDOMAIN)==""){$avp(LANDOMAIN)=null;}
                         xdbg("BLOX_DBG: blox-invite.cfg: DOMAIN $rd ==> Destination uri $du\n");
                     }
                     if($avp(LANDOMAIN)) {

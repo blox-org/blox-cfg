@@ -113,7 +113,17 @@ onreply_route[WAN2LAN_REGISTER] {
             xdbg("BLOX_DBG: Got REGISTER REPLY $fu/$ru/$si/$ci/$avp(rcv)" );
             $avp(regattr) = $pr + ":" + $si + ":" + $sp ;
             $var(aor) = "sip:" + $tU + "@" + $avp(WANIP) + ":" + $avp(WANPORT) ;
-            if(!save("locationpbx","rp1fc1", "$var(aor)")) {
+            $var(expires) = $ct.fields(expires) ;
+            if($var(expires)==null||$var(expires)=="") {
+              $var(expires) = $hdr(Expires) ;
+            }
+            if($var(expires)==null||$var(expires)=="") {
+              $var(sflg) = "rp1fc1" ;
+            } else {
+              $var(sflg) = "rp1fc1E" + $var(expires) ;
+            }
+  
+            if(!save("locationpbx","$var(sflg)", "$var(aor)")) {
                 xlog("L_ERROR", "BLOX_DBG::: blox-register.cfg: Error saving the location\n");
             };
 
