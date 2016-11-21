@@ -198,15 +198,19 @@ route[ROUTE_INVITE] {
                                 if($avp(WANADVIP)==""){$avp(WANADVIP)=null;}
                                 if($avp(WANADVPORT)==""){$avp(WANADVPORT)=null;}
 
-                                if($var(TRUNKDOMAIN)) {
-                                    $var(to)   = "sip:" + $tU             + "@" + $var(TRUNKDOMAIN) + ":" + $var(TRUNKPORT) ;
+                                if($var(TRUNKDOMAIN)) { #$rU from route_to_gw
+                                    $var(to)   = "sip:" + $rU             + "@" + $var(TRUNKDOMAIN) + ":" + $var(TRUNKPORT) ;
                                     $var(from) = "sip:" + $var(TRUNKUSER) + "@" + $var(TRUNKDOMAIN) + ":" + $var(TRUNKPORT) ;
                                 } else {
-                                    $var(to)   = "sip:" + $tU             + "@" + $var(TRUNKIP) + ":" + $var(TRUNKPORT) ;
+                                    $var(to)   = "sip:" + $rU             + "@" + $var(TRUNKIP) + ":" + $var(TRUNKPORT) ;
                                     $var(from) = "sip:" + $var(TRUNKUSER) + "@" + $var(TRUNKIP) + ":" + $var(TRUNKPORT) ;
                                 }
                                 uac_replace_to("$var(to)");
-                                uac_replace_from("$var(from)");
+                                if($avp(CID)) {
+                                  uac_replace_from("$avp(CID)","$var(from)");
+                                } else {
+                                  uac_replace_from("$var(from)");
+                                }
                             } else {
                                 xlog("L_ERROR", "BLOX_DBG::: blox-invite.cfg: No WAN Profile, Leaking through To/From Header\n");
                             }
@@ -215,9 +219,7 @@ route[ROUTE_INVITE] {
                         remove_hf("Diversion");
                         $du = "sip:" + $var(TRUNKIP) + ":" + $var(TRUNKPORT) + ";transport=" + $avp(WANPROTO)  ;
                         if($var(TRUNKDOMAIN)) {
-                            $ru = "sip:" + $tU + "@" + $var(TRUNKDOMAIN) + ":" + $var(TRUNKPORT) + ";transport=" + $avp(WANPROTO) ;
-                        } else {
-                            $ru = "sip:" + $tU + "@" + $var(TRUNKIP) + ":" + $var(TRUNKPORT) + ";transport=" + $avp(WANPROTO) ;
+                            $ru = "sip:" + $rU + "@" + $var(TRUNKDOMAIN) + ":" + $var(TRUNKPORT) + ";transport=" + $avp(WANPROTO) ;
                         }
                         
                         if($var(ENUMSE) != null && $var(ENUMSX) != null) {
