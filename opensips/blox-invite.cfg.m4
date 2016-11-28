@@ -222,6 +222,8 @@ route[ROUTE_INVITE] {
                         $du = "sip:" + $var(TRUNKIP) + ":" + $var(TRUNKPORT) + ";transport=" + $avp(WANPROTO)  ;
                         if($var(TRUNKDOMAIN)) {
                             $ru = "sip:" + $rU + "@" + $var(TRUNKDOMAIN) + ":" + $var(TRUNKPORT) + ";transport=" + $avp(WANPROTO) ;
+                        } else {
+                            $ru = "sip:" + $rU + "@" + $var(TRUNKIP) + ":" + $var(TRUNKPORT) + ";transport=" + $avp(WANPROTO) ;
                         }
                         
                         if($var(ENUMSE) != null && $var(ENUMSX) != null) {
