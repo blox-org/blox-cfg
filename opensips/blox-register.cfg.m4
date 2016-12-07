@@ -46,7 +46,13 @@ route[ROUTE_REGISTER] {
                     $avp(LANIP) = $(avp(LANProfile){uri.host});
                     $avp(LANPORT) = $(avp(LANProfile){uri.port});
                     $avp(LANPROTO) = $(avp(LANProfile){uri.param,transport});
-                    fix_nated_register(); /* will set the (not just contact) received address to put in db */
+                    $avp(rcv) = "sip:" + $(var(cturi){uri.host}) + ":" + $(var(cturi){uri.port}) + ";transport=" + $proto ;
+                    if($var(nat96)) { # /* If Contact not same as source IP Address */
+                        if(!is_ip_rfc1918("$si")) { # /* Source is not Priviate IP */
+                            fix_nated_register(); /* will set the (not just contact) received address to put in db */
+                        }
+                    }
+                    xdbg("BLOX_DBG::: blox-register.cfg: REGISTER processed, $si $sp to $ru ($avp(rcv))/$var(cturi)\n"); #/* Don't know what to do */
                     force_rport();
                     if(! subst("/Contact: +<sip:(.*)@(.*?)>;(.*)$/Contact: <sip:\1@$avp(LANIP):$avp(LANPORT)>;\3/")) {
                         subst("/Contact: +<sip:(.*)@(.*?)>(.*)$/Contact: <sip:\1@$avp(LANIP):$avp(LANPORT)>/");

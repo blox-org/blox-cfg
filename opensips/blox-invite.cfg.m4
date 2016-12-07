@@ -549,65 +549,39 @@ route[ROUTE_INVITE] {
                         $avp(WANSOCKET) = $pr + ":" + $Ri + ":" + $Rp ;
                     }
 
-                    $avp(RESOCKET) = "sip:" + $si + ":" + $sp ;
-                    ##$avp(RECHKONLYIP) = 1 ;
-                    #if($avp(RECHKONLYIP)) { # /* Match only IP address in registrar not IP:PORT or PROTO */
-                    #    $avp(RESOCKET) = $si ;
-                    #}
+                    $avp(RECHKONLYIP) = null ;
+                    if($proto == "tcp") { #TCP uses contact port than rcv port
+                        $avp(RECHKONLYIP) = 1 ;
+                    }
+                    if($avp(RECHKONLYIP)) { # /* Match only IP address in registrar not IP:PORT or PROTO */
+                        $avp(RESOCKET) = $si ;
+                    } else {
+                        $avp(RESOCKET) = $si + ":" + $sp ;
+                    }
 
-                    if($var(PBXIPAUTH) && pcre_match_group("$si","$var(PBXIPAUTH)")) {
-                            xlog("L_INFO", "BLOX_DBG::: blox-invite.cfg: $si:$sp ($ua) Autheticated Via IPAuth $avp(PBX): Group:$var(PBXIPAUTH)\n");
-                    } else  {
+                    if($proto == "tls") {
+                        xlog("L_INFO", "BLOX_DBG::: blox-invite.cfg: No checking need for TLS" );
+                    } else if($var(PBXIPAUTH) && pcre_match_group("$si","$var(PBXIPAUTH)")) {
+                        xlog("L_INFO", "BLOX_DBG::: blox-invite.cfg: $si:$sp ($ua) Autheticated Via IPAuth $avp(PBX): Group:$var(PBXIPAUTH)\n");
+                    } else {
                         if(cache_fetch("local","locationpbx:$fU:$avp(WANSOCKET):contact", $avp(contact)) \
                             && cache_fetch("local","locationpbx:$fU:$avp(WANSOCKET):received", $avp(received))) {
                             xdbg("BLOX_DBG: blox-invite.cfg: locationpbx:$fU:$avp(WANSOCKET):contact => locationpbx:$fU:$avp(WANSOCKET):received => $avp(contact);$avp(received)") ;
-                        } else if(avp_db_query("SELECT contact, received, TIMESTAMP(expires) FROM locationpbx WHERE username = '$fU' AND socket = '$avp(WANSOCKET)' ORDER BY last_modified DESC LIMIT 1", "$avp(contact);$avp(received);$avp(expires)")) {
+                        } else if(avp_db_query("SELECT contact, received, TIMESTAMP(expires) FROM locationpbx WHERE username = '$fU' AND socket = '$avp(WANSOCKET)' AND received LIKE '%$avp(RESOCKET)%' ORDER BY last_modified DESC LIMIT 1", "$avp(contact);$avp(received);$avp(expires)")) {
                             xdbg("BLOX_DBG: blox-invite.cfg: SELECT contact, received, TIMESTAMP(expires)-NOW() FROM locationpbx WHERE username = '$fU' AND socket = '$avp(WANSOCKET)' ORDER BY last_modified LIMIT 1, $avp(contact);$avp(received);$avp(expires)") ;
                             $var(expires) = ($avp(expires) - $Ts) * 1000;
-                            #if($avp(RECHKONLYIP)) { # /* Match only IP address in registrar not IP:PORT or PROTO */
-                            #    $avp(received) = $(avp(received){s.select,1,:}) ;
-                            #}
+                            if($avp(RECHKONLYIP)) { # /* Match only IP address in registrar not IP:PORT or PROTO */
+                                $avp(received) = $(avp(received){s.select,1,:}) ;
+                            }
                             cache_store("local","locationpbx:$fU:$avp(WANSOCKET):contact","$avp(contact)", $var(expires));
                             cache_store("local","locationpbx:$fU:$avp(WANSOCKET):received","$avp(received)", $var(expires));
                         } else {
+                                xdbg("BLOX_DBG: blox-invite.cfg: Not maching $avp(RESOCKET) != $avp(received)\n");
                                 xlog("L_INFO", "BLOX_DBG::: blox-invite.cfg: No Registration found try Re-Registering\n");
                                 t_newtran();
                                 t_on_failure("LAN2WAN");
                                 t_reply("404", "Not Found");
                                 exit;
-                        }
-
-                        if(!($avp(RESOCKET) == $avp(received))) { #We might be checking old cache, fix it now
-                            xdbg("BLOX_DBG: blox-invite.cfg: Not maching re-check DB $avp(RESOCKET) != $avp(received)\n");
-                            if(avp_db_query("SELECT contact, received, TIMESTAMP(expires) FROM locationpbx WHERE username = '$fU' AND socket = '$avp(WANSOCKET)' ORDER BY last_modified LIMIT 1", "$avp(contact);$avp(received);$avp(expires)")) {
-                                xdbg("BLOX_DBG: blox-invite.cfg: SELECT contact, received, TIMESTAMP(expires)-NOW() FROM locationpbx WHERE username = '$fU' AND socket = '$avp(WANSOCKET)' ORDER BY last_modified LIMIT 1, $avp(contact);$avp(received);$avp(expires)") ;
-                                $var(expires) = ($avp(expires) - $Ts) * 1000;
-                                #if($avp(RECHKONLYIP)) { # /* Match only IP address in registrar not IP:PORT or PROTO */
-                                #    $avp(received) = $(avp(received){s.select,1,:}) ;
-                                #}
-                                cache_store("local","locationpbx:$fU:$avp(WANSOCKET):contact","$avp(contact)", $var(expires));
-                                cache_store("local","locationpbx:$fU:$avp(WANSOCKET):received","$avp(received)", $var(expires));
-                            } else {
-                                xlog("L_INFO", "BLOX_DBG::: blox-invite.cfg: No Registration found try Re-Registering\n");
-                                t_newtran();
-                                t_on_failure("LAN2WAN");
-                                t_reply("404", "Not Found");
-                                exit;
-                            }
-                        }
-
-                        if($(avp(received){uri.param,transport})) {
-                            if(!$(avp(RESOCKET){uri.param,transport})) { #/* If RESOCKET transport is empty */
-                                $avp(RESOCKET) = $avp(RESOCKET) + ";transport=" + $(avp(received){uri.param,transport}) ;
-                            }
-                        }
-                
-                        if(!($avp(RESOCKET) == $avp(received))) {
-                            xdbg("BLOX_DBG: blox-invite.cfg: Not maching $avp(RESOCKET) != $avp(received)\n");
-                            t_newtran();
-                            t_on_failure("LAN2WAN");
-                            t_reply("404", "Not Found");
-                            exit;
                         }
                     }
 

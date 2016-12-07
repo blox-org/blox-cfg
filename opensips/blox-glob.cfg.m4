@@ -38,3 +38,12 @@ log_name="blox-MAJORVERSION-MINORVERSION-REVNUMBER-RELEASE"
 #tos=IPTOS_LOWDELAY
 #tos=IPTOS_RELIABILITY
 tos=0x10
+
+#tcp_max_connections=1024
+#tcp_listen_backlog=10
+#tcp_async=1
+
+tcp_keepalive=1
+tcp_keepcount=3
+tcp_keepidle=30
+tcp_keepinterval=10

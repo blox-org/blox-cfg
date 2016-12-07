@@ -115,21 +115,25 @@ route {
     $var(nat96) = null;
     $var(nat40) = null;
     $var(nat3)  = null;
-    if(nat_uac_test("96")) {
-        $var(nat96) = 96 ;
-    }
-    if(nat_uac_test("40")) {
-        $var(nat40) = 40 ;
-    }
-    if(nat_uac_test("3")) {
-        $var(nat3)  = 3 ;
-    }
 
-    if($avp(WAN)) { # /* Fix NAT On WAN Request */
-        if($var(nat3)) {
-            $var(ct) = $ct ; # /* Original contact */
-            $var(cturi) = $ct.fields(uri) ; # /* Original contact */
-            fix_nated_contact(); # /* Contact header manipuation further should be avoided */
+    if ($ct) {
+    	if(nat_uac_test("96")) {
+    	    $var(nat96) = 96 ;
+    	}
+    	if(nat_uac_test("40")) {
+    	    $var(nat40) = 40 ;
+    	}
+    	if(nat_uac_test("3")) {
+    	    $var(nat3)  = 3 ;
+    	}
+
+        $var(ct) = $ct ; # /* Original contact */
+        $var(cturi) = $ct.fields(uri) ; # /* Original contact */
+
+        if($avp(WAN)) { # /* Fix NAT On WAN Request */
+            if($var(nat3)) {
+                fix_nated_contact(); # /* Contact header manipuation further should be avoided */
+            }
         }
     }
 
