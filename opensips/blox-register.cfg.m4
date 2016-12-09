@@ -99,7 +99,7 @@ route[ROUTE_REGISTER] {
                 }
             }
         }
-        xlog("L_INFO", "BLOX_DBG::: blox-register.cfg: REGISTER Unprocessed, Dropping SIP Method $rm received from $fu $si $sp to $ru ($avp(rcv))\n"); #/* Don't know what to do */
+        xlog("L_INFO", "BLOX_DBG::: blox-register.cfg: REGISTER Unprocessed, Dropping SIP Method $rm received req:$ru fu:$fu $si:$sp to $ru ($avp(rcv))/ua:$ua\n"); #/* Don't know what to do */
         drop();
         exit;
     };

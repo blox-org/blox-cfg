@@ -45,8 +45,8 @@ route[ALLOMTSLOAD] {
 
 # main routing logic
 route {
-    xlog("L_INFO", "BLOX_DBG::: blox.cfg: Got $rm req:$ru from:$fu to:$tu dst:$du\n" );
-    xlog("L_INFO", "BLOX_DBG::: blox.cfg: contact: $ct : callid: $ci src: $si:$sp ==> rcv: $Ri:$Rp\n");
+    xlog("L_INFO", "BLOX_DBG::: blox.cfg: Got $rm req:$ru from:$fu to:$tu dst:$du ua:$ua\n" );
+    xlog("L_INFO", "BLOX_DBG::: blox.cfg: contact:$ct callid:$ci src:$si:$sp ==> rcv:$Ri:$Rp\n");
 
     # initial sanity checks
     if (pcre_match_group("$ua", "0")) { #Group: 0 is blacklist
