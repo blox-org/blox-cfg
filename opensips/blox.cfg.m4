@@ -114,25 +114,49 @@ route {
 
     $var(nat96) = null;
     $var(nat40) = null;
+    $var(nat32)  = null;
     $var(nat3)  = null;
 
     if ($ct) {
-    	if(nat_uac_test("96")) {
-    	    $var(nat96) = 96 ;
-    	}
-    	if(nat_uac_test("40")) {
-    	    $var(nat40) = 40 ;
-    	}
-    	if(nat_uac_test("3")) {
-    	    $var(nat3)  = 3 ;
-    	}
+        #address in Contact is compared against source IP address of signaling
+        #Port in Contact is compared against source port of signaling 
+        if(nat_uac_test("96")) {  
+            $var(nat96) = 96 ;
+        }
+
+        #address in Contact is compared against source IP address of signaling
+        #SDP is searched for occurrence of RFC1918 / RFC6598 addresses 
+        if(nat_uac_test("40")) {
+            $var(nat40) = 40 ;
+        }
+
+        #address in Contact is compared against source IP address of signaling
+        if(nat_uac_test("32")) {
+            $var(nat32)  = 32 ;
+        }
+
+        #Contact header field is searched for occurrence of RFC1918 / RFC6598 addresses.
+        #"received" test: address in Via is compared against source IP address of signaling 
+        if(nat_uac_test("3")) {
+            $var(nat3)  = 3 ;
+        }
 
         $var(ct) = $ct ; # /* Original contact */
         $var(cturi) = $ct.fields(uri) ; # /* Original contact */
+        $var(fixnat) = 1 ;
 
         if($avp(WAN)) { # /* Fix NAT On WAN Request */
-            if($var(nat3)) {
-                fix_nated_contact(); # /* Contact header manipuation further should be avoided */
+            if($proto == "tcp" || $proto == "tls") {
+                if($var(32)) {
+                    $var(fixnat) = null ;
+                }
+            }
+            if($var(fixnat) && $var(nat3)) {
+                if(is_method("REGISTER")) {
+                    fix_nated_register(); /* will set not just contact, update received address to db */
+                } else {
+                    fix_nated_contact(); # /* Contact header manipuation further should be avoided */
+                }
             }
         }
     }

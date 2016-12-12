@@ -62,10 +62,14 @@ modparam("auth_db", "calculate_ha1", 1)
 
 
 ################## NAT ######################
-modparam("usrloc", "nat_bflag", 6)
+modparam("usrloc", "nat_bflag", "NAT_PING_FLAG")
 modparam("nathelper", "ping_nated_only", 1)
-modparam("nathelper", "sipping_bflag", 8)
-modparam("nathelper","received_avp","$avp(rcv)")
+modparam("nathelper", "sipping_bflag", "SIP_PING_FLAG")
+modparam("nathelper", "received_avp","$avp(rcv)")
+modparam("nathelper", "natping_interval", NAT_KEEPALIVE_INTERVAL)
+modparam("nathelper", "sipping_method", "NAT_KEEPALIVE_METHOD")
+modparam("nathelper", "sipping_from", "NAT_KEEPALIVE_FROMURI")
+modparam("nathelper", "natping_tcp", 1)
 
 modparam("registrar","received_avp","$avp(rcv)")
 modparam("registrar","received_param","rcv")
