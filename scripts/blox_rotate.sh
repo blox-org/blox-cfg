@@ -47,6 +47,13 @@ BLOX_CDR_RORATE()
 		COUNT2=$(EXEC_SQL "SELECT count(*) FROM acc2" | tail -1)
 		echo "acc:$COUNT <===>  acc2:$COUNT2"
 	done
+	
+	ls /var/log/blox/acc -1t | sed -n '11,$p' |
+	while read old_file
+	do
+		echo Removing last old file $old_file
+		rm -f /var/log/blox/acc/$old_file
+	done
 }
 
 MAIN()
