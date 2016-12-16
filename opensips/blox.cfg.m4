@@ -120,13 +120,13 @@ route {
     if ($ct) {
         #address in Contact is compared against source IP address of signaling
         #Port in Contact is compared against source port of signaling 
-        if(nat_uac_test("96")) {  
+        if(nat_uac_test("64") && nat_uac_test("32")) {  
             $var(nat96) = 96 ;
         }
 
         #address in Contact is compared against source IP address of signaling
         #SDP is searched for occurrence of RFC1918 / RFC6598 addresses 
-        if(nat_uac_test("40")) {
+        if(nat_uac_test("32") && nat_uac_test("8")) {
             $var(nat40) = 40 ;
         }
 
@@ -137,8 +137,9 @@ route {
 
         #Contact header field is searched for occurrence of RFC1918 / RFC6598 addresses.
         #"received" test: address in Via is compared against source IP address of signaling 
-        if(nat_uac_test("3")) {
+        if(client_nat_test("1") && client_nat_test("2")) {
             $var(nat3)  = 3 ;
+            xlog("L_INFO","$rm: $ru: $ct: $si: $hdr(Via): Basic Test for NAT Deducted");
         }
 
         $var(ct) = $ct ; # /* Original contact */

@@ -995,7 +995,11 @@ onreply_route[MTS_LAN2WAN] {
                     if($DLG_dir == "downstream") {
                         $dlg_val(ucontact) = $ct.fields(uri) ;
                     } else {
-                        $dlg_val(dcontact) = $ct.fields(uri) ;
+                        if($(dlg_val(dcontact){uri.param,nofix}) == "1") {
+                            xlog("L_INFO", "BLOX_DBG::: blox-lan2wan.cfg: Don't fix dcontact -> $dlg_val(dcontact) <-\n");
+                        } else {
+                            $dlg_val(dcontact) = $ct.fields(uri) ;
+                        }
                     }
                 }
                 xlog("L_INFO", "BLOX_DBG::: blox-lan2wan-allomts.cfg: $ct != $si Response to contact different source $DLG_dir -> $dlg_val(ucontact) -> $dlg_val(dcontact) <-\n");

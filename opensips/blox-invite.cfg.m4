@@ -344,6 +344,9 @@ route[ROUTE_INVITE] {
                         set_dlg_flag("DLG_FLAG_LAN2WAN") ;
                     };
 
+                    if($DLG_dir == "downstream") { #Taken address from DB, NAT resolved
+                        $dlg_val(dcontact) = $du + ";nofix=1" ;
+                    }
                     if($var(nat96)) { # /* If Contact not same as source IP Address */
                         if(!is_ip_rfc1918("$si")) { # /* Set Source IP, Source is Priviate IP */
                             if(!has_totag()) {
