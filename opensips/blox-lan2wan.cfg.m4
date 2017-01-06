@@ -54,17 +54,25 @@ route[LAN2WAN] {
             rtpengine_delete();
         }
 
-        if(is_ip_rfc1918("$si") && $var(nat40)) {
+        if(is_ip_rfc1918("$si")) {
             if($avp(MediaNAT) == "1") {
-                rtpengine_offer("force internal publicif trust-address replace-origin replace-session-connection ICE=remove");
+                if($var(nat32)) { #LAN-LAN Handled
+                    rtpengine_offer("force publicif internal replace-origin replace-session-connection ICE=remove mediaaddress=$si");
+                } else {
+                    rtpengine_offer("force publicif internal trust-address replace-origin replace-session-connection ICE=remove");
+                }
             } else {
-                rtpengine_offer("force internal external trust-address replace-origin replace-session-connection ICE=remove");
+                rtpengine_offer("force external internal trust-address replace-origin replace-session-connection ICE=remove");
             }
         } else {
             if($avp(MediaNAT) == "1") {
-                rtpengine_offer("force internal publicif replace-origin replace-session-connection ICE=remove");
+                if($var(nat32) || $var(nat8)) {
+                    rtpengine_offer("force publicif internal replace-origin replace-session-connection ICE=remove mediaaddress=$si");
+                } else {
+                    rtpengine_offer("force publicif internal replace-origin replace-session-connection ICE=remove");
+                }
             } else {
-                rtpengine_offer("force internal external replace-origin replace-session-connection ICE=remove");
+                rtpengine_offer("force external internal replace-origin replace-session-connection ICE=remove");
             }
         }
     };
@@ -135,17 +143,25 @@ onreply_route[LAN2WAN] {
     if (status =~ "(183)|2[0-9][0-9]") {
         if (has_body("application/sdp")) {
             $var(transcoding) = 0 ;
-            if(is_ip_rfc1918("$si") && nat_uac_test("40")) {
+            if(is_ip_rfc1918("$si")) {
                 if($avp(MediaNAT) == "1") {
-                    rtpengine_answer("force publicif internal trust-address replace-origin replace-session-connection ICE=remove");
+                    if(nat_uac_test("32")) { #LAN-LAN NAT Handled
+                        rtpengine_answer("force internal publicif replace-origin replace-session-connection ICE=remove mediaaddress=$si");
+                    } else {
+                        rtpengine_answer("force internal publicif trust-address replace-origin replace-session-connection ICE=remove");
+                    }
                 } else {
-                    rtpengine_answer("force external internal trust-address replace-origin replace-session-connection ICE=remove");
+                    rtpengine_answer("force internal external trust-address replace-origin replace-session-connection ICE=remove");
                 }
-            } else { 
+            } else {
                 if($avp(MediaNAT) == "1") {
-                    rtpengine_answer("force publicif internal replace-origin replace-session-connection ICE=remove");
+                    if(nat_uac_test("40")) {
+                        rtpengine_answer("force internal publicif replace-origin replace-session-connection ICE=remove mediaaddress=$si");
+                    } else {
+                        rtpengine_answer("force internal publicif replace-origin replace-session-connection ICE=remove");
+                    }
                 } else {
-                    rtpengine_answer("force external internal replace-origin replace-session-connection ICE=remove");
+                    rtpengine_answer("force internal external replace-origin replace-session-connection ICE=remove");
                 }
             }
         };

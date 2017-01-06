@@ -333,7 +333,7 @@ route[MTS_WAN2LAN] {
             $avp(DstT38MediaPort) = ($avp(DstMediaPort) + gT38MediaPortOffset);
             $avp(SrcT38MediaPort) = ($avp(SrcMediaPort) + gT38MediaPortOffset);
 
-            if($var(nat40)) {
+            if($var(nat32) || $var(8)) {
                 $avp(rSrcMediaIP) = $si ;
             } else {
                 $avp(rSrcMediaIP) = $(var(cline){s.select,2, });

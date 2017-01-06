@@ -338,7 +338,7 @@ route[MTS_LAN2WAN] {
             $avp(DstT38MediaPort) = ($avp(DstMediaPort) + gT38MediaPortOffset);
             $avp(SrcT38MediaPort) = ($avp(SrcMediaPort) + gT38MediaPortOffset);
 
-            if( nat_uac_test("40")) { #Behind NAT take the source IP
+            if($var("32") || $var(8)) { #Behind NAT take the source IP
                 $avp(rSrcMediaIP) = $si ;
             } else {
                 $avp(rSrcMediaIP) = $(var(cline){s.select,2, });
@@ -523,7 +523,7 @@ onreply_route[MTS_LAN2WAN] {
                 $var(cline) = $(rb{sdp.line,c});
                 $var(transcoding) = 1 ;
 
-                if( nat_uac_test("40")) { #Behind NAT take the source IP
+                if(nat_uac_test("40")) { #Behind NAT take the source IP
                     $avp(rDstMediaIP) = $si ;
                 } else {
                     $avp(rDstMediaIP) = $(var(cline){s.select,2, });

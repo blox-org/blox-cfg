@@ -114,7 +114,8 @@ route {
 
     $var(nat96) = null;
     $var(nat40) = null;
-    $var(nat32)  = null;
+    $var(nat32) = null;
+    $var(nat8)  = null;
     $var(nat3)  = null;
 
     if ($ct) {
@@ -135,12 +136,18 @@ route {
             $var(nat32)  = 32 ;
         }
 
+        #SDP is searched for occurrence of RFC1918 / RFC6598 addresses 
+        if(nat_uac_test("8")) {
+            $var(nat8)  = 8;
+        }
+
         #Contact header field is searched for occurrence of RFC1918 / RFC6598 addresses.
         #"received" test: address in Via is compared against source IP address of signaling 
         if(client_nat_test("1") && client_nat_test("2")) {
             $var(nat3)  = 3 ;
-            xlog("L_INFO","$rm: $ru: $ct: $si: $hdr(Via): Basic Test for NAT Deducted");
         }
+
+        xlog("L_INFO","BLOX_DBG: $rm: $ru: $ct: $si: $hdr(Via): NAT:$var(nat96):$var(nat40):$var(nat32):$var(8):$var(nat3):");
 
         $var(ct) = $ct ; # /* Original contact */
         $var(cturi) = $ct.fields(uri) ; # /* Original contact */
