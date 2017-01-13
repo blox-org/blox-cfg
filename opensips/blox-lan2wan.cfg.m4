@@ -57,22 +57,22 @@ route[LAN2WAN] {
         if(is_ip_rfc1918("$si")) {
             if($avp(MediaNAT) == "1") {
                 if($var(nat32)) { #LAN-LAN Handled
-                    rtpengine_offer("force publicif internal replace-origin replace-session-connection ICE=remove mediaaddress=$si");
+                    rtpengine_offer("force internal  publicif replace-origin replace-session-connection ICE=remove mediaaddress=$si");
                 } else {
-                    rtpengine_offer("force publicif internal trust-address replace-origin replace-session-connection ICE=remove");
+                    rtpengine_offer("force internal publicif trust-address replace-origin replace-session-connection ICE=remove");
                 }
             } else {
-                rtpengine_offer("force external internal trust-address replace-origin replace-session-connection ICE=remove");
+                rtpengine_offer("force internal external trust-address replace-origin replace-session-connection ICE=remove");
             }
         } else {
             if($avp(MediaNAT) == "1") {
                 if($var(nat32) || $var(nat8)) {
-                    rtpengine_offer("force publicif internal replace-origin replace-session-connection ICE=remove mediaaddress=$si");
+                    rtpengine_offer("force internal publicif replace-origin replace-session-connection ICE=remove mediaaddress=$si");
                 } else {
-                    rtpengine_offer("force publicif internal replace-origin replace-session-connection ICE=remove");
+                    rtpengine_offer("force internal publicif replace-origin replace-session-connection ICE=remove");
                 }
             } else {
-                rtpengine_offer("force external internal replace-origin replace-session-connection ICE=remove");
+                rtpengine_offer("force internal external replace-origin replace-session-connection ICE=remove");
             }
         }
     };
@@ -146,22 +146,22 @@ onreply_route[LAN2WAN] {
             if(is_ip_rfc1918("$si")) {
                 if($avp(MediaNAT) == "1") {
                     if(nat_uac_test("32")) { #LAN-LAN NAT Handled
-                        rtpengine_answer("force internal publicif replace-origin replace-session-connection ICE=remove mediaaddress=$si");
+                        rtpengine_answer("force publicif internal replace-origin replace-session-connection ICE=remove mediaaddress=$si");
                     } else {
-                        rtpengine_answer("force internal publicif trust-address replace-origin replace-session-connection ICE=remove");
+                        rtpengine_answer("force publicif internal trust-address replace-origin replace-session-connection ICE=remove");
                     }
                 } else {
-                    rtpengine_answer("force internal external trust-address replace-origin replace-session-connection ICE=remove");
+                    rtpengine_answer("force external internal trust-address replace-origin replace-session-connection ICE=remove");
                 }
             } else {
                 if($avp(MediaNAT) == "1") {
                     if(nat_uac_test("40")) {
-                        rtpengine_answer("force internal publicif replace-origin replace-session-connection ICE=remove mediaaddress=$si");
+                        rtpengine_answer("force publicif internal replace-origin replace-session-connection ICE=remove mediaaddress=$si");
                     } else {
-                        rtpengine_answer("force internal publicif replace-origin replace-session-connection ICE=remove");
+                        rtpengine_answer("force publicif internal replace-origin replace-session-connection ICE=remove");
                     }
                 } else {
-                    rtpengine_answer("force internal external replace-origin replace-session-connection ICE=remove");
+                    rtpengine_answer("force external internal replace-origin replace-session-connection ICE=remove");
                 }
             }
         };
