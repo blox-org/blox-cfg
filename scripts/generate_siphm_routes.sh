@@ -64,7 +64,7 @@ append_urihf()
 append_time()
 {
 	if [ $#	-eq 0 ]; then
-		echo "append_hf(\"Time: \$Tf\");" ; return ;
+		echo "append_hf(\"Time: \$Tf\\r\\n\");" ; return ;
 	fi
 	LOG_ERR "Invalid Argument for append_time $# $*"
 }
