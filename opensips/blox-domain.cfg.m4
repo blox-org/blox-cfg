@@ -1,5 +1,5 @@
 route[BLOX_DOMAIN] {
-    $var(uuid) = "DOM" + $param(1) + ":" + $rd ;
+    $var(uuid) = "DOM" + $param(1) + ":" + $rd + ":" + $rp;
 
     $avp(DEFURI) = null;    
     $avp(SUBURI) = null;    
