@@ -80,8 +80,8 @@ route[ROUTE_REGISTER] {
                     add_path();
 
                     xdbg("BLOX_DBG: SIP Method $rm forwarding to $du\n");
+                    setbflag(SIP_PING_FLAG);
                     if($var(nat3)) {
-                        setbflag(SIP_PING_FLAG);
                         setbflag(NAT_PING_FLAG);
                     }
 
