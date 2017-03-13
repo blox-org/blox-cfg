@@ -141,7 +141,7 @@ route[ROUTE_INVITE] {
                     if($var(ENUMSX)==""){$var(ENUMSX)=null;}
                 }
 
-                if($var(TRUNKUSER)=="unknown"){$var(TRUNKUSER)=$fU;}
+                if($var(TRUNKUSER)=="0.0.0.0"){$var(TRUNKUSER)=$fU;}
                 if($var(TRUNKIP)==""){$var(TRUNKIP)=null;}
                 if($var(TRUNKPORT)==""){$var(TRUNKPORT)=null;}
                 if($var(TRUNKDOMAIN)==""){$var(TRUNKDOMAIN)=null;}
@@ -422,7 +422,7 @@ route[ROUTE_INVITE] {
                 $avp(WAN) = $(avp(TRUNK){uri.param,WAN});
                 $avp(INBNDURI) = $(avp(TRUNK){uri.param,INBNDURI});
 
-                if($var(TRUNKUSER)=="unknown"){$var(TRUNKUSER)=$tU;}
+                if($var(TRUNKUSER)=="0.0.0.0"){$var(TRUNKUSER)=$tU;}
                 if($var(TRUNKIP)==""){$var(TRUNKIP)=null;}
                 if($var(TRUNKPORT)==""){$var(TRUNKPORT)=null;}
                 if($var(TRUNKDOMAIN)==""){$var(TRUNKDOMAIN)=null;}
