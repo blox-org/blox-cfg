@@ -18,7 +18,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>
 
-/usr/bin/mysqladmin -u root password "cemsbc"
+MYSQL_ROOT_PASSWD=cemsbc
+/usr/bin/mysqladmin -u root password "$MYSQL_ROOT_PASSWD"
 
 OLD_VERSION=$1
 NEW_VERSION=$2
@@ -30,6 +31,10 @@ BLOX_TABLES="locationpbx locationtrunk locationpresence blox_config blox_domain\
 BLOX_ALTER_TABLES="/etc/blox/sql/alter_acc.sql \
 		/etc/blox/sql/alter_blox_config.sql \
 		/etc/blox/sql/alter_usr_preferences.sql"
+
+#cleanup table before migration
+/usr/bin/mysql -u opensips opensips_$NEW_VERSION --password="opensipsrw" -e "DELETE FROM usr_preferences ;"
+/usr/bin/mysql -u opensips opensips_$NEW_VERSION --password="opensipsrw" -e "DELETE FROM dialog;"
 
 if [ -n "$OLD_VERSION" -a -n "$NEW_VERSION" ] #Migration
 then
@@ -47,16 +52,16 @@ then
 		done
 		mysqldump -u opensips --password="opensipsrw" opensips_$OLD_VERSION $OPENSIPS_TABLES > /etc/blox/sql/opensips.migrate.sql
 
-		yes | PW=cemsbc /usr/local/sbin/opensipsdbctl migrate opensips_$OLD_VERSION _opensips_$NEW_VERSION
+		yes | PW=$MYSQL_ROOT_PASSWD /usr/local/sbin/opensipsdbctl migrate opensips_$OLD_VERSION _opensips_$NEW_VERSION
 		/usr/bin/mysql -u opensips --password="opensipsrw" -e "DROP DATABASE opensips_$OLD_VERSION"
-		yes | PW=cemsbc /usr/local/sbin/opensipsdbctl migrate _opensips_$NEW_VERSION opensips_$NEW_VERSION
+		yes | PW=$MYSQL_ROOT_PASSWD /usr/local/sbin/opensipsdbctl migrate _opensips_$NEW_VERSION opensips_$NEW_VERSION
 		/usr/bin/mysql -u opensips --password="opensipsrw" -e "DROP DATABASE _opensips_$NEW_VERSION"
 	else
-		yes | PW=cemsbc /usr/local/sbin/opensipsdbctl migrate opensips_$OLD_VERSION opensips_$NEW_VERSION
+		yes | PW=$MYSQL_ROOT_PASSWD /usr/local/sbin/opensipsdbctl migrate opensips_$OLD_VERSION opensips_$NEW_VERSION
 	fi
 else
 	NEW_VERSION=1_11
-	yes | PW=cemsbc /usr/local/sbin/opensipsdbctl create opensips_$NEW_VERSION
+	yes | PW=$MYSQL_ROOT_PASSWD /usr/local/sbin/opensipsdbctl create opensips_$NEW_VERSION
 fi
 
 if [ -n "$OLD_VERSION" -a -n "$NEW_VERSION" -a "$OLD_VERSION" = "$NEW_VERSION" ]
@@ -83,3 +88,4 @@ do
 	echo "Executing $sql" ;
 	/usr/bin/mysql -u opensips opensips_$NEW_VERSION --password="opensipsrw" -e $sql
 done
+

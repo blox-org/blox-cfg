@@ -115,7 +115,7 @@ route[ROUTE_INVITE] {
             if($avp(TRUNK)) {
                 xdbg("BLOX_DBG: blox-invite.cfg: Routing Forwarded PBX MESSAGE $avp(TRUNK)\n");
 
-        #FIXME: performance on db needs to be optimized
+                #FIXME: performance on db needs to be optimized
                 #$var(cfgparam) = "cfgparam" ;
                 #$avp($var(cfgparam)) = $avp(TRUNK);
                 #avp_db_store("$hdr(call-id)","$avp($var(cfgparam))");
@@ -258,7 +258,7 @@ route[ROUTE_INVITE] {
                 if($avp(PBX)) {
                     xdbg("BLOX_DBG: blox-invite.cfg: Got route $Ri RE\n");
 
-                        #FIXME: performance on db needs to be optimized
+                    #FIXME: performance on db needs to be optimized
                     #$var(cfgparam) = "cfgparam" ;
                     #$avp($var(cfgparam)) = $avp(PBX);
                     #avp_db_store("$hdr(call-id)","$avp($var(cfgparam))");
@@ -406,9 +406,10 @@ route[ROUTE_INVITE] {
 
             if($avp(TRUNK)) {
                 xdbg("BLOX_DBG: blox-invite.cfg: Got from $Ri TRUNK $avp(TRUNK)\n");
-                $var(cfgparam) = "cfgparam" ;
-                $avp($var(cfgparam)) = $avp(TRUNK);
-                avp_db_store("$hdr(call-id)","$avp($var(cfgparam))");
+                #FIXME: performance on db needs to be optimized
+                #$var(cfgparam) = "cfgparam" ;
+                #$avp($var(cfgparam)) = $avp(TRUNK);
+                #avp_db_store("$hdr(call-id)","$avp($var(cfgparam))");
                 #/* INBOUND Trunk Call */
                 $var(TRUNKUSER) = $(avp(TRUNK){uri.user});
                 $var(TRUNKIP) = $(avp(TRUNK){uri.host});
@@ -421,7 +422,7 @@ route[ROUTE_INVITE] {
                 $avp(WAN) = $(avp(TRUNK){uri.param,WAN});
                 $avp(INBNDURI) = $(avp(TRUNK){uri.param,INBNDURI});
 
-                if($var(TRUNKUSER)==""){$var(TRUNKUSER)=null;}
+                if($var(TRUNKUSER)=="unknown"){$var(TRUNKUSER)=$tU;}
                 if($var(TRUNKIP)==""){$var(TRUNKIP)=null;}
                 if($var(TRUNKPORT)==""){$var(TRUNKPORT)=null;}
                 if($var(TRUNKDOMAIN)==""){$var(TRUNKDOMAIN)=null;}
@@ -514,9 +515,10 @@ route[ROUTE_INVITE] {
             }
             if($avp(PBX)) {
                 xdbg("BLOX_DBG: blox-invite.cfg: Got from $Ri RE $avp(PBX)\n");
-                $var(cfgparam) = "cfgparam" ;
-                $avp($var(cfgparam)) = $avp(PBX);
-                avp_db_store("$hdr(call-id)","$avp($var(cfgparam))");
+                #FIXME: performance on db needs to be optimized
+                #$var(cfgparam) = "cfgparam" ;
+                #$avp($var(cfgparam)) = $avp(PBX);
+                #avp_db_store("$hdr(call-id)","$avp($var(cfgparam))");
                 #/* Check Roaming Extension routing */
                 $var(PBXIP) = $(avp(PBX){uri.host}) ;
                 $var(PBXPORT) = $(avp(PBX){uri.port}) ;
