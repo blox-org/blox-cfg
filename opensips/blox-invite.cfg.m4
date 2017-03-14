@@ -123,7 +123,7 @@ route[ROUTE_INVITE] {
                 $var(TRUNKUSER) = $(avp(TRUNK){uri.user});
                 $var(TRUNKIP) = $(avp(TRUNK){uri.host});
                 $var(TRUNKPORT) = $(avp(TRUNK){uri.port});
-                $var(TRUNKDOMAIN) = $(avp(TRUNK){uri.domain});
+                $var(TRUNKDOMAIN) = $(avp(TRUNK){uri.param,DOMAIN});
                 $avp(WAN)  = $(avp(TRUNK){uri.param,WAN});
                 $avp(T38Param)  = $(avp(TRUNK){uri.param,T38Param});
                 $avp(MEDIA)  = $(avp(TRUNK){uri.param,MEDIA});
@@ -154,38 +154,6 @@ route[ROUTE_INVITE] {
                 if($avp(DstSRTP)==""){$avp(DstSRTP)=null;}
 
                 if($avp(WAN)) {
-                    if(!has_totag()) {
-                        xdbg("BLOX_DBG: blox-invite.cfg: $avp(TRUNK)/$var(TRUNKUSER)/ $var(TRUNKIP)/$var(TRUNKPORT)/$avp(SIPProfile)\n");
-                        $avp(cac_uuid) = $avp(TRUNK) ; 
-                        setflag(487); /* Send response 487 if GW not available */
-                        route(OUTBOUND_CALL_ACCESS_CONTROL);
-                        if(!isflagset(OUTBOUND_CALL_ACCESS_CONTROL)) {
-                            xlog("L_INFO", "BLOX_DBG::: blox-invite.cfg: Dropping SIP Method $rm received from $fu $si $sp to $ru ($avp(rcv))\n");
-                            drop();
-                            exit;
-                        }
-                        $dlg_val(MediaProfileID) = $avp(MEDIA);
-                        $dlg_val(from) = $fu ;
-                        $dlg_val(request) = $ru ;
-                        $dlg_val(channel) = "sip:" + $si + ":" + $sp;
-                        $dlg_val(direction) = "outbound";
-                        if(pcre_match("$ci","^BLOX_CALLID_PREFIX")) { /* Already tophide applied */
-                            topology_hiding();
-                        } else {
-                            topology_hiding("C");
-                        }
-                        xdbg("BLOX_DBG: blox-invite.cfg: Storing the cseq offset for $ft\n") ;
-                        if($(hdr(Diversion))) {
-                            $dlg_val(dchannel) = $avp(TRUNK) + ";Diversion=" + $(hdr(Diversion)) ;
-                        } else {
-                            $dlg_val(dchannel) = $avp(TRUNK) ;
-                        }
-                        setflag(ACC_FLAG_CDR_FLAG);
-                        setflag(ACC_FLAG_LOG_FLAG);
-                        setflag(ACC_FLAG_DB_FLAG);
-                        setflag(ACC_FLAG_FAILED_TRANSACTION);
-                            append_hf("P-hint: TopHide-Applied\r\n"); 
-                    };
                     if( route_to_gw("$avp(GWID)") ) {
                         if(!has_totag()) { #Set From/To Execute inital time
                             route(READ_WAN_PROFILE);
@@ -229,6 +197,39 @@ route[ROUTE_INVITE] {
                         if($var(ENUMSE) != null && $var(ENUMSX) != null) {
                             route(ENUM,$var(ENUMTYPE),$var(ENUMSX),$var(ENUMSE)) ;
                         }
+
+                        if(!has_totag()) {
+                            xdbg("BLOX_DBG: blox-invite.cfg: $avp(TRUNK)/$var(TRUNKUSER)/ $var(TRUNKIP)/$var(TRUNKPORT)/$avp(SIPProfile)\n");
+                            $avp(cac_uuid) = $avp(TRUNK) ; 
+                            setflag(487); /* Send response 487 if GW not available */
+                            route(OUTBOUND_CALL_ACCESS_CONTROL);
+                            if(!isflagset(OUTBOUND_CALL_ACCESS_CONTROL)) {
+                                xlog("L_INFO", "BLOX_DBG::: blox-invite.cfg: Dropping SIP Method $rm received from $fu $si $sp to $ru ($avp(rcv))\n");
+                                drop();
+                                exit;
+                            }
+                            $dlg_val(MediaProfileID) = $avp(MEDIA);
+                            $dlg_val(from) = $fu ;
+                            $dlg_val(request) = $ru ;
+                            $dlg_val(channel) = "sip:" + $si + ":" + $sp;
+                            $dlg_val(direction) = "outbound";
+                            if(pcre_match("$ci","^BLOX_CALLID_PREFIX")) { /* Already tophide applied */
+                                topology_hiding();
+                            } else {
+                                topology_hiding("C");
+                            }
+                            xdbg("BLOX_DBG: blox-invite.cfg: Storing the cseq offset for $ft\n") ;
+                            if($(hdr(Diversion))) {
+                                $dlg_val(dchannel) = $du + ";Diversion=" + $(hdr(Diversion)) ;
+                            } else {
+                                $dlg_val(dchannel) = $du ;
+                            }
+                            setflag(ACC_FLAG_CDR_FLAG);
+                            setflag(ACC_FLAG_LOG_FLAG);
+                            setflag(ACC_FLAG_DB_FLAG);
+                            setflag(ACC_FLAG_FAILED_TRANSACTION);
+                            append_hf("P-hint: TopHide-Applied\r\n"); 
+                        };
 
                         t_on_failure("LAN2WAN");
                         xdbg("BLOX_DBG: blox-invite.cfg: Routing $var(from) $var(to) $ru to $du from $si : $sp via $fs\n" );
@@ -414,7 +415,7 @@ route[ROUTE_INVITE] {
                 $var(TRUNKUSER) = $(avp(TRUNK){uri.user});
                 $var(TRUNKIP) = $(avp(TRUNK){uri.host});
                 $var(TRUNKPORT) = $(avp(TRUNK){uri.port});
-                $var(TRUNKDOMAIN) = $(avp(TRUNK){uri.domain});
+                $var(TRUNKDOMAIN) = $(avp(TRUNK){uri.param,DOMAIN});
                 $avp(T38Param)  = $(avp(TRUNK){uri.param,T38Param});
                 $avp(MEDIA)  = $(avp(TRUNK){uri.param,MEDIA});
                 $avp(SrcSRTP) = $(avp(TRUNK){uri.param,WANSRTP});
