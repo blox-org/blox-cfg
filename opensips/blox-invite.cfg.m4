@@ -216,7 +216,7 @@ route[ROUTE_INVITE] {
                             if(pcre_match("$ci","^BLOX_CALLID_PREFIX")) { /* Already tophide applied */
                                 topology_hiding();
                             } else {
-                                topology_hiding("C");
+                                topology_hiding();
                             }
                             xdbg("BLOX_DBG: blox-invite.cfg: Storing the cseq offset for $ft\n") ;
                             if($(hdr(Diversion))) {
@@ -335,7 +335,7 @@ route[ROUTE_INVITE] {
                         if(pcre_match("$ci","^BLOX_CALLID_PREFIX")) { /* Already tophide applied */
                             topology_hiding();
                         } else {
-                            topology_hiding("C");
+                            topology_hiding();
                         }
                         setflag(ACC_FLAG_CDR_FLAG);
                         setflag(ACC_FLAG_LOG_FLAG);
