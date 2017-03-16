@@ -128,7 +128,11 @@ route[ROUTE_INVITE] {
                 $avp(T38Param)  = $(avp(TRUNK){uri.param,T38Param});
                 $avp(MEDIA)  = $(avp(TRUNK){uri.param,MEDIA});
                 $avp(GWID) = $(avp(TRUNK){uri.param,GWID});
-                $avp(CID) = $(avp(TRUNK){uri.param,CID});
+                $var(CID) = $(avp(TRUNK){uri.param,CID});
+                $var(CIDNAMEPREFIX) = $(avp(TRUNK){uri.param,CNAP});
+                $var(CIDNAME) = $(avp(TRUNK){uri.param,CNA});
+                $var(CIDNUMPREFIX) = $(avp(TRUNK){uri.param,CNUP});
+                $var(CIDNUM)  = $(avp(TRUNK){uri.param,CNU});
                 $avp(SrcSRTP) = $(avp(TRUNK){uri.param,LANSRTP});
                 $avp(DstSRTP) = $(avp(TRUNK){uri.param,WANSRTP});
                 route(READ_ENUM,$avp(uuid));
@@ -149,9 +153,24 @@ route[ROUTE_INVITE] {
                 if($avp(T38Param)==""){$avp(T38Param)=null;}
                 if($avp(MEDIA)==""){$avp(MEDIA)=null;}
                 if($avp(GWID)==""){$avp(GWID)=null;}
-                if($avp(CID)==""){$avp(CID)=null;}
+                if($var(CID)==""){$var(CID)=null;}
+                if($var(CIDNAMEPREFIX)==""){$var(CIDNAMEPREFIX)=null;}
+                if($var(CIDNAME)==""){
+                    $var(CIDNAME)=$fn;
+                    $var(len) = $(var(CIDNAME){s.len}) - 2 ;
+                    $var(CIDNAME)=$(var(CIDNAME){s.substr,1,$var(len)}) ;
+                }
+                if($var(CIDNUMPREFIX)==""){$var(CIDNUMPREFIX)=null;}
+                if($var(CIDNUM)==""){$var(CIDNUM)=$var(TRUNKUSER);}
                 if($avp(SrcSRTP)==""){$avp(SrcSRTP)=null;}
                 if($avp(DstSRTP)==""){$avp(DstSRTP)=null;}
+
+                if($var(CIDNUMPREFIX)) {
+                     $var(CIDNUM) = $var(CIDNUMPREFIX) + $var(CIDNUM) ;        
+                }
+                if($var(CIDNAMEPREFIX)) {
+                     $var(CIDNAME) = $var(CIDNAMEPREFIX) + $var(CIDNAME) ;        
+                }
 
                 if($avp(WAN)) {
                     if( route_to_gw("$avp(GWID)") ) {
@@ -169,18 +188,14 @@ route[ROUTE_INVITE] {
                                 if($avp(WANADVPORT)==""){$avp(WANADVPORT)=null;}
 
                                 if($var(TRUNKDOMAIN)) { #$rU from route_to_gw
-                                    $var(to)   = "sip:" + $rU             + "@" + $var(TRUNKDOMAIN) + ":" + $var(TRUNKPORT) ;
-                                    $var(from) = "sip:" + $var(TRUNKUSER) + "@" + $var(TRUNKDOMAIN) + ":" + $var(TRUNKPORT) ;
+                                    $var(to)   = "sip:" + $rU          + "@" + $var(TRUNKDOMAIN) + ":" + $var(TRUNKPORT) ;
+                                    $var(from) = "sip:" + $var(CIDNUM) + "@" + $var(TRUNKDOMAIN) + ":" + $var(TRUNKPORT) ;
                                 } else {
-                                    $var(to)   = "sip:" + $rU             + "@" + $var(TRUNKIP) + ":" + $var(TRUNKPORT) ;
-                                    $var(from) = "sip:" + $var(TRUNKUSER) + "@" + $var(TRUNKIP) + ":" + $var(TRUNKPORT) ;
+                                    $var(to)   = "sip:" + $rU          + "@" + $var(TRUNKIP) + ":" + $var(TRUNKPORT) ;
+                                    $var(from) = "sip:" + $var(CIDNUM) + "@" + $var(TRUNKIP) + ":" + $var(TRUNKPORT) ;
                                 }
                                 uac_replace_to("$var(to)");
-                                if($avp(CID)) {
-                                  uac_replace_from("$avp(CID)","$var(from)");
-                                } else {
-                                  uac_replace_from("$var(from)");
-                                }
+                                uac_replace_from("$var(CIDNAME)","$var(from)");
                             } else {
                                 xlog("L_ERROR", "BLOX_DBG::: blox-invite.cfg: No WAN Profile, Leaking through To/From Header\n");
                             }
