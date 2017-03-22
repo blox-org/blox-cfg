@@ -194,8 +194,6 @@ route[ROUTE_INVITE] {
                                     $var(to)   = "sip:" + $rU          + "@" + $var(TRUNKIP) + ":" + $var(TRUNKPORT) ;
                                     $var(from) = "sip:" + $var(CIDNUM) + "@" + $var(TRUNKIP) + ":" + $var(TRUNKPORT) ;
                                 }
-                                uac_replace_to("$var(to)");
-                                uac_replace_from("$var(CIDNAME)","$var(from)");
                             } else {
                                 xlog("L_ERROR", "BLOX_DBG::: blox-invite.cfg: No WAN Profile, Leaking through To/From Header\n");
                             }
@@ -244,6 +242,8 @@ route[ROUTE_INVITE] {
                             setflag(ACC_FLAG_DB_FLAG);
                             setflag(ACC_FLAG_FAILED_TRANSACTION);
                             append_hf("P-hint: TopHide-Applied\r\n"); 
+                            uac_replace_to("$var(to)");
+                            uac_replace_from("$var(CIDNAME)","$var(from)");
                         };
 
                         t_on_failure("LAN2WAN");
