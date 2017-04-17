@@ -155,11 +155,13 @@ route {
 
         if($avp(WAN)) { # /* Fix NAT On WAN Request */
             if($proto == "tcp" || $proto == "tls") {
-                if($var(32)) {
+                if($var(nat32) == null) {
                     $var(fixnat) = null ;
                 }
+            } else if($var(nat3) == null) {
+                    $var(fixnat) = null ;
             }
-            if($var(fixnat) && $var(nat3)) {
+            if($var(fixnat)) {
                 if(is_method("REGISTER")) {
                     fix_nated_register(); /* will set not just contact, update received address to db */
                 } else {

@@ -47,7 +47,7 @@ route[ROUTE_REGISTER] {
                     $avp(LANPORT) = $(avp(LANProfile){uri.port});
                     $avp(LANPROTO) = $(avp(LANProfile){uri.param,transport});
                     xdbg("BLOX_DBG::: blox-register.cfg: REGISTER processed, $si $sp to $ru ($avp(rcv))/$var(cturi)\n"); #/* Don't know what to do */
-                    if($var(fixnat) && $var(nat3)) {
+                    if($var(fixnat)) {
                         xdbg("BLOX_DBG::: blox-register.cfg: NAT Fixed already req: $ru contact: $ct rcv: $avp(rcv)"); 
                     } else {
                         $avp(rcv) = "sip:" + $(var(cturi){uri.host}) + ":" + $(var(cturi){uri.port}) + ";transport=" + $proto ;
@@ -81,7 +81,7 @@ route[ROUTE_REGISTER] {
 
                     xdbg("BLOX_DBG: SIP Method $rm forwarding to $du\n");
                     setbflag(SIP_PING_FLAG);
-                    if($var(nat3)) {
+                    if($var(fixnat)) {
                         setbflag(NAT_PING_FLAG);
                     }
 
