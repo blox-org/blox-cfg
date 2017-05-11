@@ -227,9 +227,9 @@ route[ROUTE_INVITE] {
                             $dlg_val(channel) = "sip:" + $si + ":" + $sp;
                             $dlg_val(direction) = "outbound";
                             if(pcre_match("$ci","^BLOX_CALLID_PREFIX")) { /* Already tophide applied */
-                                topology_hiding();
+                                topology_hiding("U");
                             } else {
-                                topology_hiding();
+                                topology_hiding("U");
                             }
                             xdbg("BLOX_DBG: blox-invite.cfg: Storing the cseq offset for $ft\n") ;
                             if($(hdr(Diversion))) {
@@ -348,9 +348,9 @@ route[ROUTE_INVITE] {
                         $dlg_val(dchannel) = $du ;
                         $dlg_val(direction) = "outbound";
                         if(pcre_match("$ci","^BLOX_CALLID_PREFIX")) { /* Already tophide applied */
-                            topology_hiding();
+                            topology_hiding("U");
                         } else {
-                            topology_hiding();
+                            topology_hiding("U");
                         }
                         setflag(ACC_FLAG_CDR_FLAG);
                         setflag(ACC_FLAG_LOG_FLAG);
@@ -506,7 +506,7 @@ route[ROUTE_INVITE] {
                     $dlg_val(dchannel) = $du;
                     $dlg_val(direction) = "inbound";
                     /* Call-ID encoding not required for WAN to LAN */
-                    topology_hiding();
+                    topology_hiding("U");
                     setflag(ACC_FLAG_CDR_FLAG);
                     setflag(ACC_FLAG_LOG_FLAG);
                     setflag(ACC_FLAG_DB_FLAG);
@@ -654,7 +654,7 @@ route[ROUTE_INVITE] {
                         $dlg_val(direction) = "inbound";
 
                         /* Call-ID encoding not required for WAN to LAN */
-                        topology_hiding(); #flags remove: CR: C - CallID, R - Refer-To
+                        topology_hiding("U"); #flags remove: CR: C - CallID, R - Refer-To
                         add_rcv_param();
                         setflag(ACC_FLAG_CDR_FLAG);
                         setflag(ACC_FLAG_LOG_FLAG);
