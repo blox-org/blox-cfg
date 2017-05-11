@@ -133,6 +133,7 @@ route[ROUTE_INVITE] {
                 $var(CIDNAME) = $(avp(TRUNK){uri.param,CNA});
                 $var(CIDNUMPREFIX) = $(avp(TRUNK){uri.param,CNUP});
                 $var(CIDNUM)  = $(avp(TRUNK){uri.param,CNU});
+                $var(CIDPASS)  = $(avp(TRUNK){uri.param,CPASS});
                 $avp(SrcSRTP) = $(avp(TRUNK){uri.param,LANSRTP});
                 $avp(DstSRTP) = $(avp(TRUNK){uri.param,WANSRTP});
                 route(READ_ENUM,$avp(uuid));
@@ -145,7 +146,8 @@ route[ROUTE_INVITE] {
                     if($var(ENUMSX)==""){$var(ENUMSX)=null;}
                 }
 
-                if($var(TRUNKUSER)=="0.0.0.0"){$var(TRUNKUSER)=$fU;}
+                if($var(CIDPASS)==""){$var(CIDPASS)=null;}
+                if($var(TRUNKUSER)=="0.0.0.0" || $var(CIDPASS)){$var(TRUNKUSER)=$fU;}
                 if($var(TRUNKIP)==""){$var(TRUNKIP)=null;}
                 if($var(TRUNKPORT)==""){$var(TRUNKPORT)=null;}
                 if($var(TRUNKDOMAIN)==""){$var(TRUNKDOMAIN)=null;}
@@ -160,6 +162,7 @@ route[ROUTE_INVITE] {
                     $var(len) = $(var(CIDNAME){s.len}) - 2 ;
                     $var(CIDNAME)=$(var(CIDNAME){s.substr,1,$var(len)}) ;
                 }
+                if($var(CIDNAME)==""){$var(CIDNAME)=null;}
                 if($var(CIDNUMPREFIX)==""){$var(CIDNUMPREFIX)=null;}
                 if($var(CIDNUM)==""){$var(CIDNUM)=$var(TRUNKUSER);}
                 if($avp(SrcSRTP)==""){$avp(SrcSRTP)=null;}
@@ -243,7 +246,11 @@ route[ROUTE_INVITE] {
                             setflag(ACC_FLAG_FAILED_TRANSACTION);
                             append_hf("P-hint: TopHide-Applied\r\n"); 
                             uac_replace_to("$var(to)");
-                            uac_replace_from("$var(CIDNAME)","$var(from)");
+                            if($var(CIDNAME)) {
+                                uac_replace_from("$var(CIDNAME)","$var(from)");
+                            } else {
+                                uac_replace_from("$var(from)");
+                            }
                         };
 
                         t_on_failure("LAN2WAN");
