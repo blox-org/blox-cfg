@@ -34,9 +34,9 @@ remove_hf()
 append_hf()
 {
 	if [ $#	-eq 2 ]; then
-		echo "append_hf(\"$1\", \"$2\");" ; return ;
+		echo "append_hf(\"$1\\r\\n\", \"$2\");" ; return ;
 	elif [ $# -eq 1 ]; then
-		echo "append_hf(\"$1\");" ; return ;
+		echo "append_hf(\"$1\\r\\n\");" ; return ;
 	fi
 	LOG_ERR "Invalid Argument for append_hf $# $*"
 }
@@ -44,9 +44,9 @@ append_hf()
 insert_hf()
 {
 	if [ $#	-eq 2 ]; then
-		echo "insert_hf(\"$1\", \"$2\");" ; return ;
+		echo "insert_hf(\"$1\\r\\n\", \"$2\");" ; return ;
 	elif [ $# -eq 1 ]; then
-		echo "insert_hf(\"$1\");" ; return ;
+		echo "insert_hf(\"$1\\r\\n\");" ; return ;
 	fi
 	LOG_ERR "Invalid Argument for insert_hf $# $*"
 }
@@ -54,9 +54,9 @@ insert_hf()
 append_urihf()
 {
 	if [ $#	-eq 2 ]; then
-		echo "append_urihf(\"$1\", \"$2\");" ; return ;
+		echo "append_urihf(\"$1\", \"$2\\r\\n\");" ; return ;
 	elif [ $# -eq 1 ]; then
-		echo "append_urihf(\"$1\");" ; return ;
+		echo "append_urihf(\"$1\", \"\\r\\n\");" ; return ;
 	fi
 	LOG_ERR "Invalid Argument for append_urihf $# $*"
 }
