@@ -11,7 +11,7 @@
 #
 ### BEGIN INIT INFO
 # Provides: rtpengine
-# Required-Start:
+# Required-Start: iptables
 # Required-Stop:
 # Default-Start:     3 4 5
 # Default-Stop:      0 1 2 6
@@ -215,7 +215,6 @@ start() {
 		echo "Loading module for in-kernel packet forwarding"
 		rmmod xt_RTPENGINE 2> /dev/null && sleep 1
 		modprobe xt_RTPENGINE
-		LINENUM=$(iptables -nL INPUT --line-numbers  | awk '{if($2=="REJECT") print $1;}' | head -1)
 
 cat > /var/tmp/rtpengine.rules <<EOF
 *filter
@@ -223,7 +222,7 @@ cat > /var/tmp/rtpengine.rules <<EOF
 :FORWARD ACCEPT [0:0]
 :OUTPUT ACCEPT [0:0]
 :rtpengine - [0:0]
--I INPUT $LINENUM -p udp --dport $PORT_MIN:$PORT_MAX -j rtpengine 
+-I MINIUPNPD -p udp --dport $PORT_MIN:$PORT_MAX -j rtpengine 
 -I rtpengine -p udp --dport $PORT_MIN:$PORT_MAX -j ACCEPT 
 -I rtpengine -p udp -j RTPENGINE --id $TABLE
 COMMIT
