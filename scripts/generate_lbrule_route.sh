@@ -218,8 +218,8 @@ AddCommand()
 exec 1>$LBRULE_ROUTES_CFG #Default STDOUT to create routes
 exec 5>$LBRULE_SWITCH_CFG #Descriptor 5 to create switch case statements
 
-echo "\$var(lbrule) = \$param(1) + $START_ROUTE_ID" >&5
-echo "switch(\$(var(lbrule){s.int})) {" >&5
+echo "\$var(lbrule) = \$(param(1){s.int}) + $START_ROUTE_ID;" >&5
+echo "switch(\$var(lbrule)) {" >&5
 CURRENT_ROUTE_ID=0
 IFS="
 "
@@ -263,5 +263,11 @@ fi
 echo "default:" >&5
 echo "xlog(\"L_ERR\",\"BLOX_DBG::: No route \$var(lbrule) for Load Balancing\n\");" >&5
 echo "}" >&5
+
+exec 5<&- #Close the descriptor
+
+if [ $CURRENT_ROUTE_ID == 0 ] ; then #empty switch case
+	echo -n > $LBRULE_SWITCH_CFG
+fi
 
 exit 0
