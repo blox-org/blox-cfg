@@ -201,6 +201,7 @@ route {
         if (is_method("BYE|CANCEL")) {
             if($dlg_val(MediaProfileID)) {
                 $avp(MediaProfileID) = $dlg_val(MediaProfileID) ;
+                $avp(setid) = $(avp(MediaProfileID){s.int}) ;
                 if($avp(setid)) {
                     rtpengine_delete();
                 }
@@ -218,14 +219,15 @@ route {
     };
 
     $avp(dupreq) = null;
-    if (has_totag() && ((uri == myself)||(from_uri == myself)) && is_method("INVITE|ACK|BYE|UPDATE|REFER|NOTIFY|PRACK")) {
+    if (has_totag() && ((uri == myself)||(from_uri == myself)) && is_method("INVITE|ACK|BYE|UPDATE|REFER|NOTIFY|PRACK|INFO")) {
          xdbg("BLOX_DBG: blox.cfg: MATCHING DIALOG\n");
          if(match_dialog()) {
-            xdbg("BLOX_DBG: blox.cfg: MATCHED DIALOG\n");
+            xdbg("BLOX_DBG: blox.cfg: MATCHED DIALOG req:$ru du:$du\n");
             xdbg("BLOX_DBG: blox.cfg: In-Dialog tophide dir: $DLG_dir - up: $dlg_val(ucontact) down: $dlg_val(dcontact) \n");
             if (is_method("BYE")) {
                 if($dlg_val(MediaProfileID)) {
                     $avp(MediaProfileID) = $dlg_val(MediaProfileID) ;
+                    $avp(setid) = $(avp(MediaProfileID){s.int}) ;
                     if($avp(setid)) {
                         rtpengine_delete();
                     }
@@ -247,18 +249,24 @@ route {
 
 
     if ((uri==myself || from_uri==myself)) {
-        if(method == "INVITE") {
-            route(ROUTE_INVITE);
-        }
-
         if (method == "CANCEL") {
-            route(ROUTE_CANCEL);
+            if(t_check_trans()) { #/* Packet not retransmitted */
+                route(ROUTE_CANCEL);
+            }
+            exit;
         }
 
         if ( method == "ACK" ) { #already dialog handled, this should be dropped
-            xlog("L_INFO", "BLOX_DBG::: blox.cfg: Dropping SIP Method $rm received from $fu $si $sp to $ru ($avp(rcv))\n"); /* Dont know what to do */
-            t_check_trans();  # stops the retransmission
+            if(t_check_trans()) { #/* Packet not retransmitted */
+                route(ROUTE_ACK);
+            }
             exit;
+        }
+
+        t_check_trans();
+
+        if(method == "INVITE") {
+            route(ROUTE_INVITE);
         }
 
         if(method == "NOTIFY") { /* Only REFER-NOTIFY, Not SUBSCRIBE */
@@ -347,6 +355,7 @@ route[READ_HEADER] {
 failure_route[missed_call] {
     if (t_was_cancelled()) {
         $avp(MediaProfileID) = $dlg_val(MediaProfileID) ;
+        $avp(setid) = $(avp(MediaProfileID){s.int}) ;
         if($avp(setid)) {
             rtpengine_delete();
         }
@@ -395,6 +404,7 @@ failure_route[UAC_AUTH_FAIL] {
 
 ###########################################################################################
 # ----------- SIP Method based routers ------------------------
+include_file "blox-media.cfg"
 include_file "blox-register.cfg"
 include_file "blox-invite.cfg"
 include_file "blox-cancel.cfg"

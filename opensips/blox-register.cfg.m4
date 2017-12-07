@@ -119,9 +119,13 @@ onreply_route[WAN2LAN_REGISTER] {
             xdbg("BLOX_DBG: Got REGISTER REPLY $fu/$ru/$si/$ci/$avp(rcv)" );
             $avp(regattr) = $pr + ":" + $si + ":" + $sp ;
             $var(aor) = "sip:" + $tU + "@" + $avp(WANIP) + ":" + $avp(WANPORT) ;
-            $var(expires) = $ct.fields(expires) ;
+            if($ct.fields(expires)) {
+                $var(expires) = $ct.fields(expires) ;
+            }
             if($var(expires)==null||$var(expires)=="") {
-              $var(expires) = $hdr(Expires) ;
+		if($hdr(Expires)) {
+                	$var(expires) = $hdr(Expires) ;
+		}
             }
             if($var(expires)==null||$var(expires)=="") {
               $var(sflg) = "rp1fc1" ;

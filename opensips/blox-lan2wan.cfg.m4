@@ -25,6 +25,12 @@ route[LAN2WAN] {
         insert_hf("Server: USERAGENT\r\n","CSeq") ;
     }
 
+    if($DLG_dir) {
+        $avp(DLG_dir) = $DLG_dir ;
+    } else {
+        $avp(DLG_dir) = "upstream" ;
+    }
+
     if($dlg_val(MediaProfileID)) {
         $avp(MediaProfileID) = $dlg_val(MediaProfileID);
     }
@@ -54,27 +60,8 @@ route[LAN2WAN] {
             rtpengine_delete();
         }
 
-        if(is_ip_rfc1918("$si")) {
-            if($avp(MediaNAT) == "1") {
-                if($var(nat32)) { #LAN-LAN Handled
-                    rtpengine_offer("force internal  publicif replace-origin replace-session-connection ICE=remove media-address=$si");
-                } else {
-                    rtpengine_offer("force internal publicif trust-address replace-origin replace-session-connection ICE=remove");
-                }
-            } else {
-                rtpengine_offer("force internal external trust-address replace-origin replace-session-connection ICE=remove");
-            }
-        } else {
-            if($avp(MediaNAT) == "1") {
-                if($var(nat32) || $var(nat8)) {
-                    rtpengine_offer("force internal publicif replace-origin replace-session-connection ICE=remove media-address=$si");
-                } else {
-                    rtpengine_offer("force internal publicif replace-origin replace-session-connection ICE=remove");
-                }
-            } else {
-                rtpengine_offer("force internal external replace-origin replace-session-connection ICE=remove");
-            }
-        }
+        $avp(ROUTE_DIR) = "INT2EXT" ;
+        route(HANDLE_MEDIA_ROUTE) ;
     };
 
     #FIXME: performance on db needs to be optimized
@@ -86,18 +73,32 @@ route[LAN2WAN] {
     t_on_failure("LAN2WAN");
 
     if(has_totag()) { #Within dialog
-        if($DLG_dir == "downstream" && $dlg_val(dcontact)) {
-            $du = $dlg_val(dcontact) ;
+        $var(duparams) = null ;
+        if($du != null && $du != "") {
+            $var(du) = $du ; #orginal
+            $var(duparams) = $(var(du){uri.params}) ;
         }
-        if($DLG_dir == "upstream" && $dlg_val(ucontact)) {
-            $du = $dlg_val(ucontact) ;
+        xdbg("BLOX_DBG::: blox-lan2wan.cfg: du: $var(du): $var(duparams)\n");
+        if($avp(DLG_dir) == "downstream" && $dlg_val(dcontact)) {
+            if($var(duparams) && $(var(duparams){param.exist,lr}) == 1) {
+                $ru = $dlg_val(dcontact) ;
+            } else {
+                $du = $dlg_val(dcontact) ;
+            }
+        }
+        if($avp(DLG_dir) == "upstream" && $dlg_val(ucontact)) {
+            if($var(duparams) && $(var(duparams){param.exist,lr}) == 1) {
+                $ru = $dlg_val(ucontact) ; 
+            } else {
+                $du = $dlg_val(ucontact) ;
+            }
         }
     }
 
     if(($Ri == $si)) {
         if($du != null && $du != "") {
             $var(du) = $du ; #orginal
-            $var(duuri) = "sip:" + $(var(du){uri.host}) + $(var(du){uri.port}) ;
+            $var(duuri) = "sip:" + $(var(du){uri.host}) + ":" + $(var(du){uri.port}) ;
             $var(did) = $(var(du){uri.param,did}) ;
             if($var(did) == null || $var(did) == "") { 
                 $var(did) = "" ;
@@ -121,7 +122,7 @@ route[LAN2WAN] {
         }
     }
 
-    xlog("L_INFO", "BLOX_DBG::: blox-lan2wan.cfg: ROUTING $rm - dir: $DLG_dir: from: $fu src:$si:$sp to ru:$ru : down: $avp(dcontact) up:$avp(ucontact) -> dst: $du \n");
+    xlog("L_INFO", "BLOX_DBG::: blox-lan2wan.cfg: ROUTING $rm - dir: $avp(DLG_dir) $DLG_dir: from: $fu src:$si:$sp to ru:$ru : down: $avp(dcontact) up:$avp(ucontact) -> dst: $du \n");
 
     if($var(SHMPACT)) {
         route(SIP_HEADER_MANIPULATE,$var(SHMPACT));
@@ -137,78 +138,59 @@ route[LAN2WAN] {
 
 #Used for LAN PROFILE
 onreply_route[LAN2WAN] {
-
     xlog("L_INFO","BLOX_DBG::: blox-lan2wan.cfg: Got Response code:$rs from:$fu ru:$ru src:$si:$sp callid:$ci rcv:$Ri:$Rp\n");
 
     if (status =~ "(183)|2[0-9][0-9]") {
         if (has_body("application/sdp")) {
-            $var(transcoding) = 0 ;
-            if(is_ip_rfc1918("$si")) {
-                if($avp(MediaNAT) == "1") {
-                    if(nat_uac_test("32")) { #LAN-LAN NAT Handled
-                        rtpengine_answer("force publicif internal replace-origin replace-session-connection ICE=remove media-address=$si");
-                    } else {
-                        rtpengine_answer("force publicif internal trust-address replace-origin replace-session-connection ICE=remove");
-                    }
-                } else {
-                    rtpengine_answer("force external internal trust-address replace-origin replace-session-connection ICE=remove");
-                }
-            } else {
-                if($avp(MediaNAT) == "1") {
-                    if(nat_uac_test("40")) {
-                        rtpengine_answer("force publicif internal replace-origin replace-session-connection ICE=remove media-address=$si");
-                    } else {
-                        rtpengine_answer("force publicif internal replace-origin replace-session-connection ICE=remove");
-                    }
-                } else {
-                    rtpengine_answer("force external internal replace-origin replace-session-connection ICE=remove");
-                }
-            }
-        };
+            route(HANDLE_MEDIA_REPLY); 
+        }
 
         if(is_method("INVITE")) {
             if(nat_uac_test("96")) { # /* If Contact not same as source IP Address */
-                if(!is_ip_rfc1918("$si")) { # /* Set Source IP, Source is Priviate IP */
-                    $var(ctparams) = $ct.fields(params) ;
-                    xdbg("BLOX_DBG::: blox-lan2wan.cfg: $DLG_dir | Set Source IP, Source is Priviate IP and received!=via  $si:$sp;$var(ctparams)\n");
-                    if($DLG_dir == "downstream") {
-                        $dlg_val(ucontact) = "sip:" + $si + ":" + $sp + ";transport=" + $proto ;
-                    } else {
+                $var(cturi) = $ct.fields(uri) ;
+                $var(cthost) = $(var(cturi){uri.host}) ;
+                $var(ctparams) = $ct.fields(params) ;
+                if(is_ip_rfc1918("$var(cthost)") && !is_ip_rfc1918("$si")) { # /* Set Source IP, Source is not Priviate IP */
+                    xlog("L_INFO","BLOX_DBG::: blox-lan2wan.cfg: $avp(DLG_dir) $DLG_dir | Set Source IP, Source is not Priviate IP and received!=via  $si:$sp;$var(ctparams) ct:$var(cthost)\n");
+                    if($avp(DLG_dir) == "downstream") {
                         $dlg_val(dcontact) = "sip:" + $si + ":" + $sp + ";transport=" + $proto ;
+                    } else {
+                        $dlg_val(ucontact) = "sip:" + $si + ":" + $sp + ";transport=" + $proto ;
                     }
                 } else { # /* Set 200 OK Contact */
-                    $var(cturi) = $ct.fields(uri) ;
-                    $var(cthost) = $(var(cturi){uri.host}) ;
                     $dlg_val(rcv) = "sip:" + $si + ":" + $sp + ";transport=" + $proto ;
                     xdbg("BLOX_DBG::: blox-lan2wan.cfg: $ct ==> $var(cthost) <==> $Ri : $dlg_val(loop)\n");
-                    xdbg("BLOX_DBG::: blox-lan2wan.cfg: $DLG_dir | Set Source IP, Source is Priviate IP and received!=via  $si:$sp;$var(ctparams)\n");
+                    xdbg("BLOX_DBG::: blox-lan2wan.cfg: $avp(DLG_dir) $DLG_dir | Set Source IP, Source is Priviate IP and received!=via  $si:$sp;$var(ctparams)\n");
                     xdbg("BLOX_DBG::: blox-lan2wan.cfg: Set 200 OK Contact $ct.fields(uri)\n");
-                    if($DLG_dir == "downstream") {
-                        $dlg_val(ucontact) = $ct.fields(uri) ;
-                    } else {
+                    if($avp(DLG_dir) == "downstream") {
+                        #nofix param is for roaming user NAT resolved
                         if($(dlg_val(dcontact){uri.param,nofix}) == "1") {
                             xlog("L_INFO", "BLOX_DBG::: blox-lan2wan.cfg: Don't fix dcontact -> $dlg_val(dcontact) <-\n");
                         } else {
                             $dlg_val(dcontact) = $ct.fields(uri) ;
                         }
+                    } else {
+                        $dlg_val(ucontact) = $ct.fields(uri) ;
                     }
                 }
                 xlog("L_INFO", "BLOX_DBG::: blox-lan2wan.cfg: $ct != $si Response to contact different source $DLG_dir -> $dlg_val(ucontact) -> $dlg_val(dcontact) <-\n");
             }
         }
     }
-
-    if (nat_uac_test("3")) {
-        fix_nated_contact();
+    if ($dlg_val(ep) && $dlg_val(ep) == "yes" && $avp(DLG_dir) == "upstream") {
+        xdbg("BLOX_DBG::: blox-lan2wan.cfg: reply from endpoint:$dlg_val(ep) fix nat");
+        if(nat_uac_test("3"))
+            fix_nated_contact();
     };
 }
 
 failure_route[LAN2WAN] {
+    xlog("L_WARN","BLOX_DBG:::blox-lan2wan.cfg: Failed:$rm:$ru:$rs:$rr:LB:$avp(LBGID)\n");
+
     if (t_was_cancelled()) {
         rtpengine_delete();
         $avp(resource) = "resource" + "-" + $ft ;
         route(DELETE_ALLOMTS_RESOURCE);
         exit;
     }
-    xlog("L_WARN", "BLOX_DBG::: blox-lan2wan.cfg: Failed $rs\n");
 }
