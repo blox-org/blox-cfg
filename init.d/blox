@@ -60,6 +60,12 @@ stop_opensips() {
 
     mysql -u $DBRWUSER --password=$DBRWPW $DBNAME -e "DELETE FROM locationpresence   WHERE contact like '%transport=tls%';"
     mysql -u $DBRWUSER --password=$DBRWPW $DBNAME -e "DELETE FROM locationpresence   WHERE contact like '%transport=tcp%';"
+
+    timeout 5 bash <<EOS
+while [ -f /var/run/opensips.pid ]; do
+        sleep 1
+done
+EOS
 }
 
 restart_opensips() {
