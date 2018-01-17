@@ -39,6 +39,18 @@ route[ROUTE_REGISTER] {
                     exit;
                 }
                 $avp(LAN) = $(avp(PBX){uri.param,LAN}) ;
+                route(READ_WAN_PROFILE);
+                if($avp(WANProfile)) {
+                    $avp(WANIP) = $(avp(WANProfile){uri.host});
+                    $avp(WANPORT) = $(avp(WANProfile){uri.port});
+                    $avp(WANPROTO) = $(avp(WANProfile){uri.param,transport});
+                    $avp(WANADVIP) = $(avp(WANProfile){uri.param,advip});
+                    $avp(WANADVPORT) = $(avp(WANProfile){uri.param,advport});
+
+                    if($avp(WANPROTO)==""){$avp(WANPROTO)="udp";}
+                    if($avp(WANADVIP)==""){$avp(WANADVIP)=null;}
+                    if($avp(WANADVPORT)==""){$avp(WANADVPORT)=null;}
+                }
 
                 if($avp(LAN)) {
                     route(READ_LAN_PROFILE);
