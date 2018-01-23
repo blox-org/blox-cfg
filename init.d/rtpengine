@@ -206,6 +206,22 @@ cmd_exec() {
 	return $RET
 }
 
+init_fw() {
+cat > /var/tmp/rtpengine.rules <<EOF
+*filter
+:INPUT ACCEPT [0:0]
+:FORWARD ACCEPT [0:0]
+:OUTPUT ACCEPT [0:0]
+:rtpengine - [0:0]
+EOF
+}
+
+end_fw() {
+cat >> /var/tmp/rtpengine.rules <<EOF
+COMMIT
+EOF
+}
+
 start() {
 	pid=$(cat $pidfile 2>/dev/null) ; kill -0 $pid 2>/dev/null
 	if [ $? -ne 0 ]; then
@@ -216,23 +232,17 @@ start() {
 		rmmod xt_RTPENGINE 2> /dev/null && sleep 1
 		modprobe xt_RTPENGINE
 
-cat > /var/tmp/rtpengine.rules <<EOF
-*filter
-:INPUT ACCEPT [0:0]
-:FORWARD ACCEPT [0:0]
-:OUTPUT ACCEPT [0:0]
-:rtpengine - [0:0]
+cat >> /var/tmp/rtpengine.rules <<EOF
 -I MINIUPNPD -p udp --dport $PORT_MIN:$PORT_MAX -j rtpengine 
 -I rtpengine -p udp --dport $PORT_MIN:$PORT_MAX -j ACCEPT 
 -I rtpengine -p udp -j RTPENGINE --id $TABLE
-COMMIT
 EOF
 
 		cat <<EOF > "$cachefile"
 CUR_TABLE=$TABLE
 EOF
 	#iptables-restore --noflush /var/tmp/rtpengine.rules
-	deploy_fw_rules /var/tmp/rtpengine.rules
+	#deploy_fw_rules /var/tmp/rtpengine.rules
 	fi
         echo -n $"Starting $prog: "
         echo $DAEMON $rtpengine --pidfile=${pidfile} $rtpengine $OPTS
@@ -255,15 +265,6 @@ stop() {
 	then
 		. "$cachefile"
 		echo "Unloading module for in-kernel packet forwarding"
-cat > /var/tmp/rtpengine.rules <<EOF
-*filter
-:INPUT ACCEPT [0:0]
-:FORWARD ACCEPT [0:0]
-:OUTPUT ACCEPT [0:0]
-:rtpengine - [0:0]
-COMMIT
-EOF
-		deploy_fw_rules /var/tmp/rtpengine.rules
 		if [ $? -eq 0 ]; then rm -f $cachefile; fi
 	fi
  
@@ -273,19 +274,25 @@ EOF
 # See how we were called.
 case "$1" in
   start)
+	init_fw
 	for config in $CONFIGS
 	do
 	init_rtpengine $(basename $config)
 	start
 	done
+	end_fw
+	deploy_fw_rules /var/tmp/rtpengine.rules
 	deploy_fw_rules apply apply
 	;;
   stop)
+	init_fw
 	for config in $CONFIGS
 	do
 	init_rtpengine $(basename $config)
 	stop
 	done
+	end_fw
+	deploy_fw_rules /var/tmp/rtpengine.rules
 	deploy_fw_rules apply apply
 	for table in $(ls /proc/rtpengine/ | egrep -wv '(control|list)')
 	do
@@ -302,24 +309,31 @@ case "$1" in
 	done
 	;;
   restart)
+	init_fw
 	for config in $CONFIGS
 	do
 	init_rtpengine $(basename $config)
 	stop
 	done
+	end_fw
+	deploy_fw_rules /var/tmp/rtpengine.rules
 	deploy_fw_rules apply apply
 	for table in $(ls /proc/rtpengine/ | egrep -wv '(control|list)')
 	do
 	cmd_exec "echo 'del $table' > /proc/rtpengine/control; rmmod xt_RTPENGINE" $STOP_MAXRETRY 1
 	done
+	init_fw
 	for config in $CONFIGS
 	do
 	init_rtpengine $(basename $config)
 	start
 	done
+	end_fw
+	deploy_fw_rules /var/tmp/rtpengine.rules
 	deploy_fw_rules apply apply
 	;;
   condrestart|try-restart)
+	init_fw
 	for config in $CONFIGS
 	do
 	init_rtpengine $(basename $config)
@@ -327,6 +341,9 @@ case "$1" in
 		stop
 	fi
 	done
+	end_fw
+	deploy_fw_rules /var/tmp/rtpengine.rules
+	init_fw
 	for config in $CONFIGS
 	do
 	init_rtpengine $(basename $config)
@@ -334,6 +351,8 @@ case "$1" in
 		start
 	fi
 	done
+	end_fw
+	deploy_fw_rules /var/tmp/rtpengine.rules
 	;;
   *)
 	echo $"Usage: $prog {start|stop|restart|condrestart|try-restart|status}"
