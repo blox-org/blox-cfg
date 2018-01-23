@@ -38,6 +38,16 @@ LOG_FACILITY=local1
 LOG_LEVEL=7
 STOP_MAXRETRY=3
 
+stop_from_cache() {
+	for cachefile in /var/lib/rtpengine/*.cfg
+	do
+		RTPENGINE_NAME=$(basename $cachefile|sed 's/.cfg$//')
+		pidfile=/var/run/$RTPENGINE_NAME.pid
+		killproc -p ${pidfile} $rtpengine
+		rm -f $cachefile
+	done
+}
+
 init_rtpengine() {
 	RTPENGINE_NAME=$1
 	if [ -f /etc/rtpengine/$RTPENGINE_NAME ]
@@ -294,6 +304,7 @@ case "$1" in
 	end_fw
 	deploy_fw_rules /var/tmp/rtpengine.rules
 	deploy_fw_rules apply apply
+	stop_from_cache
 	for table in $(ls /proc/rtpengine/ | egrep -wv '(control|list)')
 	do
 	cmd_exec "echo 'del $table' > /proc/rtpengine/control; rmmod xt_RTPENGINE" $STOP_MAXRETRY 1
@@ -318,6 +329,7 @@ case "$1" in
 	end_fw
 	deploy_fw_rules /var/tmp/rtpengine.rules
 	deploy_fw_rules apply apply
+	stop_from_cache
 	for table in $(ls /proc/rtpengine/ | egrep -wv '(control|list)')
 	do
 	cmd_exec "echo 'del $table' > /proc/rtpengine/control; rmmod xt_RTPENGINE" $STOP_MAXRETRY 1
@@ -343,6 +355,7 @@ case "$1" in
 	done
 	end_fw
 	deploy_fw_rules /var/tmp/rtpengine.rules
+	deploy_fw_rules apply apply
 	init_fw
 	for config in $CONFIGS
 	do
@@ -353,6 +366,7 @@ case "$1" in
 	done
 	end_fw
 	deploy_fw_rules /var/tmp/rtpengine.rules
+	deploy_fw_rules apply apply
 	;;
   *)
 	echo $"Usage: $prog {start|stop|restart|condrestart|try-restart|status}"
