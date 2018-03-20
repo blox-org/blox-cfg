@@ -155,7 +155,6 @@ def send_notify(lprow,contact_host,ruri,furi,touri,EVENT_TYPE):
 
 	content = "" ;
 	for line in nfd:
-		content_length += len(line) ;
 		content += line ;
 
 	(content,cnt) = re.subn(ruri_defport,replace_request_uri,content)
@@ -179,6 +178,7 @@ def send_notify(lprow,contact_host,ruri,furi,touri,EVENT_TYPE):
 		if(cnt==0):
 			content = re.sub(pbxipport,localsocket_uri,content)
 
+	content_length = len(content) ;
 	nfd_w.write('Remote-Contact-Header: ' + lprow['received'] + '\r\n') ;
 	nfd_w.write('Send-Socket: ' + lprow['socket'] + '\r\n') ;
 	nfd_w.write('Content-Length: ' + `content_length` + "\r\n\r\n") 
