@@ -177,10 +177,11 @@ onreply_route[LAN2WAN] {
             }
         }
     }
-    if ($dlg_val(ep) && $dlg_val(ep) == "yes" && $avp(DLG_dir) == "upstream") {
-        xdbg("BLOX_DBG::: blox-lan2wan.cfg: reply from endpoint:$dlg_val(ep) fix nat");
-        if(nat_uac_test("3"))
+    if ($dlg_val(ep) && $dlg_val(ep) == "yes" && $avp(DLG_dir) == "downstream") {
+        xdbg("BLOX_DBG::: blox-lan2wan.cfg: reply from endpoint:$dlg_val(ep): $avp(DLG_dir) fix nat");
+        if(nat_uac_test("3")) {
             fix_nated_contact();
+        }
     };
 }
 

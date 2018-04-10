@@ -346,6 +346,10 @@ route[ROUTE_INVITE] {
                         }
                     };
 
+
+                    #restore the reguri based on nat resolved
+                    $ru = $avp(regattr) ;
+
                     if(!has_totag()) {
                         create_dialog("PpB");
                         $dlg_val(MediaProfileID) = $avp(MEDIA);
