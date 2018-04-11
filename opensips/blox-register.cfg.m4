@@ -89,9 +89,10 @@ route[ROUTE_REGISTER] {
                     uac_replace_from("$var(reguri)");
                     uac_replace_to("$var(reguri)");
                     remove_hf("Route"); #Not accepted for REGISTER
-                    add_path();
+                    append_hf("Path: <sip:$fU@$avp(LANIP):$avp(LANPORT)>;transport=$avp(LANPROTO);lr>\r\n");
 
                     xdbg("BLOX_DBG: SIP Method $rm forwarding to $du\n");
+                    $avp(regru) = "sip:" + $fU + "@" + $(avp(rcv){uri.host}) + ":" + $(avp(rcv){uri.port}) + ";transport=" + $proto ;
                     setbflag(SIP_PING_FLAG);
                     if($var(fixnat)) {
                         setbflag(NAT_PING_FLAG);
@@ -129,15 +130,16 @@ onreply_route[WAN2LAN_REGISTER] {
     if(is_method("REGISTER")) {
         if(status =~ "200") {
             xdbg("BLOX_DBG: Got REGISTER REPLY $fu/$ru/$si/$ci/$avp(rcv)" );
-            $avp(regattr) = $pr + ":" + $si + ":" + $sp ;
+            $avp(regattr) = $avp(regru) ;
+
             $var(aor) = "sip:" + $tU + "@" + $avp(WANIP) + ":" + $avp(WANPORT) ;
             if($ct.fields(expires)) {
                 $var(expires) = $ct.fields(expires) ;
             }
             if($var(expires)==null||$var(expires)=="") {
-		if($hdr(Expires)) {
-                	$var(expires) = $hdr(Expires) ;
-		}
+                if($hdr(Expires)) {
+                        $var(expires) = $hdr(Expires) ;
+                }
             }
             if($var(expires)==null||$var(expires)=="") {
               $var(sflg) = "rp1fc1" ;
@@ -145,6 +147,7 @@ onreply_route[WAN2LAN_REGISTER] {
               $var(sflg) = "rp1fc1E" + $var(expires) ;
             }
   
+            $ru = $avp(regru) ;
             if(!save("locationpbx","$var(sflg)", "$var(aor)")) {
                 xlog("L_ERROR", "BLOX_DBG::: blox-register.cfg: Error saving the location\n");
             };
