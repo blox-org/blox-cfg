@@ -140,7 +140,7 @@ onreply_route[WAN2LAN] {
         insert_hf("Server: USERAGENT\r\n","CSeq") ;
     }
 
-    if (status =~ "(183)|2[0-9][0-9]") {
+    if (status =~ "(18[03])|2[0-9][0-9]") {
         if(has_body("application/sdp")) {
             route(HANDLE_MEDIA_REPLY);
         }

@@ -140,7 +140,7 @@ route[LAN2WAN] {
 onreply_route[LAN2WAN] {
     xlog("L_INFO","BLOX_DBG::: blox-lan2wan.cfg: Got Response code:$rs from:$fu ru:$ru src:$si:$sp callid:$ci rcv:$Ri:$Rp\n");
 
-    if (status =~ "(183)|2[0-9][0-9]") {
+    if (status =~ "(18[03])|2[0-9][0-9]") {
         if (has_body("application/sdp")) {
             route(HANDLE_MEDIA_REPLY); 
         }
