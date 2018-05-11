@@ -39,6 +39,7 @@ route[ROUTE_PUBLISH] {
                 $avp(LAN) = $(avp(PBX){uri.param,LAN}) ;
 
                 if($avp(LAN)) {
+                    $var(TLS_BYPASS)="TLS_BYPASS_ENABLED"; if($var(TLS_BYPASS)) { route(ROUTE_TLS_BYPASS); }
                     if(cache_fetch("local","$avp(LAN)",$avp(LANProfile))) {
                         xdbg("Loaded from cache $avp(LAN): $avp(LANProfile)\n");
                     } else if (avp_db_load("$avp(LAN)","$avp(LANProfile)/blox_profile_config")) {

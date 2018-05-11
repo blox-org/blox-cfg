@@ -21,6 +21,7 @@ route[ROUTE_SUBSCRIBE] {
     if (method == "SUBSCRIBE") {
         if ((uri==myself || from_uri==myself)) {
             if($avp(WAN)) {
+                $var(TLS_BYPASS)="TLS_BYPASS_ENABLED"; if($var(TLS_BYPASS)) { route(ROUTE_TLS_BYPASS); }
                 $avp(WANDOMAIN) = "" ;
                 if($avp(WANProfile)) {
                     $avp(WANDOMAIN) = $(avp(WANProfile){uri.param,domain});

@@ -163,6 +163,7 @@ route {
             }
             if($var(fixnat)) {
                 if(is_method("REGISTER")) {
+                    xlog("L_INFO","BLOX_DBG: $rm: FIX NAT $var(fixnat)");
                     fix_nated_register(); /* will set not just contact, update received address to db */
                 } else {
                     fix_nated_contact(); # /* Contact header manipuation further should be avoided */
@@ -210,12 +211,14 @@ route {
             $avp(resource) = "resource" + "-" + $ft ;
             route(DELETE_ALLOMTS_RESOURCE);
         };
+	if(!is_method("NOTIFY|MESSAGE")) {
         if($avp(LAN)) {
             route(LAN2WAN);
         } else {
             route(WAN2LAN);
         }
         exit;
+	}
     };
 
     $avp(dupreq) = null;
@@ -281,6 +284,10 @@ route {
             route("ROUTE_PUBLISH");
             exit;
         };
+
+        if(method == "MESSAGE") { /* Only REFER-MESSAGE, Not SUBSCRIBE */
+           route(ROUTE_MESSAGE);
+        }
     }
 
     drop();
@@ -413,6 +420,7 @@ include_file "blox-ack.cfg"
 include_file "blox-notify.cfg"
 include_file "blox-subscribe.cfg"
 include_file "blox-publish.cfg"
+include_file "blox-message.cfg"
 include_file "blox-userblacklist.cfg"
 ###########################################################################################
 # ----------- SBC Feature routers ------------------------
@@ -422,6 +430,7 @@ include_file "blox-enum.cfg"
 include_file "blox-sip-header-manipulation.cfg"
 include_file "blox-lb.cfg"
 include_file "blox-domain.cfg"
+include_file "blox-bypass-tls.cfg"
 ###########################################################################################
 # ----------- SIP Profile based routers without MTS ------------------------
 import_file  "blox-allomts-dummy.cfg"
