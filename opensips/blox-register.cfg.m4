@@ -89,7 +89,7 @@ route[ROUTE_REGISTER] {
                     uac_replace_from("$var(reguri)");
                     uac_replace_to("$var(reguri)");
                     remove_hf("Route"); #Not accepted for REGISTER
-                    append_hf("Path: <sip:$tU@$avp(LANIP):$avp(LANPORT)>;transport=$avp(LANPROTO);lr>\r\n");
+                    append_hf("Path: <sip:$tU@$avp(LANIP):$avp(LANPORT);transport=$avp(LANPROTO);lr>\r\n");
 
                     xdbg("BLOX_DBG: SIP Method $rm forwarding to $du\n");
                     $avp(regru) = "sip:" + $fU + "@" + $(avp(rcv){uri.host}) + ":" + $(avp(rcv){uri.port}) + ";transport=" + $proto ;
