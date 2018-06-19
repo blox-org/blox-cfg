@@ -211,14 +211,18 @@ route {
             $avp(resource) = "resource" + "-" + $ft ;
             route(DELETE_ALLOMTS_RESOURCE);
         };
-	if(!is_method("NOTIFY|MESSAGE")) {
-        if($avp(LAN)) {
-            route(LAN2WAN);
-        } else {
-            route(WAN2LAN);
-        }
-        exit;
-	}
+        if (has_totag() && is_method("INVITE|ACK|BYE|UPDATE|REFER|NOTIFY|PRACK|INFO")) {
+            xdbg("BLOX_DBG: blox.cfg: PRE-ROUTING MATCHING DIALOG\n");
+            if(match_dialog()) {
+                xdbg("BLOX_DBG: blox.cfg: PRE-ROUTING MATCHED DIALOG req:$ru du:$du\n");
+                if($avp(LAN)) {
+                    route(LAN2WAN);
+                } else {
+                    route(WAN2LAN);
+                }
+                exit;
+            };
+        };
     };
 
     $avp(dupreq) = null;
