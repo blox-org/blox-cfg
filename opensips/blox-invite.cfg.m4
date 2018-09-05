@@ -94,9 +94,9 @@ route[ROUTE_INVITE] {
                     sl_send_reply("302","LCR Redirect");
                     exit;
                 } else {
-                        xlog("L_NOTICE", "BLOX_DBG::: blox-invite.cfg: LCR: No Next GW found for LCR, PBX $si:$sp $var(gw_attributes)\n");
-                        send_reply("503", "No Rules matching the URI");
-                        exit;
+                    xlog("L_NOTICE", "BLOX_DBG::: blox-invite.cfg: LCR: No Next GW found for LCR, PBX $si:$sp $var(gw_attributes)\n");
+                    send_reply("503", "No Rules matching the URI");
+                    exit;
                 }
             }
 
