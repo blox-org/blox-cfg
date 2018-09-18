@@ -162,7 +162,7 @@ onreply_route[WAN2LAN] {
                     xdbg("BLOX_DBG::: blox-wan2lan.cfg: $ct ==> $var(cthost) <==> $Ri : $dlg_val(loop)\n");
                     xdbg("BLOX_DBG::: blox-wan2lan.cfg: $avp(DLG_dir) $DLG_dir | Set Source IP, Source is Priviate IP and received!=via  $si:$sp;$var(ctparams)\n");
                     xdbg("BLOX_DBG::: blox-wan2lan.cfg: Set 200 OK Contact $ct.fields(uri)\n");
-                    if($DLG_dir == "downstream") {
+                    if($avp(DLG_dir) == "downstream") {
                         $dlg_val(dcontact) = $ct.fields(uri) ;
                     } else {
                         $dlg_val(ucontact) = $ct.fields(uri) ;
