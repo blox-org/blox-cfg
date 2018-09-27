@@ -47,3 +47,4 @@ tcp_keepalive=1
 tcp_keepcount=3
 tcp_keepidle=30
 tcp_keepinterval=10
+#dnl vim: set ts=4 sw=4 tw=0 et :

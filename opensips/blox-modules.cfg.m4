@@ -63,3 +63,4 @@ loadmodule "pua_mi.so"
 
 loadmodule "event_datagram.so"
 
+#dnl vim: set ts=4 sw=4 tw=0 et :

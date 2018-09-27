@@ -83,7 +83,7 @@ route[ROUTE_PUBLISH] {
                     uac_replace_from("$var(puburi)");
                     uac_replace_to("$var(puburi)");
                     #remove_hf("Event");
-                    #append_hf("Event: call-completion");
+                    #append_hf("Event: call-completion\r\n");
 
                     xdbg("SIP Method $rm forwarding to $du\n");
                     if(client_nat_test("3")) {
@@ -99,3 +99,4 @@ route[ROUTE_PUBLISH] {
         exit;
     };
 }
+#dnl vim: set ts=4 sw=4 tw=0 et :

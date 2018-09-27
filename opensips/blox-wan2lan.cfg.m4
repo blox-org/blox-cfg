@@ -190,3 +190,4 @@ failure_route[WAN2LAN] {
         exit;
     }
 }
+#dnl vim: set ts=4 sw=4 tw=0 et :

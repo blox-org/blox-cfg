@@ -67,7 +67,7 @@ route[ROUTE_TLS_BYPASS] {
                                 t_reply("404", "Not Found");
                                 exit;
                             case -2:
-                                append_hf("Allow: INVITE, ACK, REFER, NOTIFY, CANCEL, BYE, REGISTER" );
+                                append_hf(BLOX_ALLOW_HDR);
                                 sl_send_reply("405", "Method Not Allowed");
                                 exit;
                         }
@@ -209,3 +209,4 @@ onreply_route[WAN2LAN_TLS_BYPASS] {
 onreply_route[LAN2WAN_TLS_BYPASS] {
     xlog("L_INFO","BLOX_DBG::: blox-bypass-tls.cfg: Got Response for $rm:$cs code:$rs from:$fu ru:$ru src:$si:$sp callid:$ci rcv:$Ri:$Rp\n");
 }
+#dnl vim: set ts=4 sw=4 tw=0 et :

@@ -25,3 +25,4 @@ define(`BLOX_NOTIFY_PORT',`8880')
 define(`BLOX_SUBSCRIBE_HOST',`127.0.0.1')
 define(`BLOX_SUBSCRIBE_PORT',`8888')
 divert(0)dnl
+#dnl vim: set ts=4 sw=4 tw=0 et :

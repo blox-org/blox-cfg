@@ -340,7 +340,7 @@ route[ROUTE_INVITE] {
                                 t_reply("404", "Not Found");
                                 exit;
                             case -2:
-                                append_hf("Allow: INVITE, ACK, REFER, NOTIFY, CANCEL, BYE, REGISTER" );
+                                append_hf(BLOX_ALLOW_HDR);
                                 sl_send_reply("405", "Method Not Allowed");
                                 exit;
                         }
@@ -751,3 +751,4 @@ route[ROUTE_CALL_RULE] {
     $var(pid) = $(avp(WAN){s.int});
     $avp(CRDSTURI) = null ;
 }
+#dnl vim: set ts=4 sw=4 tw=0 et :

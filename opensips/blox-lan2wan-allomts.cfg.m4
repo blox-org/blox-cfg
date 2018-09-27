@@ -1032,3 +1032,4 @@ failure_route[MTS_LAN2WAN] {
     }
     xlog("L_WARN", "BLOX_DBG::: blox-lan2wan-allomts.cfg: Failed $rs\n");
 }
+#dnl vim: set ts=4 sw=4 tw=0 et :

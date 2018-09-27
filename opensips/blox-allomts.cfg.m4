@@ -113,3 +113,4 @@ route[DISCONNECT_ALLOMTS_RESOURCE] {
 
     xdbg("BLOX_DBG: ##############Got Response $var(body)\n");
 }
+#dnl vim: set ts=4 sw=4 tw=0 et :

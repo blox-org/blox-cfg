@@ -178,7 +178,7 @@ route {
 
     if (is_method("OPTIONS") ) {
         xdbg("BLOX_DBG: blox.cfg: Not support OPTIONS\n");
-        append_hf("Allow: INVITE, ACK, REFER, NOTIFY, CANCEL, BYE, REGISTER" );
+        append_hf(BLOX_ALLOW_HDR);
         sl_send_reply("405", "Method Not Allowed");
         exit;
     }
@@ -449,3 +449,5 @@ import_file  "blox-wan2lan-allomts.cfg"
 # ----------- Addon Module ------------------------
 import_file  "blox-addon-humbug.cfg"
 ###########################################################################################
+
+#dnl vim: set ts=4 sw=4 tw=0 et :

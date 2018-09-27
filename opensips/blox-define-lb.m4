@@ -22,3 +22,4 @@ divert(-1)
 define(`LB_KEEPALIVE_INTERVAL',`30')
 define(`LB_KEEPALIVE_FROMURI',`sip:sbc@blox.org')
 divert(0)dnl
+#dnl vim: set ts=4 sw=4 tw=0 et :

@@ -126,3 +126,4 @@ modparam("load_balancer", "probing_from","LB_KEEPALIVE_FROMURI")
 modparam("load_balancer", "probing_reply_codes", "404")
 
 modparam("path", "enable_double_path", 0)
+#dnl vim: set ts=4 sw=4 tw=0 et :

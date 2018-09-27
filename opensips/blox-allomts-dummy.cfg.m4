@@ -29,3 +29,4 @@ route[CONNECT_ALLOMTS_RESOURCE] {
 route[DISCONNECT_ALLOMTS_RESOURCE] {
     xdbg("BLOX_DBG: NO DISCONNECT_ALLOMTS_RESOURCE\n");
 }
+#dnl vim: set ts=4 sw=4 tw=0 et :

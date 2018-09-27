@@ -22,3 +22,4 @@ route[LCR_MATCH] {
   xlog("L_NOTICE", "BLOX_DBG::: blox-lcr.cfg: Match Found: LCR DIRECT PBX -> SBC\n");
 }
 
+#dnl vim: set ts=4 sw=4 tw=0 et :

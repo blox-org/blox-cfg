@@ -26,3 +26,4 @@ route[BLOX_DOMAIN] {
     $du = $avp(DEFURI) ;
     xlog("L_WARN", "BLOX_DBG::: Domain name $var(uuid) routed to $avp(DEFURI) \n");
 }
+#dnl vim: set ts=4 sw=4 tw=0 et :
