@@ -57,6 +57,7 @@ modparam("acc", "db_extra",  "src=$dlg_val(from);dst=$dlg_val(request);channel=$
 
 modparam("usrloc", "nat_bflag", "NAT")
 modparam("usrloc", "db_mode",   1)
+modparam("usrloc", "use_domain",   1)
 modparam("auth_db", "password_column", "password")
 modparam("auth_db", "calculate_ha1", 1)
 

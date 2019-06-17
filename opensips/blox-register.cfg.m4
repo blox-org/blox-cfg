@@ -21,6 +21,8 @@
 route[ROUTE_REGISTER] {
     if (method == "REGISTER") {
             if ((uri==myself || from_uri==myself)) {
+            if($rp) { $avp(rd) = $rd + ":" + $rp ; }
+            else { $avp(rd) = $rd ; }
             #Internal Interface or External
             if($avp(LAN)) {
                 xlog("L_INFO","BLOX_DBG: Got from $Ri LAN, No Trunk REGISTER\n");
@@ -65,16 +67,16 @@ route[ROUTE_REGISTER] {
                         $avp(rcv) = "sip:" + $(var(cturi){uri.host}) + ":" + $(var(cturi){uri.port}) + ";transport=" + $proto ;
                     }
                     force_rport();
-                    if(! subst("/Contact: +<sip:(.*)@(.*?)>;(.*)$/Contact: <sip:\1@$avp(LANIP):$avp(LANPORT)>;\3/")) {
-                        subst("/Contact: +<sip:(.*)@(.*?)>(.*)$/Contact: <sip:\1@$avp(LANIP):$avp(LANPORT)>/");
-                    }
-
                     route(BLOX_DOMAIN,$avp(uuid));
                     $var(PBXIP) = $(avp(DEFURI){uri.host}) ;
                     $var(PBXPORT) = $(avp(DEFURI){uri.port}) ;
                     $avp(LANDOMAIN) = $(avp(DEFURI){uri.param,domain});
                     if($avp(LANDOMAIN)==""){$avp(LANDOMAIN)=null;}
-                    
+
+                    if(! subst("/Contact: +<sip:(.*)@(.*?)>;(.*)$/Contact: <sip:\1@$avp(LANIP):$avp(LANPORT);domain=$avp(rd)>;\3/")) {
+                        subst("/Contact: +<sip:(.*)@(.*?)>(.*)$/Contact: <sip:\1@$avp(LANIP):$avp(LANPORT);domain=$avp(rd)>/");
+                    }
+
                     if($avp(LANDOMAIN)) {
                         $ru = "sip:" + $avp(LANDOMAIN) + ":" + $var(PBXPORT) + ";transport=" + $avp(LANPROTO);
                         $var(reguri) = "sip:" + $tU + "@" + $avp(LANDOMAIN) + ":" + $var(PBXPORT) ;
@@ -132,7 +134,7 @@ onreply_route[WAN2LAN_REGISTER] {
             xdbg("BLOX_DBG: Got REGISTER REPLY $fu/$ru/$si/$ci/$avp(rcv)" );
             $avp(regattr) = $avp(regru) ;
 
-            $var(aor) = "sip:" + $tU + "@" + $avp(WANIP) + ":" + $avp(WANPORT) ;
+            $var(aor) = "sip:" + $tU + "@" + $avp(rd)  ;
             if($ct.fields(expires)) {
                 $var(expires) = $ct.fields(expires) ;
             }
@@ -153,12 +155,12 @@ onreply_route[WAN2LAN_REGISTER] {
             };
 
             if($avp(WANADVIP)) { # Roaming user: replace it with advIP:Port
-                if(!subst("/Contact: +<sip:(.*)@(.*?)>;(.*)$/Contact: <sip:\1@$avp(WANADVIP):$avp(WANADVPORT)>;\3/")) {
-                    subst("/Contact: +<sip:(.*)@(.*?)>(.*)$/Contact: <sip:\1@$avp(WANADVIP):$avp(WANADVPORT)>/");
+                if(!subst("/Contact: +<sip:(.*)@(.*?)>;(.*)$/Contact: <sip:\1@$avp(WANADVIP):$avp(WANADVPORT);domain=$avp(rd)>\3/")) {
+                    subst("/Contact: +<sip:(.*)@(.*?)>(.*)$/Contact: <sip:\1@$avp(WANADVIP):$avp(WANADVPORT);domain=$avp(rd)>/");
                 }
             } else {
-                if(!subst("/Contact: +<sip:(.*)@(.*?)>;(.*)$/Contact: <sip:\1@$avp(WANIP):$avp(WANPORT)>;\3/")) {
-                    subst("/Contact: +<sip:(.*)@(.*?)>(.*)$/Contact: <sip:\1@$avp(WANIP):$avp(WANPORT)>/");
+                if(!subst("/Contact: +<sip:(.*)@(.*?)>;(.*)$/Contact: <sip:\1@$avp(WANIP):$avp(WANPORT);domain=$avp(rd)>\3/")) {
+                    subst("/Contact: +<sip:(.*)@(.*?)>(.*)$/Contact: <sip:\1@$avp(WANIP):$avp(WANPORT);domain=$avp(rd)>/");
                 }
             }
 
