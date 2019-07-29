@@ -73,8 +73,10 @@ route[ROUTE_REGISTER] {
                     $avp(LANDOMAIN) = $(avp(DEFURI){uri.param,domain});
                     if($avp(LANDOMAIN)==""){$avp(LANDOMAIN)=null;}
 
-                    if(! subst("/Contact: +<sip:(.*)@(.*?)>;(.*)$/Contact: <sip:\1@$avp(LANIP):$avp(LANPORT);domain=$avp(rd)>;\3/")) {
-                        subst("/Contact: +<sip:(.*)@(.*?)>(.*)$/Contact: <sip:\1@$avp(LANIP):$avp(LANPORT);domain=$avp(rd)>/");
+                    if(CONTACT_DOMAIN_PARAM == "yes") {
+                        if(! subst("/Contact: +<sip:(.*)@(.*?)>;(.*)$/Contact: <sip:\1@$avp(LANIP):$avp(LANPORT);domain=$avp(rd)>;\3/")) {
+                            subst("/Contact: +<sip:(.*)@(.*?)>(.*)$/Contact: <sip:\1@$avp(LANIP):$avp(LANPORT);domain=$avp(rd)>/");
+                        }
                     }
 
                     if($avp(LANDOMAIN)) {
@@ -154,13 +156,25 @@ onreply_route[WAN2LAN_REGISTER] {
                 xlog("L_ERROR", "BLOX_DBG::: blox-register.cfg: Error saving the location\n");
             };
 
-            if($avp(WANADVIP)) { # Roaming user: replace it with advIP:Port
-                if(!subst("/Contact: +<sip:(.*)@(.*?)>;(.*)$/Contact: <sip:\1@$avp(WANADVIP):$avp(WANADVPORT);domain=$avp(rd)>\3/")) {
-                    subst("/Contact: +<sip:(.*)@(.*?)>(.*)$/Contact: <sip:\1@$avp(WANADVIP):$avp(WANADVPORT);domain=$avp(rd)>/");
+            if(CONTACT_DOMAIN_PARAM == "yes") {	
+                if($avp(WANADVIP)) { # Roaming user: replace it with advIP:Port
+                    if(!subst("/Contact: +<sip:(.*)@(.*?)>;(.*)$/Contact: <sip:\1@$avp(WANADVIP):$avp(WANADVPORT);domain=$avp(rd)>\3/")) {
+                        subst("/Contact: +<sip:(.*)@(.*?)>(.*)$/Contact: <sip:\1@$avp(WANADVIP):$avp(WANADVPORT);domain=$avp(rd)>/");
+                    }
+                } else {
+                    if(!subst("/Contact: +<sip:(.*)@(.*?)>;(.*)$/Contact: <sip:\1@$avp(WANIP):$avp(WANPORT);domain=$avp(rd)>\3/")) {
+                        subst("/Contact: +<sip:(.*)@(.*?)>(.*)$/Contact: <sip:\1@$avp(WANIP):$avp(WANPORT);domain=$avp(rd)>/");
+                    }
                 }
             } else {
-                if(!subst("/Contact: +<sip:(.*)@(.*?)>;(.*)$/Contact: <sip:\1@$avp(WANIP):$avp(WANPORT);domain=$avp(rd)>\3/")) {
-                    subst("/Contact: +<sip:(.*)@(.*?)>(.*)$/Contact: <sip:\1@$avp(WANIP):$avp(WANPORT);domain=$avp(rd)>/");
+                if($avp(WANADVIP)) { # Roaming user: replace it with advIP:Port
+                    if(!subst("/Contact: +<sip:(.*)@(.*?)>;(.*)$/Contact: <sip:\1@$avp(WANADVIP):$avp(WANADVPORT)>\3/")) {
+                        subst("/Contact: +<sip:(.*)@(.*?)>(.*)$/Contact: <sip:\1@$avp(WANADVIP):$avp(WANADVPORT)>/");
+                    }
+                } else {
+                    if(!subst("/Contact: +<sip:(.*)@(.*?)>;(.*)$/Contact: <sip:\1@$avp(WANIP):$avp(WANPORT)>\3/")) {
+                        subst("/Contact: +<sip:(.*)@(.*?)>(.*)$/Contact: <sip:\1@$avp(WANIP):$avp(WANPORT)>/");
+                    }
                 }
             }
 

@@ -327,8 +327,11 @@ route[ROUTE_INVITE] {
                     }
 
                     #search for aor mapped to pbx wan profile
-                    $avp(rd) = $(ru{uri.param,domain}) ;
-                    if($avp(rd)==""){$avp(rd)=null;}
+                    $avp(rd) = null;
+                    if(CONTACT_DOMAIN_PARAM == "yes") {
+                        $avp(rd) = $(ru{uri.param,domain}) ;
+                        if($avp(rd)==""){$avp(rd)=null;}
+                    }
                     if(!$avp(rd)) { $avp(rd) = $avp(WANIP) + ":" + $avp(WANPORT) ; }
                     $var(aor) = "sip:" + $tU + "@" + $avp(rd);
                     xdbg("BLOX_DBG: blox-invite.cfg: Looking for $var(aor) in locationpbx\n");
