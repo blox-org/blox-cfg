@@ -70,18 +70,22 @@ route[ROUTE_REGISTER] {
                     route(BLOX_DOMAIN,$avp(uuid));
                     $var(PBXIP) = $(avp(DEFURI){uri.host}) ;
                     $var(PBXPORT) = $(avp(DEFURI){uri.port}) ;
-                    $avp(LANDOMAIN) = $(avp(DEFURI){uri.param,domain});
-                    if($avp(LANDOMAIN)==""){$avp(LANDOMAIN)=null;}
+                    $avp(PBXDOMAIN) = $(avp(DEFURI){uri.param,domain});
+                    if($avp(PBXDOMAIN)==""){$avp(PBXDOMAIN)=null;}
 
                     if($var(CONTACT_DOMAIN_PARAM) == "yes") {
                         if(! subst("/Contact: +<sip:(.*)@(.*?)>;(.*)$/Contact: <sip:\1@$avp(LANIP):$avp(LANPORT);domain=$avp(rd)>;\3/")) {
                             subst("/Contact: +<sip:(.*)@(.*?)>(.*)$/Contact: <sip:\1@$avp(LANIP):$avp(LANPORT);domain=$avp(rd)>/");
                         }
+                    } else {
+                        if(! subst("/Contact: +<sip:(.*)@(.*?)>;(.*)$/Contact: <sip:\1@$avp(LANIP):$avp(LANPORT)>;\3/")) {
+                            subst("/Contact: +<sip:(.*)@(.*?)>(.*)$/Contact: <sip:\1@$avp(LANIP):$avp(LANPORT)>/");
+                        }
                     }
 
-                    if($avp(LANDOMAIN)) {
-                        $ru = "sip:" + $avp(LANDOMAIN) + ":" + $var(PBXPORT) + ";transport=" + $avp(LANPROTO);
-                        $var(reguri) = "sip:" + $tU + "@" + $avp(LANDOMAIN) + ":" + $var(PBXPORT) ;
+                    if($avp(PBXDOMAIN)) {
+                        $ru = "sip:" + $avp(PBXDOMAIN) + ":" + $var(PBXPORT) + ";transport=" + $avp(LANPROTO);
+                        $var(reguri) = "sip:" + $tU + "@" + $avp(PBXDOMAIN) + ":" + $var(PBXPORT) ;
                     } else {
                         $ru = "sip:" + $var(PBXIP) + ":" + $var(PBXPORT) + ";transport=" + $avp(LANPROTO);
                         $var(reguri) = "sip:" + $tU + "@" + $var(PBXIP) + ":" + $var(PBXPORT) ;
