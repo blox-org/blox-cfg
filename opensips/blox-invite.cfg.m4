@@ -328,7 +328,7 @@ route[ROUTE_INVITE] {
 
                     #search for aor mapped to pbx wan profile
                     $avp(rd) = null;
-                    if(CONTACT_DOMAIN_PARAM == "yes") {
+                    if($var(CONTACT_DOMAIN_PARAM) == "yes") {
                         $avp(rd) = $(ru{uri.param,domain}) ;
                         if($avp(rd)==""){$avp(rd)=null;}
                     }

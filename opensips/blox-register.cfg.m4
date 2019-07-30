@@ -73,7 +73,7 @@ route[ROUTE_REGISTER] {
                     $avp(LANDOMAIN) = $(avp(DEFURI){uri.param,domain});
                     if($avp(LANDOMAIN)==""){$avp(LANDOMAIN)=null;}
 
-                    if(CONTACT_DOMAIN_PARAM == "yes") {
+                    if($var(CONTACT_DOMAIN_PARAM) == "yes") {
                         if(! subst("/Contact: +<sip:(.*)@(.*?)>;(.*)$/Contact: <sip:\1@$avp(LANIP):$avp(LANPORT);domain=$avp(rd)>;\3/")) {
                             subst("/Contact: +<sip:(.*)@(.*?)>(.*)$/Contact: <sip:\1@$avp(LANIP):$avp(LANPORT);domain=$avp(rd)>/");
                         }
@@ -156,7 +156,7 @@ onreply_route[WAN2LAN_REGISTER] {
                 xlog("L_ERROR", "BLOX_DBG::: blox-register.cfg: Error saving the location\n");
             };
 
-            if(CONTACT_DOMAIN_PARAM == "yes") {	
+            if($var(CONTACT_DOMAIN_PARAM) == "yes") {	
                 if($avp(WANADVIP)) { # Roaming user: replace it with advIP:Port
                     if(!subst("/Contact: +<sip:(.*)@(.*?)>;(.*)$/Contact: <sip:\1@$avp(WANADVIP):$avp(WANADVPORT);domain=$avp(rd)>\3/")) {
                         subst("/Contact: +<sip:(.*)@(.*?)>(.*)$/Contact: <sip:\1@$avp(WANADVIP):$avp(WANADVPORT);domain=$avp(rd)>/");

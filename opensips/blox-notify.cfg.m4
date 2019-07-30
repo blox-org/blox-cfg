@@ -41,7 +41,7 @@ route[ROUTE_NOTIFY] {
             exit ;
         } else if ((uri==myself || from_uri==myself)) { #Log only LAN NOTIFY
             if($avp(LAN)) { #Log only LAN side NOTIFY
-                $var(TLS_BYPASS)=TLS_BYPASS_ENABLED; if($var(TLS_BYPASS)) { route(ROUTE_TLS_BYPASS); }
+                if($var(TLS_BYPASS)) { route(ROUTE_TLS_BYPASS); }
                 #$var(body) = $avp(SIPProfile) + "\r\n" + $mb;
                 #rest_post("gNOTIFYSRV", "$var(body)", "text/plain", "$var(body)", "$var(ct)", "$var(rcode)");
                 xlog("L_INFO","Sent NOTIFY to gNOTIFYSRV resp $var(body) $var(rcode)\n");

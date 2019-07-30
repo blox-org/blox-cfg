@@ -64,7 +64,7 @@ define(`DLG_DEFAULT_TIMEOUT',`43200')
 define(`OPS_MAX_CHILD',`5')
 define(`BLOX_TIMER_PARTITION',`16')
 define(`TLS_BYPASS_ENABLED',`"yes"')
-define(`CONTACT_DOMAIN_PARAM',`"no"')
+define(`CONTACT_DOMAIN_PARAM_ENABLED',`"no"')
 define(`BLOX_ALLOW_HDR',`"Allow: INVITE, UPDATE, PUBLISH, INFO, ACK, REFER, NOTIFY, CANCEL, BYE, REGISTER\r\n"')
 divert(0)dnl
 #dnl vim: set ts=4 sw=4 tw=0 et :

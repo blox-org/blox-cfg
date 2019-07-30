@@ -172,6 +172,9 @@ route {
         }
     }
 
+    $var(TLS_BYPASS)=TLS_BYPASS_ENABLED; 
+    $var(CONTACT_DOMAIN_PARAM)=CONTACT_DOMAIN_PARAM_ENABLED; 
+
     force_rport();
 
     xdbg("BLOX_DBG: blox.cfg: Got ($pr:$Ri:$Rp) $avp(SIPProfile): Index:$avp(LAN):$avp(WAN):");

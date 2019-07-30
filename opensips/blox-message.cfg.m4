@@ -19,7 +19,7 @@
 
 route[ROUTE_MESSAGE] {
     if(method == "MESSAGE") {
-        $var(TLS_BYPASS)="TLS_BYPASS_ENABLED"; if($var(TLS_BYPASS)) { route(ROUTE_TLS_BYPASS); }
+       if($var(TLS_BYPASS)) { route(ROUTE_TLS_BYPASS); }
        xlog("L_INFO", "MESSAGE Unprocessed, Dropping SIP Method $rm received from $fu $si $sp to $ru ($avp(rcv))\n"); #/* Don't know what to do */
        drop();
        exit;
