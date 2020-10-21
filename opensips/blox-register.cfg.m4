@@ -74,12 +74,12 @@ route[ROUTE_REGISTER] {
                     if($avp(PBXDOMAIN)==""){$avp(PBXDOMAIN)=null;}
 
                     if($var(CONTACT_DOMAIN_PARAM) == "yes") {
-                        if(! subst("/(Contact|m): +<sip:(.*)@(.*?)>;(.*)$/Contact: <sip:\1@$avp(LANIP):$avp(LANPORT);domain=$avp(rd)>;\3/")) {
-                            subst("/(Contact|m): +<sip:(.*)@(.*?)>(.*)$/Contact: <sip:\1@$avp(LANIP):$avp(LANPORT);domain=$avp(rd)>/");
+                        if(! subst("/^(Contact|m): +<sip:(.*)@(.*?)>;(.*)$/Contact: <sip:\2@$avp(LANIP):$avp(LANPORT);domain=$avp(rd)>;\4/")) {
+                            subst("/^(Contact|m): +<sip:(.*)@(.*?)>(.*)$/Contact: <sip:\2@$avp(LANIP):$avp(LANPORT);domain=$avp(rd)>/");
                         }
                     } else {
-                        if(! subst("/(Contact|m): +<sip:(.*)@(.*?)>;(.*)$/Contact: <sip:\1@$avp(LANIP):$avp(LANPORT)>;\3/")) {
-                            subst("/(Contact|m): +<sip:(.*)@(.*?)>(.*)$/Contact: <sip:\1@$avp(LANIP):$avp(LANPORT)>/");
+                        if(! subst("/^(Contact|m): +<sip:(.*)@(.*?)>;(.*)$/Contact: <sip:\2@$avp(LANIP):$avp(LANPORT)>;\4/")) {
+                            subst("/^(Contact|m): +<sip:(.*)@(.*?)>(.*)$/Contact: <sip:\2@$avp(LANIP):$avp(LANPORT)>/");
                         }
                     }
 
@@ -162,22 +162,22 @@ onreply_route[WAN2LAN_REGISTER] {
 
             if($var(CONTACT_DOMAIN_PARAM) == "yes") {	
                 if($avp(WANADVIP)) { # Roaming user: replace it with advIP:Port
-                    if(!subst("/(Contact|m): +<sip:(.*)@(.*?)>;(.*)$/Contact: <sip:\1@$avp(WANADVIP):$avp(WANADVPORT);domain=$avp(rd)>;\3/")) {
-                        subst("/(Contact|m): +<sip:(.*)@(.*?)>(.*)$/Contact: <sip:\1@$avp(WANADVIP):$avp(WANADVPORT);domain=$avp(rd)>/");
+                    if(!subst("/^(Contact|m): +<sip:(.*)@(.*?)>;(.*)$/Contact: <sip:\2@$avp(WANADVIP):$avp(WANADVPORT);domain=$avp(rd)>;\4/")) {
+                        subst("/^(Contact|m): +<sip:(.*)@(.*?)>(.*)$/Contact: <sip:\2@$avp(WANADVIP):$avp(WANADVPORT);domain=$avp(rd)>/");
                     }
                 } else {
-                    if(!subst("/(Contact|m): +<sip:(.*)@(.*?)>;(.*)$/Contact: <sip:\1@$avp(WANIP):$avp(WANPORT);domain=$avp(rd)>;\3/")) {
-                        subst("/(Contact|m): +<sip:(.*)@(.*?)>(.*)$/Contact: <sip:\1@$avp(WANIP):$avp(WANPORT);domain=$avp(rd)>/");
+                    if(!subst("/^(Contact|m): +<sip:(.*)@(.*?)>;(.*)$/Contact: <sip:\2@$avp(WANIP):$avp(WANPORT);domain=$avp(rd)>;\4/")) {
+                        subst("/^(Contact|m): +<sip:(.*)@(.*?)>(.*)$/Contact: <sip:\2@$avp(WANIP):$avp(WANPORT);domain=$avp(rd)>/");
                     }
                 }
             } else {
                 if($avp(WANADVIP)) { # Roaming user: replace it with advIP:Port
-                    if(!subst("/(Contact|m): +<sip:(.*)@(.*?)>;(.*)$/Contact: <sip:\1@$avp(WANADVIP):$avp(WANADVPORT)>;\3/")) {
-                        subst("/(Contact|m): +<sip:(.*)@(.*?)>(.*)$/Contact: <sip:\1@$avp(WANADVIP):$avp(WANADVPORT)>/");
+                    if(!subst("/^(Contact|m): +<sip:(.*)@(.*?)>;(.*)$/Contact: <sip:\2@$avp(WANADVIP):$avp(WANADVPORT)>;\4/")) {
+                        subst("/^(Contact|m): +<sip:(.*)@(.*?)>(.*)$/Contact: <sip:\2@$avp(WANADVIP):$avp(WANADVPORT)>/");
                     }
                 } else {
-                    if(!subst("/(Contact|m): +<sip:(.*)@(.*?)>;(.*)$/Contact: <sip:\1@$avp(WANIP):$avp(WANPORT)>;\3/")) {
-                        subst("/(Contact|m): +<sip:(.*)@(.*?)>(.*)$/Contact: <sip:\1@$avp(WANIP):$avp(WANPORT)>/");
+                    if(!subst("/^(Contact|m): +<sip:(.*)@(.*?)>;(.*)$/Contact: <sip:\2@$avp(WANIP):$avp(WANPORT)>;\4/")) {
+                        subst("/^(Contact|m): +<sip:(.*)@(.*?)>(.*)$/Contact: <sip:\2@$avp(WANIP):$avp(WANPORT)>/");
                     }
                 }
             }
